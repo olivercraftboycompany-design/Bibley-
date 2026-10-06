@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Books — Bible Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #141b2e;
+    --bg-header: #0f1524;
+    --bg-panel: #111a2f;
+    --ink: #e8e1d0;
+    --ink-dim: #e8e1d0a6;
+    --ink-faint: #e8e1d066;
+    --gold: #c9a867;
+    --gold-soft: #e8d9a8;
+    --border: #c9a86733;
+    --panel-border: #2a3658;
+    --verse-size: 19px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink); font-family:'Source Serif 4', Georgia, serif; overflow:hidden; }
+  .font-display { font-family:'Fraunces', Georgia, serif; }
+  #app { height:100vh; display:flex; flex-direction:column; }
+
+  header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--bg-header); flex-shrink:0; gap:8px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+  header::-webkit-scrollbar { height:4px; } header::-webkit-scrollbar-thumb { background:#c9a86744; border-radius:2px; }
+  @media(min-width:640px){ header{ padding:12px 20px; } }
+  #openNavBtn, #openAiBtn, #compareBtn, #bookmarkBtn, #fullscreenBtn { flex-shrink:0; }
+  #headerTitle { flex-shrink:0; }
+  @media(max-width:640px){
+    header { justify-content:flex-start; }
+    #headerTitle { order:-1; min-width:110px; text-align:left; margin-right:4px; }
+    .header-right { flex-shrink:0; }
+  }
+  #openNavBtn, #openAiBtn, #compareBtn, #bookmarkBtn, #fullscreenBtn {
+    display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--border); color:var(--gold);
+    padding:6px 11px; border-radius:8px; font-family:'Fraunces'; font-size:13px; cursor:pointer; transition:.2s;
+  }
+  .tts-btn { background:none; border:1px solid var(--border); color:var(--gold); border-radius:6px; padding:3px 8px; cursor:pointer; font-size:13px; transition:.2s; flex-shrink:0; }
+  .tts-btn:hover { border-color:#c9a86777; }
+  .tts-btn.active { background:var(--gold); color:var(--bg); animation:tts-pulse 1.4s ease-in-out infinite; }
+  @keyframes tts-pulse { 0%,100%{opacity:1;} 50%{opacity:.65;} }
+  .verses-text span.tts-current { background:#c9a86733; box-shadow:inset 0 0 0 1px var(--gold); }
+  #openNavBtn:hover, #compareBtn:hover, #openAiBtn:hover, #bookmarkBtn:hover, #fullscreenBtn:hover { border-color:#c9a86777; color:var(--gold-soft); }
+  #openAiBtn { background:#1d2744; border-color:#2f3d66; }
+  #openAiBtn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  #bookmarkBtn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  #compareBtn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  #fullscreenBtn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  #headerTitle { flex:1; text-align:center; font-size:15px; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .header-right { display:flex; gap:6px; align-items:center; }
+
+  #versionSelect { background:transparent; color:var(--gold); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'Source Serif 4'; font-size:13px; flex-shrink:0; }
+
+  #body { flex:1; min-height:0; display:flex; position:relative; overflow:hidden; }
+  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:.3s; z-index:29; }
+  #overlay.open { opacity:1; pointer-events:auto; }
+
+  #drawer { position:fixed; left:0; top:0; height:100%; width:88vw; max-width:360px; background:var(--bg-header); border-right:1px solid var(--border); display:flex; flex-direction:column; transform:translateX(-100%); transition:transform .3s cubic-bezier(.4,0,.2,1); z-index:30; }
+  #drawer.open { transform:translateX(0); }
+  .drawer-head { display:flex; justify-content:space-between; align-items:center; padding:18px 16px 10px; flex-shrink:0; }
+  .drawer-head .title { font-family:'Fraunces'; color:var(--gold); font-size:18px; line-height:1.1; }
+  .drawer-head .title small { display:block; font-family:'Source Serif 4'; font-size:10px; color:#c9a86799; text-transform:uppercase; letter-spacing:.14em; margin-top:4px; }
+  #closeNavBtn { background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:6px; }
+  .search-wrap { padding:12px 16px 8px; flex-shrink:0; }
+  #bookSearch { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:14px; color:var(--ink); font-family:'Source Serif 4'; }
+  #bookSearch:focus { outline:2px solid var(--gold); }
+
+  #bookmarkList { padding:0 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; max-height:140px; overflow-y:auto; display:none; }
+  #bookmarkList.has-items { display:block; }
+  #bookmarkList h4 { font-family:'Fraunces'; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin:10px 0 6px; }
+  #ssScopeRow { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 2px 0; }
+  #ssScopeLabel { font-size:10.5px; color:var(--ink-faint); }
+  #ssWholeBibleBtn { background:none; border:1px solid var(--border); color:var(--gold); border-radius:6px; padding:4px 9px; font-size:11px; cursor:pointer; font-family:'Fraunces'; flex-shrink:0; white-space:nowrap; }
+  #ssWholeBibleBtn:hover { border-color:#c9a86777; }
+  #ssWholeBibleBtn:disabled { opacity:.6; cursor:default; }
+  .ss-progress-wrap { padding:8px 2px 2px; }
+  .ss-progress-bar { height:4px; background:var(--panel-border); border-radius:2px; overflow:hidden; }
+  .ss-progress-fill { height:100%; background:var(--gold); transition:width .2s; }
+  .ss-progress-text { font-size:10.5px; color:var(--ink-faint); margin-top:4px; }
+  #scriptureSearchResults { padding:0 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; max-height:220px; overflow-y:auto; display:none; }
+  #scriptureSearchResults.has-items { display:block; }
+  #scriptureSearchResults .ss-note { font-size:11px; color:var(--ink-faint); padding:6px 0; line-height:1.5; }
+  #scriptureSearchResults .ss-item { padding:7px 8px; border-radius:6px; background:#1a2440; border:1px solid var(--panel-border); margin-bottom:6px; cursor:pointer; }
+  #scriptureSearchResults .ss-item:hover { border-color:var(--gold); }
+  #scriptureSearchResults .ss-ref { font-family:'Fraunces'; font-size:12px; color:var(--gold); margin-bottom:2px; }
+  #scriptureSearchResults .ss-text { font-size:12.5px; color:var(--ink-dim); line-height:1.4; }
+  #scriptureSearchResults .ss-text mark { background:#c9a86755; color:var(--ink); border-radius:2px; }
+  .bm-item, .hl-item-drawer { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-radius:6px; background:#1a2440; border:1px solid var(--panel-border); margin-bottom:6px; cursor:pointer; }
+  .bm-item:hover { border-color:var(--gold); }
+  .bm-item span, .hl-item-drawer span { font-size:13px; color:var(--ink); }
+  .bm-item button, .hl-item-drawer button { background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:12px; }
+
+  #bookList { flex:1; overflow-y:auto; padding:0 16px 16px; }
+  .section-label { font-size:10px; text-transform:uppercase; letter-spacing:.2em; color:#c9a86799; margin:16px 0 6px; font-family:'Fraunces'; }
+  .book-btn { display:flex; width:100%; justify-content:space-between; align-items:center; text-align:left; padding:7px 10px; border-radius:6px; border:none; background:none; color:#e8e1d0cc; font-size:14px; cursor:pointer; font-family:'Source Serif 4'; }
+  .book-btn:hover { background:#c9a86711; color:var(--ink); } .book-btn.active { background:#c9a86722; color:var(--gold); }
+  .book-btn .mark-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); display:none; }
+  .book-btn.bookmarked .mark-dot { display:block; }
+  .chapter-picker { border-top:1px solid var(--border); padding:12px 16px; max-height:150px; overflow-y:auto; flex-shrink:0; }
+  .chapter-grid { display:flex; flex-wrap:wrap; gap:6px; }
+  .ch-btn { width:36px; height:32px; display:grid; place-items:center; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--ink-dim); font-size:13px; cursor:pointer; position:relative; }
+  .ch-btn:hover { border-color:var(--gold); color:var(--ink); } .ch-btn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  .ch-btn.bookmarked::after { content:""; position:absolute; top:2px; right:2px; width:5px; height:5px; background:var(--gold); border-radius:50%; }
+  .ch-btn.active.bookmarked::after { background:var(--bg); }
+
+  #panes { flex:1; display:flex; min-width:0; min-height:0; }
+  .pane { flex:1; min-width:0; display:flex; flex-direction:column; border-right:1px solid var(--border); background:var(--bg); }
+  .pane:last-child { border-right:none; }
+  .pane-toolbar { display:none; padding:8px 16px; border-bottom:1px solid var(--border); background:var(--bg-header); justify-content:space-between; align-items:center; gap:8px; }
+  body.compare-mode .pane-toolbar { display:flex; }
+  .pane-ref-btn { background:none; border:1px solid var(--border); color:var(--gold); padding:4px 10px; border-radius:6px; font-family:'Fraunces'; font-size:13px; cursor:pointer; }
+  .pane-toolbar { position:relative; }
+  .ref-picker { display:none; position:absolute; top:calc(100% + 4px); left:8px; width:280px; max-width:80vw; max-height:360px; background:var(--bg-header); border:1px solid var(--panel-border); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.45); z-index:25; flex-direction:column; overflow:hidden; }
+  .ref-picker.open { display:flex; }
+  .ref-picker .rp-search { padding:8px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .ref-picker .rp-search input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:13px; color:var(--ink); font-family:'Source Serif 4'; }
+  .ref-picker .rp-books { flex:1; overflow-y:auto; padding:4px 6px; max-height:180px; }
+  .ref-picker .rp-book-btn { display:block; width:100%; text-align:left; padding:6px 8px; border-radius:6px; border:none; background:none; color:#e8e1d0cc; font-size:13px; cursor:pointer; font-family:'Source Serif 4'; }
+  .ref-picker .rp-book-btn:hover { background:#c9a86711; color:var(--ink); }
+  .ref-picker .rp-book-btn.active { background:#c9a86722; color:var(--gold); }
+  .ref-picker .rp-chapters { border-top:1px solid var(--border); padding:8px; flex-shrink:0; max-height:150px; overflow-y:auto; }
+  .ref-picker .rp-chapter-grid { display:flex; flex-wrap:wrap; gap:5px; }
+  .ref-picker .rp-ch-btn { width:30px; height:28px; display:grid; place-items:center; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--ink-dim); font-size:12px; cursor:pointer; }
+  .ref-picker .rp-ch-btn:hover { border-color:var(--gold); color:var(--ink); }
+  .ref-picker .rp-ch-btn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  .reader-main { flex:1; overflow-y:auto; padding:24px 20px 80px; }
+  @media(min-width:900px){ .reader-main{ padding:36px 48px 80px; } }
+  .reader-main::-webkit-scrollbar{ width:8px; } .reader-main::-webkit-scrollbar-thumb{ background:#c9a86744; border-radius:4px; }
+  .chapter-heading { margin-bottom:26px; border-bottom:1px solid var(--border); padding-bottom:18px; display:flex; justify-content:space-between; align-items:flex-end; gap:12px; }
+  .chapter-heading .left .eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#c9a86799; margin-bottom:8px; }
+  .chapter-heading h1 { font-family:'Fraunces'; font-weight:500; font-size:32px; margin:0; }
+  .chapter-heading h1 .chnum { color:var(--gold); }
+  .chapter-heading .right button { background:none; border:1px solid var(--border); color:var(--gold); padding:6px 10px; border-radius:8px; font-family:'Fraunces'; font-size:12px; cursor:pointer; }
+  .chapter-heading .right button.active { background:var(--gold); color:var(--bg); }
+
+  .verses-text { font-size:var(--verse-size); line-height:1.78; }
+  .verses-text span { cursor:pointer; border-radius:4px; padding:1px 3px; transition:all .15s; position:relative; }
+  .verses-text span:hover { background:#c9a86711; }
+  .verses-text span.selected { background:#c9a86722; box-shadow:inset 0 0 0 1px #c9a86744; }
+  .verses-text sup { font-family:'Fraunces'; font-size:11px; color:var(--gold); margin-right:4px; font-weight:600; vertical-align:super; user-select:none; }
+
+  /* Highlight colors */
+  .verses-text span.hl-yellow { background:#fde68a55; box-shadow:inset 0 -2px 0 #fde68a; }
+  .verses-text span.hl-green { background:#a7f3d055; box-shadow:inset 0 -2px 0 #6ee7b7; }
+  .verses-text span.hl-blue { background:#bfdbfe55; box-shadow:inset 0 -2px 0 #93c5fd; }
+  .verses-text span.hl-pink { background:#fbcfe855; box-shadow:inset 0 -2px 0 #f9a8d4; }
+  .verses-text span.hl-yellow.selected, .verses-text span.hl-green.selected, .verses-text span.hl-blue.selected, .verses-text span.hl-pink.selected { box-shadow:inset 0 0 0 1px #c9a86766, inset 0 -2px 0 currentColor; }
+
+  .pager { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-top:1px solid var(--border); background:var(--bg-header); }
+  .pager button { background:none; border:1px solid var(--border); color:var(--gold); padding:6px 12px; border-radius:8px; font-family:'Fraunces'; font-size:13px; cursor:pointer; }
+  .pager button:disabled { opacity:.35; pointer-events:none; }
+  .skeleton { display:flex; flex-direction:column; gap:12px; } .skel-line { height:14px; background:linear-gradient(90deg,#1d2740 25%,#23304e 50%,#1d2740 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; }
+  @keyframes shimmer{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .state-msg { text-align:center; padding:40px 20px; color:var(--ink-dim); }
+
+  /* AI Panel */
+  #aiPanel { position:fixed; right:0; top:0; height:100%; width:94vw; max-width:440px; background:linear-gradient(180deg,var(--bg-panel) 0%, #0d1426 100%); border-left:1px solid var(--panel-border); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); z-index:31; box-shadow:-20px 0 60px rgba(0,0,0,.5); }
+  #aiPanel.open { transform:translateX(0); }
+  .ai-head { padding:16px 18px; border-bottom:1px solid var(--panel-border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+  .ai-head h2 { font-family:'Fraunces'; font-size:16px; color:var(--ink); margin:0; font-weight:500; }
+  .ai-head h2 span { color:var(--gold); font-weight:600; }
+  .model-badge { font-family:'Source Serif 4'; font-size:10.5px; color:var(--ink-faint); font-weight:400; margin-top:3px; letter-spacing:.01em; }
+  .model-badge.ready::before { content:"● "; color:#7fd99a; }
+  .model-badge.loading::before { content:"● "; color:var(--gold); }
+  .model-badge.error::before { content:"● "; color:#e08a8a; }
+  #closeAiBtn { background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:6px; }
+  .ai-mode-toggle { display:flex; flex-wrap:wrap; gap:4px; padding:10px 12px 0; flex-shrink:0; }
+  .mode-btn { flex:1 1 calc(50% - 4px); min-width:90px; padding:7px 8px; border-radius:8px; border:1px solid var(--panel-border); background:var(--bg); color:var(--ink-dim); font-family:'Fraunces'; font-size:12px; cursor:pointer; transition:.2s; }
+  .mode-btn:hover { border-color:#c9a86777; color:var(--ink); }
+  .mode-btn.active { background:var(--gold); color:var(--bg-header); border-color:var(--gold); font-weight:600; }
+  .mode-btn[data-mode="strict"].active { background:#7d9d6b; border-color:#7d9d6b; }
+  .mode-btn[data-mode="cross"].active { background:#9b5a5a; border-color:#9b5a5a; }
+  .mode-btn[data-mode="conversational"].active { background:#5a7d9d; border-color:#5a7d9d; }
+  .ai-tabs { display:flex; gap:4px; padding:10px 12px; border-bottom:1px solid var(--panel-border); flex-shrink:0; overflow-x:auto; }
+  .ai-tab { flex:1; min-width:70px; padding:8px 6px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--ink-dim); font-family:'Fraunces'; font-size:11.5px; cursor:pointer; transition:.2s; white-space:nowrap; }
+  .ai-tab.active { background:#1e2a4a; border-color:#2f3d66; color:var(--gold-soft); }
+  .ai-content { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .ai-content::-webkit-scrollbar{ width:6px; } .ai-content::-webkit-scrollbar-thumb{ background:#2f3d66; border-radius:3px; }
+  .ai-card { background:#1a2440; border:1px solid var(--panel-border); border-radius:12px; padding:14px; }
+  .ai-card.gold { background:#211e16; border-color:#c9a86722; }
+  .ai-card h3 { font-family:'Fraunces'; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); margin:0 0 8px; }
+  .ai-card p { font-size:14px; line-height:1.6; margin:0; color:var(--ink); }
+  .ai-card .verse-ref { font-family:'Fraunces'; font-size:13px; color:var(--gold); margin-bottom:6px; }
+  .ai-card .verse-text { font-style:italic; color:var(--gold-soft); font-size:14px; line-height:1.5; margin-bottom:10px; }
+  .liturgy-head { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .liturgy-color-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; border:1px solid rgba(255,255,255,.25); }
+  .liturgy-color-dot.green { background:#3f7d4f; } .liturgy-color-dot.violet { background:#6a4c93; } .liturgy-color-dot.white { background:#e8e1d0; } .liturgy-color-dot.red { background:#a4333f; } .liturgy-color-dot.rose,.liturgy-color-dot.pink { background:#d98ca3; } .liturgy-color-dot.gold,.liturgy-color-dot.black { background:#2a2a2a; }
+  .liturgy-date { font-family:'Fraunces'; font-size:13px; color:var(--gold); }
+  .liturgy-season { font-size:12px; color:var(--ink-dim); text-transform:capitalize; }
+  .liturgy-feast-title { font-family:'Fraunces'; font-size:16px; color:var(--ink); margin:6px 0 2px; }
+  .liturgy-rank { font-size:12px; color:var(--ink-faint); text-transform:capitalize; }
+  .bullet { display:flex; gap:10px; margin:10px 0; }
+  .bullet .num { width:22px; height:22px; border-radius:50%; background:#c9a86722; border:1px solid #c9a86733; display:grid; place-items:center; font-size:11px; color:var(--gold); flex-shrink:0; font-family:'Fraunces'; }
+  .bullet p { font-size:14px; line-height:1.55; }
+
+  /* Sermon/lesson outline builder */
+  .outline-controls { display:flex; flex-direction:column; gap:10px; }
+  .outline-field-label { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:5px; }
+  .outline-chip-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .outline-chip { padding:6px 11px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--ink-dim); font-family:'Source Serif 4'; font-size:12.5px; cursor:pointer; transition:.2s; }
+  .outline-chip:hover { border-color:#c9a86777; color:var(--ink); }
+  .outline-chip.active { background:var(--gold); color:var(--bg-header); border-color:var(--gold); font-weight:600; }
+  .outline-length-row { display:flex; gap:6px; }
+  .outline-generate-btn { width:100%; padding:11px; border-radius:10px; border:none; background:var(--gold); color:var(--bg-header); font-family:'Fraunces'; font-weight:600; font-size:13.5px; cursor:pointer; margin-top:2px; }
+  .outline-generate-btn:hover { filter:brightness(1.06); }
+  .outline-generate-btn:disabled { opacity:.55; cursor:default; }
+  .outline-title-card h3 { font-size:16px; text-transform:none; letter-spacing:0; font-family:'Fraunces'; color:var(--gold-soft); }
+  .outline-meta { font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .outline-point { padding:6px 0; }
+  .outline-point .sub-num { font-family:'Fraunces'; font-size:12px; color:var(--gold); margin-right:6px; }
+  .outline-subpoints { margin:6px 0 4px 20px; display:flex; flex-direction:column; gap:5px; }
+  .outline-subpoints .sub-item { font-size:13px; color:var(--ink-dim); line-height:1.5; padding-left:10px; border-left:2px solid #c9a86733; }
+  .outline-illustration { margin-top:8px; padding:9px 10px; background:#141e36; border:1px solid #2a3658; border-radius:8px; font-size:12.5px; color:var(--ink-dim); line-height:1.5; }
+  .outline-illustration b { color:var(--gold); font-weight:600; }
+  .outline-actions { display:flex; gap:8px; margin-top:4px; }
+  .outline-actions button { flex:1; }
+  #outlineCopyBtn.copied { background:#7d9d6b; color:#0d1426; border-color:#7d9d6b; }
+
+  .hl-controls { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .hl-btn { width:32px; height:32px; border-radius:8px; border:2px solid transparent; cursor:pointer; display:grid; place-items:center; transition:.2s; }
+  .hl-btn.yellow { background:#fde68a; } .hl-btn.green { background:#a7f3d0; } .hl-btn.blue { background:#bfdbfe; } .hl-btn.pink { background:#fbcfe8; }
+  .hl-btn.clear { background:transparent; border-color:var(--border); color:var(--ink-dim); font-size:12px; width:auto; padding:0 10px; font-family:'Fraunces'; }
+  .hl-btn.active { border-color:var(--gold); box-shadow:0 0 0 2px #c9a86744; }
+  .hl-btn:hover { transform:translateY(-1px); }
+
+  .scripture-source { margin-top:10px; padding:10px; background:#141e36; border:1px solid #2a3658; border-radius:8px; }
+  .scripture-source .ref { font-family:'Fraunces'; font-size:12px; color:var(--gold); font-weight:600; }
+  .scripture-source .text { font-size:13px; color:var(--ink); line-height:1.5; margin-top:4px; }
+
+  #aiChatLog { display:flex; flex-direction:column; gap:10px; flex:1; min-height:200px; }
+  .msg { max-width:88%; padding:10px 12px; border-radius:12px; font-size:13.5px; line-height:1.55; }
+  .msg.user { align-self:flex-end; background:var(--gold); color:var(--bg); border-bottom-right-radius:4px; }
+  .msg.ai { align-self:flex-start; background:#1e2a4a; border:1px solid #2a3658; color:var(--ink); border-bottom-left-radius:4px; }
+  .ai-empty { text-align:center; padding:30px 16px; color:var(--ink-dim); }
+  .chat-memory-note { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px; color:var(--ink-faint); background:#1a2440; border:1px solid var(--panel-border); border-radius:8px; padding:6px 10px; margin-bottom:10px; }
+  .chat-memory-note button { background:none; border:1px solid var(--border); color:var(--ink-dim); font-size:11px; padding:2px 8px; border-radius:6px; cursor:pointer; font-family:'Source Serif 4'; }
+  .chat-memory-note button:hover { color:var(--gold); border-color:#c9a86777; }
+
+  /* Conversation switcher (Chatbot tab) */
+  .convo-bar { display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .convo-select-wrap { position:relative; flex:1; min-width:0; }
+  #convoSelectBtn { width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px; background:#1a2440; border:1px solid var(--panel-border); color:var(--ink); padding:8px 10px; border-radius:8px; font-family:'Fraunces'; font-size:13px; cursor:pointer; text-align:left; }
+  #convoSelectBtn:hover { border-color:#c9a86777; }
+  #convoSelectBtn .convo-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #convoSelectBtn .caret { color:var(--ink-faint); flex-shrink:0; font-size:10px; }
+  .convo-dropdown { display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--bg-header); border:1px solid var(--panel-border); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.45); z-index:20; max-height:260px; overflow-y:auto; }
+  .convo-dropdown.open { display:block; }
+  .convo-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; cursor:pointer; border-bottom:1px solid var(--panel-border); }
+  .convo-item:last-child { border-bottom:none; }
+  .convo-item:hover { background:#c9a86711; }
+  .convo-item.active { background:#c9a86722; }
+  .convo-item .convo-item-name { font-size:13px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .convo-item .convo-item-meta { font-size:10.5px; color:var(--ink-faint); margin-top:2px; }
+  .convo-item .convo-item-actions { display:flex; gap:4px; flex-shrink:0; }
+  .convo-item .convo-item-actions button { background:none; border:1px solid var(--border); color:var(--ink-faint); border-radius:5px; padding:2px 6px; font-size:10.5px; cursor:pointer; font-family:'Source Serif 4'; }
+  .convo-item .convo-item-actions button:hover { color:var(--gold); border-color:#c9a86777; }
+  #convoNewBtn { flex-shrink:0; background:var(--gold); color:var(--bg-header); border:none; border-radius:8px; padding:8px 12px; font-family:'Fraunces'; font-weight:600; font-size:13px; cursor:pointer; }
+  #convoNewBtn:hover { filter:brightness(1.06); }
+  .convo-rename-input { width:100%; background:var(--bg); border:1px solid var(--gold); border-radius:6px; padding:5px 7px; font-size:13px; color:var(--ink); font-family:'Source Serif 4'; }
+  .thinking-dots { display:inline-flex; align-items:center; gap:3px; color:var(--ink-dim); font-style:italic; }
+  .thinking-dots i { width:4px; height:4px; border-radius:50%; background:var(--gold); display:inline-block; animation:tdot 1.1s infinite ease-in-out; }
+  .thinking-dots i:nth-child(2){ animation-delay:.15s; } .thinking-dots i:nth-child(3){ animation-delay:.3s; }
+  @keyframes tdot{ 0%,80%,100%{ opacity:.25; transform:translateY(0); } 40%{ opacity:1; transform:translateY(-2px); } }
+  #aiChatInput:disabled, #aiChatSend:disabled { opacity:.6; cursor:not-allowed; }
+  .ai-action-btn { width:100%; padding:10px; border-radius:10px; border:1px solid #2f3d66; background:#1d2744; color:var(--gold-soft); font-family:'Fraunces'; font-size:13px; cursor:pointer; }
+  .ai-action-btn:hover { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+  #aiChatForm { display:flex; gap:8px; padding:12px; border-top:1px solid var(--panel-border); background:#0f172c; flex-shrink:0; }
+  #aiChatInput { flex:1; background:var(--bg); border:1px solid #2f3d66; border-radius:10px; padding:10px 12px; color:var(--ink); font-family:'Source Serif 4'; font-size:14px; }
+  #aiChatInput:focus { outline:2px solid var(--gold); }
+  #aiChatSend { background:var(--gold); color:var(--bg); border:none; border-radius:10px; padding:0 14px; cursor:pointer; font-family:'Fraunces'; font-weight:600; }
+
+  .marks-list { display:flex; flex-direction:column; gap:8px; }
+  .mark-item { background:#1a2440; border:1px solid var(--panel-border); border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; cursor:pointer; }
+  .mark-item:hover { border-color:#c9a86755; }
+  .mark-item .left .ref { font-family:'Fraunces'; font-size:13px; color:var(--gold); }
+  .mark-item .left .snippet { font-size:12px; color:var(--ink-dim); margin-top:3px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .mark-item .right { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  .color-dot { width:12px; height:12px; border-radius:50%; }
+  .color-dot.yellow { background:#fde68a; } .color-dot.green { background:#a7f3d0; } .color-dot.blue { background:#bfdbfe; } .color-dot.pink { background:#fbcfe8; }
+  .icon-btn { background:none; border:1px solid var(--border); color:var(--ink-dim); border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer; font-family:'Fraunces'; }
+  .icon-btn:hover { color:var(--ink); border-color:var(--gold); }
+
+  .fade-in { animation:fade .3s ease; } @keyframes fade{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  @media(max-width:700px){ #aiPanel{ width:100vw; max-width:100vw; } .verses-text{ font-size:17px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button id="openNavBtn">Books</button>
+    <div id="headerTitle" class="font-display">Genesis 1</div>
+    <div class="header-right">
+      <button id="bookmarkBtn" title="Bookmark this chapter">Bookmark</button>
+      <button id="openAiBtn">Study</button>
+      <button id="compareBtn">Compare</button>
+      <button id="fullscreenBtn" title="Toggle fullscreen">⤢</button>
+      <select id="versionSelect"></select>
+    </div>
+  </header>
+
+  <div id="body">
+    <div id="overlay"></div>
+    <nav id="drawer">
+      <div class="drawer-head"><div class="title">The Books<small>66 books</small></div><button id="closeNavBtn">Close</button></div>
+      <div class="search-wrap"><input id="bookSearch" placeholder="Search books" /></div>
+      <div class="search-wrap" style="padding-top:0">
+        <input id="scriptureSearch" placeholder="Search verse text..." />
+        <div id="ssScopeRow">
+          <span id="ssScopeLabel">Searching chapters you've viewed</span>
+          <button id="ssWholeBibleBtn" type="button">Search whole Bible</button>
+        </div>
+      </div>
+      <div id="scriptureSearchResults"></div>
+      <div id="bookmarkList"></div>
+      <div id="bookList"></div>
+      <div class="chapter-picker"><div style="font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:#c9a86799; margin-bottom:8px; font-family:Fraunces">Chapters</div><div id="chapterGrid" class="chapter-grid"></div></div>
+    </nav>
+
+    <div id="panes">
+      <div class="pane" data-pane="a">
+        <div class="pane-toolbar">
+          <button class="pane-ref-btn font-display" data-pane="a">Genesis 1</button>
+          <span style="font-size:11px;color:var(--ink-dim)" class="pane-version-label" data-pane="a">WEB</span>
+          <button class="tts-btn" data-pane="a" title="Read this chapter aloud">🔊</button>
+          <div class="ref-picker" data-pane="a">
+            <div class="rp-search"><input type="text" class="rp-search-input" placeholder="Search books" /></div>
+            <div class="rp-books"></div>
+            <div class="rp-chapters"><div class="rp-chapter-grid"></div></div>
+          </div>
+        </div>
+        <div class="reader-main" id="main-a"><div class="reader-inner"></div></div>
+        <div class="pager"><button class="prev-btn" data-pane="a">Prev</button><span class="pager-label font-display" style="font-size:12px;color:var(--ink-dim)"></span><button class="next-btn" data-pane="a">Next</button></div>
+      </div>
+      <div class="pane" data-pane="b" style="display:none">
+        <div class="pane-toolbar">
+          <button class="pane-ref-btn font-display" data-pane="b">Genesis 1</button>
+          <select id="versionSelectB" style="background:transparent;color:var(--ink-dim);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-family:'Source Serif 4';font-size:11px;"></select>
+          <button class="tts-btn" data-pane="b" title="Read this chapter aloud">🔊</button>
+          <div class="ref-picker" data-pane="b">
+            <div class="rp-search"><input type="text" class="rp-search-input" placeholder="Search books" /></div>
+            <div class="rp-books"></div>
+            <div class="rp-chapters"><div class="rp-chapter-grid"></div></div>
+          </div>
+        </div>
+        <div class="reader-main" id="main-b"><div class="reader-inner"></div></div>
+        <div class="pager"><button class="prev-btn" data-pane="b">Prev</button><span class="pager-label font-display" style="font-size:12px;color:var(--ink-dim)"></span><button class="next-btn" data-pane="b">Next</button></div>
+      </div>
+    </div>
+
+    <aside id="aiPanel">
+      <div class="ai-head"><h2><span>Study</span> Assistant<div class="model-badge ready">Free AI — no signup, no key</div></h2><button id="closeAiBtn">Close</button></div>
+      <div class="ai-mode-toggle" role="radiogroup" aria-label="Assistant mode">
+        <button class="mode-btn active" data-mode="scholar" title="Broader study help: history, cross-references, original languages, wider Christian tradition">Scholar</button>
+        <button class="mode-btn" data-mode="strict" title="Answers only from scripture text itself. No interpretive leaps, no reframing around what scripture says.">Scripture Only</button>
+        <button class="mode-btn" data-mode="cross" title="Grounded in scripture, and every answer is tied back to the cross — what Jesus's death and resurrection mean for the passage or question.">Cross-Centered</button>
+        <button class="mode-btn" data-mode="conversational" title="Casual, back-and-forth tone, like talking with a knowledgeable friend — still grounded in scripture, just shorter and less formal.">Conversational</button>
+      </div>
+      <div class="ai-tabs">
+        <button class="ai-tab active" data-tab="chapter">Chapter</button>
+        <button class="ai-tab" data-tab="verse">Verse</button>
+        <button class="ai-tab" data-tab="outline">Outline</button>
+        <button class="ai-tab" data-tab="compare" id="compareTabBtn" style="display:none">Compare</button>
+        <button class="ai-tab" data-tab="chat">Chatbot</button>
+        <button class="ai-tab" data-tab="marks">Marks</button>
+      </div>
+      <div class="ai-content" id="aiContent"></div>
+      <form id="aiChatForm" style="display:none"><input id="aiChatInput" placeholder="Ask grounded in scripture..." autocomplete="off"/><button id="aiChatSend" type="submit">Send</button></form>
+    </aside>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  // --- IndexedDB: multiple named Bible-study conversations -----------------
+  // Chat used to be a single localStorage blob (one conversation, forever).
+  // This replaces that with IndexedDB so the user can keep several separate
+  // conversations (e.g. "Romans study", "Youth group prep") side by side,
+  // switch between them, rename or delete them, without them overwriting
+  // each other. IndexedDB is used (rather than more localStorage keys)
+  // because it comfortably holds many conversations' worth of transcript
+  // without the ~5MB localStorage ceiling, and gives real indexed lookup
+  // by conversation id.
+  const DB_NAME = "bible_reader_db";
+  const DB_VERSION = 1;
+  const STORE_CONVOS = "conversations"; // {id, title, summary, createdAt, updatedAt}
+  const STORE_MESSAGES = "messages";    // {id (auto), convoId, role, text, sources, ts}
+  let dbPromise = null;
+  function openDb(){
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject)=>{
+      if(!window.indexedDB){ reject(new Error("no-indexeddb")); return; }
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e)=>{
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains(STORE_CONVOS)){
+          const s = db.createObjectStore(STORE_CONVOS, { keyPath: "id" });
+          s.createIndex("updatedAt", "updatedAt");
+        }
+        if(!db.objectStoreNames.contains(STORE_MESSAGES)){
+          const m = db.createObjectStore(STORE_MESSAGES, { keyPath: "id", autoIncrement: true });
+          m.createIndex("convoId", "convoId");
+        }
+      };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error || new Error("indexeddb-open-failed"));
+    });
+    return dbPromise;
+  }
+  function tx(storeNames, mode){
+    return openDb().then(db=> db.transaction(storeNames, mode));
+  }
+  function reqToPromise(req){
+    return new Promise((resolve, reject)=>{ req.onsuccess=()=> resolve(req.result); req.onerror=()=> reject(req.error); });
+  }
+  const ChatDB = {
+    async listConversations(){
+      const t = await tx([STORE_CONVOS], "readonly");
+      const all = await reqToPromise(t.objectStore(STORE_CONVOS).getAll());
+      return all.sort((a,b)=> b.updatedAt - a.updatedAt);
+    },
+    async getConversation(id){
+      const t = await tx([STORE_CONVOS], "readonly");
+      return reqToPromise(t.objectStore(STORE_CONVOS).get(id));
+    },
+    async createConversation(title){
+      const id = "c_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+      const now = Date.now();
+      const convo = { id, title: title || "New conversation", summary: "", createdAt: now, updatedAt: now };
+      const t = await tx([STORE_CONVOS], "readwrite");
+      await reqToPromise(t.objectStore(STORE_CONVOS).add(convo));
+      return convo;
+    },
+    async renameConversation(id, title){
+      const t = await tx([STORE_CONVOS], "readwrite");
+      const store = t.objectStore(STORE_CONVOS);
+      const convo = await reqToPromise(store.get(id));
+      if(!convo) return null;
+      convo.title = title; convo.updatedAt = Date.now();
+      await reqToPromise(store.put(convo));
+      return convo;
+    },
+    async touchConversation(id){
+      const t = await tx([STORE_CONVOS], "readwrite");
+      const store = t.objectStore(STORE_CONVOS);
+      const convo = await reqToPromise(store.get(id));
+      if(!convo) return;
+      convo.updatedAt = Date.now();
+      await reqToPromise(store.put(convo));
+    },
+    async saveSummary(id, summary){
+      const t = await tx([STORE_CONVOS], "readwrite");
+      const store = t.objectStore(STORE_CONVOS);
+      const convo = await reqToPromise(store.get(id));
+      if(!convo) return;
+      convo.summary = summary; convo.updatedAt = Date.now();
+      await reqToPromise(store.put(convo));
+    },
+    async deleteConversation(id){
+      const t = await tx([STORE_CONVOS, STORE_MESSAGES], "readwrite");
+      t.objectStore(STORE_CONVOS).delete(id);
+      const msgStore = t.objectStore(STORE_MESSAGES);
+      const idx = msgStore.index("convoId");
+      const keysReq = idx.getAllKeys(IDBKeyRange.only(id));
+      const keys = await reqToPromise(keysReq);
+      keys.forEach(k=> msgStore.delete(k));
+    },
+    async getMessages(convoId){
+      const t = await tx([STORE_MESSAGES], "readonly");
+      const idx = t.objectStore(STORE_MESSAGES).index("convoId");
+      const all = await reqToPromise(idx.getAll(IDBKeyRange.only(convoId)));
+      return all.sort((a,b)=> a.ts - b.ts);
+    },
+    async addMessage(convoId, role, text, sources){
+      const msg = { convoId, role, text, sources: sources||null, ts: Date.now() };
+      const t = await tx([STORE_MESSAGES], "readwrite");
+      const id = await reqToPromise(t.objectStore(STORE_MESSAGES).add(msg));
+      await ChatDB.touchConversation(convoId);
+      return { ...msg, id };
+    },
+    async replaceOldMessagesWithSummary(convoId, keepFromTs){
+      // Deletes every message in this conversation older than keepFromTs.
+      // Used after folding old turns into the running summary, same idea as
+      // the old localStorage compression step.
+      const t = await tx([STORE_MESSAGES], "readwrite");
+      const idx = t.objectStore(STORE_MESSAGES).index("convoId");
+      const all = await reqToPromise(idx.getAll(IDBKeyRange.only(convoId)));
+      all.filter(m=> m.ts < keepFromTs).forEach(m=> t.objectStore(STORE_MESSAGES).delete(m.id));
+    },
+    async migrateFromLocalStorageIfNeeded(){
+      // One-time migration: the app used to keep a single conversation in
+      // localStorage (bible_chat_history_v1 / bible_chat_summary_v1). If
+      // that data exists and IndexedDB has no conversations yet, bring it
+      // over as the first conversation so nobody's existing chat vanishes.
+      try {
+        const existing = await ChatDB.listConversations();
+        if(existing.length) return null;
+        const rawHistory = localStorage.getItem("bible_chat_history_v1");
+        const rawSummary = localStorage.getItem("bible_chat_summary_v1");
+        if(!rawHistory && !rawSummary) return null;
+        const history = rawHistory ? JSON.parse(rawHistory) : [];
+        const convo = await ChatDB.createConversation("Imported conversation");
+        if(rawSummary) await ChatDB.saveSummary(convo.id, rawSummary);
+        for(const m of history){ await ChatDB.addMessage(convo.id, m.role, m.text, m.sources); }
+        localStorage.removeItem("bible_chat_history_v1");
+        localStorage.removeItem("bible_chat_summary_v1");
+        return convo;
+      } catch(err){
+        console.warn("Chat migration from localStorage skipped", err);
+        return null;
+      }
+    }
+  };
+
+  const BOOKS = [
+    ["Genesis","Genesis",50,"law","Beginnings and covenant"],["Exodus","Exodus",40,"law","Deliverance and law"],["Leviticus","Leviticus",27,"law","Holiness"],["Numbers","Numbers",36,"law","Wandering"],["Deuteronomy","Deuteronomy",34,"law","Covenant renewal"],
+    ["Joshua","Joshua",24,"history","Conquest"],["Judges","Judges",21,"history","Deliverers"],["Ruth","Ruth",4,"history","Redemption"],["1 Samuel","1 Samuel",31,"history","Kingship"],["2 Samuel","2 Samuel",24,"history","David"],["1 Kings","1 Kings",22,"history","Divided kingdom"],["2 Kings","2 Kings",25,"history","Exile"],["1 Chronicles","1 Chronicles",29,"history","Retelling"],["2 Chronicles","2 Chronicles",36,"history","Temple"],["Ezra","Ezra",10,"history","Return"],["Nehemiah","Nehemiah",13,"history","Restoration"],["Esther","Esther",10,"history","Providence"],
+    ["Job","Job",42,"poetry","Suffering"],["Psalms","Psalm",150,"poetry","Worship"],["Proverbs","Proverbs",31,"poetry","Wisdom"],["Ecclesiastes","Ecclesiastes",12,"poetry","Meaning"],["Song of Solomon","Song of Songs",8,"poetry","Love"],
+    ["Isaiah","Isaiah",66,"prophets","Hope"],["Jeremiah","Jeremiah",52,"prophets","New covenant"],["Lamentations","Lamentations",5,"prophets","Lament"],["Ezekiel","Ezekiel",48,"prophets","Restoration"],["Daniel","Daniel",12,"prophets","Sovereignty"],
+    ["Hosea","Hosea",14,"prophets","Faithful love"],["Joel","Joel",3,"prophets","Spirit"],["Amos","Amos",9,"prophets","Justice"],["Obadiah","Obadiah",1,"prophets","Humility"],["Jonah","Jonah",4,"prophets","Mercy"],["Micah","Micah",7,"prophets","Bethlehem"],["Nahum","Nahum",3,"prophets","Comfort"],["Habakkuk","Habakkuk",3,"prophets","Faith"],["Zephaniah","Zephaniah",3,"prophets","Day of Lord"],["Haggai","Haggai",2,"prophets","Temple"],["Zechariah","Zechariah",14,"prophets","Messiah"],["Malachi","Malachi",4,"prophets","Messenger"],
+    ["Matthew","Matthew",28,"gospels","Kingdom"],["Mark","Mark",16,"gospels","Servant"],["Luke","Luke",24,"gospels","Savior"],["John","John",21,"gospels","Word"],
+    ["Acts","Acts",28,"history-nt","Spirit"],
+    ["Romans","Romans",16,"letters","Righteousness"],["1 Corinthians","1 Corinthians",16,"letters","Unity"],["2 Corinthians","2 Corinthians",13,"letters","Reconciliation"],["Galatians","Galatians",6,"letters","Freedom"],["Ephesians","Ephesians",6,"letters","Church"],["Philippians","Philippians",4,"letters","Joy"],["Colossians","Colossians",4,"letters","Christ"],["1 Thessalonians","1 Thessalonians",5,"letters","Hope"],["2 Thessalonians","2 Thessalonians",3,"letters","Perseverance"],["1 Timothy","1 Timothy",6,"letters","Leadership"],["2 Timothy","2 Timothy",4,"letters","Endurance"],["Titus","Titus",3,"letters","Good works"],["Philemon","Philemon",1,"letters","Forgiveness"],
+    ["Hebrews","Hebrews",13,"letters","Better covenant"],["James","James",5,"letters","Faith works"],["1 Peter","1 Peter",5,"letters","Suffering"],["2 Peter","2 Peter",3,"letters","Truth"],["1 John","1 John",5,"letters","Love"],["2 John","2 John",1,"letters","Truth"],["3 John","3 John",1,"letters","Hospitality"],["Jude","Jude",1,"letters","Contend"],
+    ["Revelation","Revelation",22,"prophecy","Victory"]
+  ];
+  // Public-domain translations confirmed available on bible-api.com (the same
+  // free, keyless, CORS-enabled API this app already uses for verse text).
+  // English translations first, then other languages sharing the same API.
+  const VERSIONS = [
+    ["web","WEB — World English Bible"],
+    ["webbe","WEBBE — World English Bible, British Edition"],
+    ["esv","ESV — English Standard Version (API key)"],
+    ["bsb","BSB — Berean Standard Bible"],
+    ["net","NET — New English Translation"],
+    ["kjv","KJV — King James Version"],
+    ["asv","ASV — American Standard Version"],
+    ["bbe","BBE — Bible in Basic English"],
+    ["darby","DARBY — Darby Translation"],
+    ["ylt","YLT — Young's Literal Translation"],
+    ["wbt","WBT — Webster's Bible"],
+    ["oeb-us","OEB-US — Open English Bible (US)"],
+    ["oeb-cw","OEB-CW — Open English Bible (Commonwealth)"],
+    ["clementine","Clementine — Latin Vulgate (Latin)"],
+    ["almeida","Almeida — João Ferreira de Almeida (Portuguese)"],
+    ["rccv","RCCV — Cornilescu Version (Romanian)"]
+  ];
+  // Topic index used to find candidate cross-references for a chatbot question.
+  // Deliberately holds ONLY references and topic tags, never verse text --
+  // the actual text is fetched live from bible-api.com at answer time (see
+  // fetchVerseText/findRelatedVerses below), in whichever translation the
+  // reader currently has open. This means citations are always sourced fresh
+  // from the real API instead of relying on text baked into this file, which
+  // could drift from what a given translation actually says.
+  const SCRIPTURE_TOPIC_INDEX = [
+    {ref:"John 3:16", topics:["salvation","love","faith","eternal life"]},
+    {ref:"Romans 8:28", topics:["suffering","purpose","hope"]},
+    {ref:"Philippians 4:6-7", topics:["anxiety","peace","prayer","fear"]},
+    {ref:"Jeremiah 29:11", topics:["future","hope","plans"]},
+    {ref:"Psalm 23:1-3", topics:["peace","provision","rest"]},
+    {ref:"1 Corinthians 13:4-7", topics:["love","patience"]},
+    {ref:"Isaiah 41:10", topics:["fear","strength","courage"]},
+    {ref:"Matthew 11:28-30", topics:["rest","burden","weary"]},
+    {ref:"Romans 6:23", topics:["sin","death","gift","salvation"]},
+    {ref:"Ephesians 2:8-9", topics:["grace","faith","saved"]},
+    {ref:"Proverbs 3:5-6", topics:["trust","wisdom","guidance"]},
+    {ref:"1 John 1:9", topics:["forgiveness","confession","sin"]},
+    {ref:"Psalm 46:1", topics:["refuge","strength","help"]},
+    {ref:"John 14:6", topics:["way","truth","life","jesus"]},
+    {ref:"Romans 12:2", topics:["renewal","mind","transformation","world"]},
+    {ref:"Galatians 5:22-23", topics:["fruit","spirit","kindness","gentleness","patience"]},
+    {ref:"James 1:2-4", topics:["trials","perseverance","testing","joy"]},
+    {ref:"2 Corinthians 5:17", topics:["new creation","change","identity"]},
+    {ref:"Psalm 34:18", topics:["brokenhearted","grief","comfort"]},
+    {ref:"Matthew 6:33", topics:["priorities","kingdom","provision"]},
+    {ref:"1 Peter 5:7", topics:["anxiety","worry","care"]},
+    {ref:"Joshua 1:9", topics:["courage","fear","strength"]},
+    {ref:"Colossians 3:23", topics:["work","purpose","diligence"]},
+    {ref:"Micah 6:8", topics:["justice","mercy","humility"]},
+    {ref:"Psalm 139:14", topics:["identity","worth","creation"]},
+    {ref:"Hebrews 11:1", topics:["faith","hope","assurance"]},
+    {ref:"Matthew 5:9", topics:["peace","reconciliation","conflict"]},
+    {ref:"James 4:7", topics:["temptation","resistance","surrender"]},
+    {ref:"Romans 5:8", topics:["love","grace","sacrifice"]},
+    {ref:"Psalm 139:23-24", topics:["self examination","honesty","heart"]}
+  ];
+
+  // In-memory cache so the same verse text isn't re-fetched from the API
+  // repeatedly within a session (cleared on page reload -- deliberately not
+  // persisted, since it's just an optimization, not user data).
+  const verseTextCache = {};
+
+  // --- ESV (Crossway) via the official ESV API (api.esv.org) ---------------
+  // The ESV is copyrighted, so it isn't on bible-api.com. Crossway offers a
+  // free non-commercial API; get a key at https://api.esv.org/ and the app
+  // will ask for it the first time you open the ESV. It's stored only in
+  // this browser's localStorage. Per the ESV API terms, don't bulk-download
+  // the text -- so ESV is excluded from the "Search whole Bible" index.
+  const STORAGE_ESV_KEY = "bible_esv_api_key_v1";
+  const ESV_COPYRIGHT = "ESV\u00ae Bible \u00a9 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission via the ESV API.";
+  function getEsvKey(){ try { return localStorage.getItem(STORAGE_ESV_KEY) || ""; } catch { return ""; } }
+  function ensureEsvKey(force){
+    let key = force ? "" : getEsvKey();
+    if(!key){
+      key = (prompt("To read the ESV, paste your free ESV API key (get one at api.esv.org). It is stored only in this browser:") || "").trim();
+      if(key) { try { localStorage.setItem(STORAGE_ESV_KEY, key); } catch {} }
+    }
+    if(!key) throw new Error("ESV API key needed -- re-select ESV to enter it");
+    return key;
+  }
+  async function esvRequest(ref){
+    const params = new URLSearchParams({
+      q: ref,
+      "include-passage-references":"false", "include-verse-numbers":"true",
+      "include-first-verse-numbers":"true", "include-footnotes":"false",
+      "include-footnote-body":"false", "include-headings":"false",
+      "include-short-copyright":"false", "include-selahs":"true",
+      "indent-paragraphs":"0", "indent-poetry":"false", "indent-declares":"0",
+      "indent-psalm-doxology":"0", "line-length":"0"
+    });
+    let key = ensureEsvKey(false);
+    let res = await fetchWithTimeout("https://api.esv.org/v3/passage/text/?"+params, { headers:{ Authorization:"Token "+key } }, 10000);
+    if(res.status===401 || res.status===403){
+      try { localStorage.removeItem(STORAGE_ESV_KEY); } catch {}
+      key = ensureEsvKey(true);
+      res = await fetchWithTimeout("https://api.esv.org/v3/passage/text/?"+params, { headers:{ Authorization:"Token "+key } }, 10000);
+    }
+    if(!res.ok) throw new Error("esv-"+res.status);
+    const data = await res.json();
+    return (data.passages && data.passages[0]) || "";
+  }
+  // Returns [{verse, text}] for a whole chapter, parsed from "[1] text [2] text".
+  async function fetchEsvChapter(bookName, chapter){
+    const raw = await esvRequest(bookName+" "+chapter);
+    const parts = raw.split(/\[(\d+)\]/); // ["", "1", " text ", "2", " text "...]
+    const verses = [];
+    for(let i=1; i<parts.length; i+=2){
+      const t = (parts[i+1]||"").replace(/\s+/g," ").trim();
+      if(t) verses.push({ verse: parseInt(parts[i],10), text: t });
+    }
+    return verses;
+  }
+  async function fetchEsvVerseText(ref){
+    const raw = await esvRequest(ref);
+    return raw.replace(/\[(\d+)\]/g,"").replace(/\s+/g," ").trim();
+  }
+
+  // --- NET Bible via labs.bible.org (no key needed) -----------------------
+  // Per NET terms: keep the copyright notice visible, no bulk downloading.
+  const NET_COPYRIGHT = "NET Bible\u00ae copyright \u00a91996, 2019 by Biblical Studies Press, L.L.C. http://netbible.com All rights reserved. Used by permission.";
+  function netJsonp(passage){
+    return new Promise((resolve,reject)=>{
+      const cb="netCb_"+Math.random().toString(36).slice(2);
+      const sc=document.createElement("script");
+      const done=(fn,v)=>{ clearTimeout(t); delete window[cb]; sc.remove(); fn(v); };
+      const t=setTimeout(()=>done(reject,new Error("net-timeout")),10000);
+      window[cb]=data=>done(resolve,data);
+      sc.onerror=()=>done(reject,new Error("net-failed"));
+      sc.src="https://labs.bible.org/api/?passage="+encodeURIComponent(passage)+"&type=json&formatting=plain&callback="+cb;
+      document.head.appendChild(sc);
+    });
+  }
+  async function netRequest(passage){
+    try {
+      const res=await fetchWithTimeout("https://labs.bible.org/api/?passage="+encodeURIComponent(passage)+"&type=json&formatting=plain", {}, 10000);
+      if(!res.ok) throw new Error("net-"+res.status);
+      return await res.json();
+    } catch(err){ return await netJsonp(passage); } // fall back to JSONP if CORS blocks fetch
+  }
+  async function fetchNetChapter(bookName, chapter){
+    const data=await netRequest(bookName+" "+chapter);
+    if(!Array.isArray(data)||!data.length) throw new Error("net-empty");
+    return data.map(v=>({verse:parseInt(v.verse,10), text:String(v.text||"").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/\s+/g," ").trim()}));
+  }
+  async function fetchNetVerseText(ref){
+    const data=await netRequest(ref);
+    return (Array.isArray(data)?data:[]).map(v=>String(v.text||"").replace(/<[^>]+>/g,"")).join(" ").replace(/\s+/g," ").trim();
+  }
+
+  // --- BSB (Berean Standard Bible) via the Free Use Bible API (helloao.org) --
+  // No key, no usage limits; the BSB is public domain. Book ids are the
+  // standard 3-letter codes, in the same order as BOOKS.
+  const BSB_IDS = ["GEN","EXO","LEV","NUM","DEU","JOS","JDG","RUT","1SA","2SA","1KI","2KI","1CH","2CH","EZR","NEH","EST","JOB","PSA","PRO","ECC","SNG","ISA","JER","LAM","EZK","DAN","HOS","JOL","AMO","OBA","JON","MIC","NAM","HAB","ZEP","HAG","ZEC","MAL","MAT","MRK","LUK","JHN","ACT","ROM","1CO","2CO","GAL","EPH","PHP","COL","1TH","2TH","1TI","2TI","TIT","PHM","HEB","JAS","1PE","2PE","1JN","2JN","3JN","JUD","REV"];
+  function bsbFlatten(parts){
+    if(typeof parts==="string") return parts;
+    if(!Array.isArray(parts)) return (parts && typeof parts.text==="string") ? parts.text : "";
+    return parts.map(bsbFlatten).join(" ");
+  }
+  async function fetchBsbChapter(bookIdx, chapter){
+    const res = await fetchWithTimeout("https://bible.helloao.org/api/BSB/"+BSB_IDS[bookIdx]+"/"+chapter+".json", {}, 10000);
+    if(!res.ok) throw new Error("bsb-"+res.status);
+    const data = await res.json();
+    const items = (data.chapter && data.chapter.content) || [];
+    const verses = items.filter(it=> it.type==="verse").map(it=> ({ verse: it.number, text: bsbFlatten(it.content).replace(/\s+([,.;:!?])/g,"$1").replace(/\s+/g," ").trim() })).filter(v=> v.text);
+    if(!verses.length) throw new Error("bsb-empty");
+    return verses;
+  }
+  async function fetchBsbVerseText(ref){
+    const m = ref.trim().match(/^(.+?)\s+(\d+):(\d+)(?:\s*[-\u2013]\s*(\d+))?$/);
+    if(!m) throw new Error("bsb-ref");
+    const bi = BOOKS.findIndex(b=> b[0].toLowerCase()===m[1].toLowerCase() || b[1].toLowerCase()===m[1].toLowerCase());
+    if(bi<0) throw new Error("bsb-book");
+    const ch = parseInt(m[2],10), from = parseInt(m[3],10), to = m[4] ? parseInt(m[4],10) : from;
+    const key = "bsb/"+BOOKS[bi][0]+"/"+ch;
+    const verses = cache[key] || (cache[key] = await fetchBsbChapter(bi, ch));
+    return verses.filter(v=> v.verse>=from && v.verse<=to).map(v=> v.text).join(" ");
+  }
+
+  async function fetchVerseText(ref, version){
+    const cacheKey = version+"|"+ref;
+    if(verseTextCache[cacheKey]) return verseTextCache[cacheKey];
+    if(version==="bsb"){ const t = await fetchBsbVerseText(ref); verseTextCache[cacheKey]=t; return t; }
+    if(version==="net"){ const t = await fetchNetVerseText(ref); verseTextCache[cacheKey]=t; return t; }
+    if(version==="esv"){ const t = await fetchEsvVerseText(ref); verseTextCache[cacheKey]=t; return t; }
+    const url = "https://bible-api.com/"+encodeURIComponent(ref)+"?translation="+version;
+    const response = await fetchWithTimeout(url, {}, 8000);
+    if(!response.ok) throw new Error("api-"+response.status);
+    const data = await response.json();
+    if(data.error) throw new Error("api-error");
+    const text = (data.text||"").replace(/\s+/g," ").trim();
+    verseTextCache[cacheKey] = text;
+    return text;
+  }
+
+  const STORAGE_HL = "bible_highlights_v2";
+  const STORAGE_BM = "bible_bookmarks_v2";
+  const STORAGE_SEARCH_INDEX = "bible_search_index_v1";
+
+  function getHighlights(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_HL) || "{}"); } catch { return {}; }
+  }
+  function saveHighlight(key, data){
+    const all = getHighlights(); all[key]=data; localStorage.setItem(STORAGE_HL, JSON.stringify(all));
+  }
+  function removeHighlight(key){
+    const all = getHighlights(); delete all[key]; localStorage.setItem(STORAGE_HL, JSON.stringify(all));
+  }
+  function getBookmarks(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_BM) || "[]"); } catch { return []; }
+  }
+  function saveBookmarks(arr){ localStorage.setItem(STORAGE_BM, JSON.stringify(arr)); }
+  function isBookmarked(bookIdx, chapter){
+    return getBookmarks().some(b=> b.bookIdx===bookIdx && b.chapter===chapter);
+  }
+  function toggleBookmark(bookIdx, chapter){
+    let bms = getBookmarks();
+    const idx = bms.findIndex(b=> b.bookIdx===bookIdx && b.chapter===chapter);
+    if(idx>=0){ bms.splice(idx,1); } else { bms.push({bookIdx, chapter, bookName: BOOKS[bookIdx][1], added: Date.now()}); }
+    saveBookmarks(bms); return bms;
+  }
+
+  const panes = { a:{bookIdx:0, chapter:1, version:"web", requestId:0}, b:{bookIdx:0, chapter:1, version:"kjv", requestId:0} };
+  let compareMode=false, cache={}, selectedVerse=null, currentTab="chapter";
+
+  // --- Read-aloud (Web Speech API) ---
+  // Queues one utterance per verse (rather than one utterance for the whole
+  // chapter) so we can highlight the verse currently being spoken and so
+  // stopping mid-chapter is instant rather than waiting for a huge buffer.
+  const ttsState = { paneKey:null, utterances:[], idx:0, playing:false };
+  function ttsSupported(){ return "speechSynthesis" in window; }
+  function ttsStop(){
+    if(ttsSupported()) window.speechSynthesis.cancel();
+    ttsState.playing=false; ttsState.paneKey=null; ttsState.utterances=[]; ttsState.idx=0;
+    document.querySelectorAll(".tts-btn").forEach(b=> b.classList.remove("active"));
+    document.querySelectorAll(".verses-text span.tts-current").forEach(s=> s.classList.remove("tts-current"));
+  }
+  function ttsSpeakPane(paneKey){
+    if(!ttsSupported()){ alert("Read-aloud isn't supported in this browser."); return; }
+    if(ttsState.playing && ttsState.paneKey===paneKey){ ttsStop(); return; }
+    ttsStop();
+    const p=panes[paneKey]; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter;
+    const verses=cache[key]||[];
+    if(!verses.length) return;
+    ttsState.paneKey=paneKey; ttsState.idx=0; ttsState.playing=true;
+    document.querySelector(`.tts-btn[data-pane="${paneKey}"]`).classList.add("active");
+    ttsState.utterances = verses.map(v=>{
+      const u=new SpeechSynthesisUtterance(v.text);
+      u.rate=0.95; u.pitch=1;
+      u.onstart=()=>{
+        document.querySelectorAll(`.pane[data-pane="${paneKey}"] .verses-text span.tts-current`).forEach(s=> s.classList.remove("tts-current"));
+        const span=document.querySelector(`.pane[data-pane="${paneKey}"] .verses-text span[data-verse="${v.verse}"]`);
+        if(span) span.scrollIntoView({block:"center", behavior:"smooth"});
+        if(span) span.classList.add("tts-current");
+      };
+      return u;
+    });
+    const last=ttsState.utterances[ttsState.utterances.length-1];
+    last.onend=()=> ttsStop();
+    ttsState.utterances.forEach(u=> window.speechSynthesis.speak(u));
+  }
+  document.querySelectorAll(".tts-btn").forEach(b=> b.addEventListener("click", ()=> ttsSpeakPane(b.dataset.pane)));
+
+  function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+  // --- Full-text scripture search (drawer) ---
+  // Word/verse search now lives only here (drawer → "Search verse text" /
+  // "Search whole Bible"), not as a per-word tap on the reading pane. This
+  // avoids a click-a-word popup showing "verses with the same word" that
+  // duplicated this feature and got in the way of tapping a verse to
+  // summarize it.
+  // Same cache-scoped approach as word study, but matches any substring
+  // across all cached chapters/books/versions rather than a single whole
+  // word, so phrase-like searches ("let there be light") work too.
+  const scriptureSearchInput=document.getElementById("scriptureSearch"), ssResults=document.getElementById("scriptureSearchResults");
+  const ssScopeLabel=document.getElementById("ssScopeLabel"), ssWholeBibleBtn=document.getElementById("ssWholeBibleBtn");
+  let ssDebounce;
+  scriptureSearchInput.addEventListener("input", ()=>{
+    clearTimeout(ssDebounce);
+    ssDebounce=setTimeout(()=> runScriptureSearch(scriptureSearchInput.value.trim()), 200);
+  });
+
+  // --- Whole-Bible search index -----------------------------------------
+  // bible-api.com (the only free, keyless, CORS-enabled source this app
+  // already trusts for verse text) has no full-text search endpoint of its
+  // own -- only reference lookup. So "search the whole Bible" is built by
+  // fetching every chapter of every book once, in the reader's current
+  // version, and searching that locally. The downloaded text is cached in
+  // localStorage (per version) so this only needs to run once per version,
+  // not once per session.
+  function getSearchIndex(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_SEARCH_INDEX) || "{}"); } catch { return {}; }
+  }
+  function saveSearchIndex(idx){
+    try { localStorage.setItem(STORAGE_SEARCH_INDEX, JSON.stringify(idx)); }
+    catch(err){ console.warn("Couldn't persist search index (likely storage quota) -- whole-Bible search will still work for this session", err); }
+  }
+  let searchIndexBuild = null; // in-flight build state, if any
+
+  function updateSsScopeLabel(){
+    const idx=getSearchIndex();
+    const version=panes.a.version;
+    const built = idx.version===version ? Object.keys(idx.chapters||{}).length : 0;
+    const total = BOOKS.reduce((sum,b)=> sum+b[2], 0);
+    if(built>=total){
+      ssScopeLabel.textContent = `Searching the whole Bible (${versionName(version)})`;
+      ssWholeBibleBtn.textContent = "Rebuild index";
+    } else if(built>0){
+      ssScopeLabel.textContent = `Whole Bible: ${built}/${total} chapters downloaded (${versionName(version)})`;
+      ssWholeBibleBtn.textContent = "Continue download";
+    } else {
+      ssScopeLabel.textContent = "Searching chapters you've viewed";
+      ssWholeBibleBtn.textContent = "Search whole Bible";
+    }
+  }
+
+  async function buildWholeBibleIndex(){
+    if(searchIndexBuild) return; // already running
+    const version = panes.a.version;
+    if(version==="esv" || version==="net"){ alert("The "+version.toUpperCase()+" terms don't allow bulk downloading, so whole-Bible search isn't available for it. Chapters you've opened are still searchable."); return; }
+    let idx = getSearchIndex();
+    if(idx.version !== version) idx = { version, chapters:{} }; // switched translations -- start fresh for this version
+    const jobs=[];
+    BOOKS.forEach((b,bookIdx)=>{ for(let ch=1; ch<=b[2]; ch++){ const key=b[0]+"/"+ch; if(!idx.chapters[key]) jobs.push({bookIdx, book:b, chapter:ch, key}); } });
+    if(!jobs.length){ updateSsScopeLabel(); return; }
+
+    searchIndexBuild = { total: jobs.length, done: 0, cancelled: false };
+    ssWholeBibleBtn.disabled = true;
+    const progressWrap=document.createElement("div"); progressWrap.className="ss-progress-wrap";
+    progressWrap.innerHTML = `<div class="ss-progress-bar"><div class="ss-progress-fill" style="width:0%"></div></div><div class="ss-progress-text"></div>`;
+    scriptureSearchInput.parentElement.appendChild(progressWrap);
+    const fill=progressWrap.querySelector(".ss-progress-fill"), text=progressWrap.querySelector(".ss-progress-text");
+    const alreadyDone = Object.keys(idx.chapters).length;
+    const grandTotal = alreadyDone + jobs.length;
+
+    // Fetch a few chapters concurrently (bible-api.com has no published
+    // hard rate limit for this endpoint, but we stay modest and sequential
+    // in small batches so we don't hammer a free public service).
+    const CONCURRENCY = 3;
+    let cursor = 0;
+    async function worker(){
+      while(cursor < jobs.length){
+        if(searchIndexBuild.cancelled) return;
+        const job = jobs[cursor++];
+        try {
+          if(version==="bsb"){
+            const vs = await fetchBsbChapter(job.bookIdx, job.chapter);
+            idx.chapters[job.key] = vs.map(v=> [v.verse, v.text]);
+          } else {
+          const ref = encodeURIComponent(job.book[0]+" "+job.chapter);
+          const res = await fetchWithTimeout("https://bible-api.com/"+ref+"?translation="+version, {}, 10000);
+          if(res.ok){
+            const data = await res.json();
+            if(!data.error && Array.isArray(data.verses)){
+              idx.chapters[job.key] = data.verses.map(v=> [v.verse, (v.text||"").replace(/\s+/g," ").trim()]);
+            }
+          }
+          }
+        } catch(err){
+          console.warn("Whole-Bible index: failed to fetch "+job.book[1]+" "+job.chapter, err);
+          // Skip this chapter silently -- it'll be retried on a future "Continue download".
+        }
+        searchIndexBuild.done++;
+        const doneTotal = alreadyDone + searchIndexBuild.done;
+        const pct = Math.round((doneTotal/grandTotal)*100);
+        fill.style.width = pct+"%";
+        text.textContent = `Downloading ${job.book[1]} ${job.chapter}… (${doneTotal}/${grandTotal} chapters)`;
+        if(searchIndexBuild.done % 20 === 0) saveSearchIndex(idx); // periodic save so progress isn't lost if the tab closes
+      }
+    }
+    await Promise.all(Array.from({length:CONCURRENCY}, worker));
+    saveSearchIndex(idx);
+    progressWrap.remove();
+    ssWholeBibleBtn.disabled = false;
+    searchIndexBuild = null;
+    updateSsScopeLabel();
+    if(scriptureSearchInput.value.trim().length>=2) runScriptureSearch(scriptureSearchInput.value.trim());
+  }
+  ssWholeBibleBtn.addEventListener("click", ()=> buildWholeBibleIndex());
+  // versionSelect is declared further down in this script; defer the first
+  // label refresh and the change-listener hookup until after it exists.
+  setTimeout(()=>{ updateSsScopeLabel(); versionSelect.addEventListener("change", updateSsScopeLabel); }, 0);
+
+  function runScriptureSearch(q){
+    if(q.length<2){ ssResults.classList.remove("has-items"); ssResults.innerHTML=""; return; }
+    const qLow=q.toLowerCase();
+    const results=[];
+    const seen=new Set();
+    function addResult(r){
+      const k=r.bookName+r.chapter+r.verse; if(seen.has(k)) return; seen.add(k); results.push(r);
+    }
+    // 1) Chapters already cached from normal reading (any version viewed).
+    Object.keys(cache).forEach(key=>{
+      const [version, bookKey, chapter] = key.split("/");
+      const bookEntry = BOOKS.find(b=> b[0]===bookKey); if(!bookEntry) return;
+      (cache[key]||[]).forEach(v=>{
+        if(v.text.toLowerCase().includes(qLow)) addResult({version, bookName:bookEntry[1], bookIdx:BOOKS.indexOf(bookEntry), chapter:Number(chapter), verse:v.verse, text:v.text});
+      });
+    });
+    // 2) The downloaded whole-Bible index, if one exists for the current version.
+    const idx=getSearchIndex();
+    const wholeBibleAvailable = idx.version===panes.a.version && idx.chapters && Object.keys(idx.chapters).length>0;
+    if(wholeBibleAvailable){
+      Object.keys(idx.chapters).forEach(key=>{
+        const [bookKey, chapter] = key.split("/");
+        const bookEntry = BOOKS.find(b=> b[0]===bookKey); if(!bookEntry) return;
+        idx.chapters[key].forEach(([verse, text])=>{
+          if(text.toLowerCase().includes(qLow)) addResult({version:idx.version, bookName:bookEntry[1], bookIdx:BOOKS.indexOf(bookEntry), chapter:Number(chapter), verse, text});
+        });
+      });
+    }
+    results.sort((a,b)=> a.bookIdx-b.bookIdx || a.chapter-b.chapter || a.verse-b.verse);
+    ssResults.classList.add("has-items");
+    if(!results.length){
+      ssResults.innerHTML = wholeBibleAvailable
+        ? `<div class="ss-note">No matches found in the whole Bible (${versionName(idx.version)}).</div>`
+        : `<div class="ss-note">No matches in chapters you've viewed yet. Tap "Search whole Bible" above to search every chapter, not just ones you've opened.</div>`;
+      return;
+    }
+    const re=new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi");
+    const capped = results.slice(0,60);
+    ssResults.innerHTML = `<div class="ss-note">${results.length} match${results.length===1?"":"es"}${results.length>60?" (showing first 60)":""}</div>` +
+      capped.map(r=> `<div class="ss-item" data-bookidx="${r.bookIdx}" data-chapter="${r.chapter}" data-version="${r.version}">
+        <div class="ss-ref">${r.bookName} ${r.chapter}:${r.verse}</div>
+        <div class="ss-text">${escapeHtml(r.text).replace(re, m=>`<mark>${m}</mark>`)}</div>
+      </div>`).join("");
+    ssResults.querySelectorAll(".ss-item").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        panes.a.bookIdx=Number(el.dataset.bookidx); panes.a.chapter=Number(el.dataset.chapter); panes.a.version=el.dataset.version;
+        loadPane("a"); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer();
+      });
+    });
+  }
+  // Chat is now backed by IndexedDB with support for multiple named
+  // conversations (see ChatDB above). activeConvoId tracks which one is
+  // currently open in the Chatbot tab; chatHistory/chatSummary hold that
+  // conversation's messages/summary in memory for fast rendering.
+  let conversations = [];
+  let activeConvoId = null;
+  let chatHistory = [], chatSummary = "";
+  let chatReady = false; // true once the initial IndexedDB load (and any migration) has completed
+  async function initChat(){
+    await ChatDB.migrateFromLocalStorageIfNeeded();
+    conversations = await ChatDB.listConversations();
+    if(!conversations.length){
+      const convo = await ChatDB.createConversation("Study Chat");
+      conversations = [convo];
+    }
+    await switchConversation(conversations[0].id, false);
+    chatReady = true;
+    if(currentTab==="chat") renderChat();
+  }
+  async function switchConversation(id, rerender=true){
+    const convo = conversations.find(c=> c.id===id) || await ChatDB.getConversation(id);
+    if(!convo) return;
+    activeConvoId = convo.id;
+    chatSummary = convo.summary || "";
+    const msgs = await ChatDB.getMessages(convo.id);
+    chatHistory = msgs.map(m=> ({ role: m.role, text: m.text, sources: m.sources, ts: m.ts }));
+    if(rerender && currentTab==="chat") renderChat();
+  }
+  initChat();
+
+  let verseSummaryReq=0, chapterSummaryReq=0;
+
+  // --- Real AI: two independent free, keyless, browser-callable text APIs ----
+  // Both were verified to work directly from a browser via fetch(), no API key,
+  // no signup, no CORS proxy needed:
+  //   1. LLM7.io      (https://api.llm7.io/v1)        -- PRIMARY
+  //   2. Pollinations  (https://text.pollinations.ai)  -- FALLBACK
+  // If the primary provider fails after its own retries, we automatically fall
+  // through to the fallback provider before giving up. This is still free,
+  // best-effort infrastructure -- no keyless AI API anywhere guarantees 100%
+  // uptime -- but two independent providers fail at the same moment far less
+  // often than either one alone, so this meaningfully improves reliability.
+  function sleep(ms){ return new Promise(res=> setTimeout(res, ms)); }
+
+  async function fetchWithTimeout(url, options, timeoutMs){
+    const controller = new AbortController();
+    const timer = setTimeout(()=> controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Classifies a failure so the UI can show something more useful than "it broke".
+  function describeAiError(err){
+    const msg = (err && err.message) || "";
+    if(err && err.name==="AbortError") return "timed-out";
+    if(msg.indexOf("api-429")===0) return "rate-limited";
+    if(msg.indexOf("api-5")===0) return "server-error";
+    if(msg.indexOf("api-")===0) return "api-error";
+    if(msg==="empty-response" || msg==="malformed-response") return "bad-response";
+    if(err instanceof TypeError) return "network"; // fetch throws TypeError on network/CORS failure
+    return "unknown";
+  }
+  const AI_ERROR_MESSAGES = {
+    "timed-out": "The free AI service took too long to respond and timed out.",
+    "rate-limited": "The free AI service is briefly rate-limited (too many requests right now).",
+    "server-error": "The free AI service is temporarily having server issues.",
+    "api-error": "The free AI service returned an unexpected error.",
+    "bad-response": "The free AI service sent back a response we couldn't read.",
+    "network": "Couldn't reach the free AI service -- check your internet connection.",
+    "unknown": "The free AI service couldn't finish that request."
+  };
+  function aiErrorMessage(err){
+    const kind = describeAiError(err);
+    return AI_ERROR_MESSAGES[kind] + " Both free providers were tried and retried automatically -- this happens occasionally with free public APIs. You can try again below.";
+  }
+
+  // Each provider is a plain (system, userMessage, maxTokens) -> text function,
+  // so adding a third free provider later just means adding one more entry to
+  // AI_PROVIDERS below -- no other code needs to change.
+  //
+  // Both providers can be pointed at stronger models than their bare defaults.
+  // We try the strongest model first and quietly step down if it's rejected,
+  // rather than always calling the smallest/fastest model available.
+  async function callLLM7WithModel(model, system, userMessage, maxTokens){
+    const response = await fetchWithTimeout("https://api.llm7.io/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role:"system", content:system }, { role:"user", content:userMessage }],
+        temperature: 0.55,
+        max_tokens: maxTokens || 400
+      })
+    }, 25000);
+    if(!response.ok) throw new Error("api-"+response.status);
+    let data;
+    try { data = await response.json(); } catch(e) { throw new Error("malformed-response"); }
+    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if(!content) throw new Error("empty-response");
+    return content;
+  }
+  async function callLLM7(system, userMessage, maxTokens){
+    const models = ["gpt-4.1", "gpt-4o", "default"];
+    let lastErr;
+    for(const model of models){
+      try { return await callLLM7WithModel(model, system, userMessage, maxTokens); }
+      catch(err){ lastErr = err; }
+    }
+    throw lastErr;
+  }
+
+  async function callPollinationsWithModel(model, system, userMessage, maxTokens){
+    const response = await fetchWithTimeout("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role:"system", content:system }, { role:"user", content:userMessage }],
+        temperature: 0.55,
+        max_tokens: maxTokens || 400
+      })
+    }, 25000);
+    if(!response.ok) throw new Error("api-"+response.status);
+    let data;
+    try { data = await response.json(); } catch(e) { throw new Error("malformed-response"); }
+    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if(!content) throw new Error("empty-response");
+    return content;
+  }
+  async function callPollinations(system, userMessage, maxTokens){
+    const models = ["openai-large", "openai", "mistral"];
+    let lastErr;
+    for(const model of models){
+      try { return await callPollinationsWithModel(model, system, userMessage, maxTokens); }
+      catch(err){ lastErr = err; }
+    }
+    throw lastErr;
+  }
+
+  // Order matters: first entry is the primary provider, tried (with its own
+  // retries) before falling through to the next.
+  const AI_PROVIDERS = [
+    { name: "LLM7", call: callLLM7 },
+    { name: "Pollinations", call: callPollinations }
+  ];
+
+  // Retries a single provider's transient failures (timeouts, network blips,
+  // rate limits, 5xx) with increasing backoff, so a brief hiccup doesn't
+  // immediately trigger a fallback to the next provider.
+  async function callProviderWithRetry(providerCall, system, userMessage, maxTokens, attempts){
+    attempts = attempts || 2;
+    let lastErr;
+    for(let i=0; i<attempts; i++){
+      try {
+        return await providerCall(system, userMessage, maxTokens);
+      } catch(err){
+        lastErr = err;
+        const isLastAttempt = i===attempts-1;
+        if(isLastAttempt) break;
+        const kind = describeAiError(err);
+        // Back off longer for rate limits/server errors, shorter for one-off blips.
+        const base = (kind==="rate-limited" || kind==="server-error") ? 1500 : 700;
+        const delay = base * Math.pow(2, i) + Math.random()*300;
+        await sleep(delay);
+      }
+    }
+    throw lastErr;
+  }
+
+  // Tries each provider in order (each with its own retries) and returns the
+  // first successful result. Only throws if every provider failed.
+  async function generateWithAI(system, userMessage, maxTokens){
+    let lastErr;
+    for(let p=0; p<AI_PROVIDERS.length; p++){
+      const provider = AI_PROVIDERS[p];
+      try {
+        return await callProviderWithRetry(provider.call, system, userMessage, maxTokens, 2);
+      } catch(err){
+        console.warn(provider.name+" failed, "+(p<AI_PROVIDERS.length-1 ? "falling back..." : "no providers left."), err);
+        lastErr = err;
+      }
+    }
+    throw lastErr;
+  }
+  // Parses a "LABEL: text" block out of the model's reply — more forgiving
+  // than requiring strict JSON, and works well across different free models.
+  function parseLabeledSections(raw, keys){
+    const result={}; const text=(raw||"").trim();
+    for(let i=0;i<keys.length;i++){
+      const key=keys[i]; const nextKey=keys[i+1];
+      const startRe=new RegExp(key+"\\s*:\\s*","i"); const m=text.match(startRe);
+      if(!m){ result[key]=""; continue; }
+      const startIdx=m.index+m[0].length; let endIdx=text.length;
+      if(nextKey){ const rest=text.slice(startIdx); const endM=rest.match(new RegExp(nextKey+"\\s*:","i")); if(endM) endIdx=startIdx+endM.index; }
+      result[key]=text.slice(startIdx,endIdx).trim();
+    }
+    const anyFound=keys.some(k=> result[k]);
+    if(!anyFound) result._fallback=text;
+    return result;
+  }
+  function skeletonHtml(lines){
+    return `<div class="skeleton">${lines.map(w=>`<div class="skel-line" style="width:${w}%"></div>`).join("")}</div>`;
+  }
+
+  const headerTitle=document.getElementById("headerTitle");
+  const versionSelect=document.getElementById("versionSelect");
+  const versionSelectB=document.getElementById("versionSelectB");
+  const drawer=document.getElementById("drawer");
+  const overlay=document.getElementById("overlay");
+  const openNavBtn=document.getElementById("openNavBtn");
+  const closeNavBtn=document.getElementById("closeNavBtn");
+  const bookList=document.getElementById("bookList");
+  const bookmarkList=document.getElementById("bookmarkList");
+  const chapterGrid=document.getElementById("chapterGrid");
+  const bookSearch=document.getElementById("bookSearch");
+  const compareBtn=document.getElementById("compareBtn");
+  const openAiBtn=document.getElementById("openAiBtn");
+  const closeAiBtn=document.getElementById("closeAiBtn");
+  const aiPanel=document.getElementById("aiPanel");
+  const aiContent=document.getElementById("aiContent");
+  const aiChatForm=document.getElementById("aiChatForm");
+  const aiChatInput=document.getElementById("aiChatInput");
+  const bookmarkBtn=document.getElementById("bookmarkBtn");
+  const fullscreenBtn=document.getElementById("fullscreenBtn");
+
+  function paneEl(sel,k){ return document.querySelector(`.pane[data-pane="${k}"] ${sel}`); }
+  function openDrawer(){ drawer.classList.add("open"); overlay.classList.add("open"); }
+  function closeDrawer(){ drawer.classList.remove("open"); if(!aiPanel.classList.contains("open")) overlay.classList.remove("open"); }
+  openNavBtn.addEventListener("click", openDrawer);
+  closeNavBtn.addEventListener("click", closeDrawer);
+  overlay.addEventListener("click", ()=>{ closeDrawer(); closeAi(); });
+  function openAi(tab){ aiPanel.classList.add("open"); overlay.classList.add("open"); openAiBtn.classList.add("active"); if(tab) switchTab(tab); }
+  function closeAi(){ aiPanel.classList.remove("open"); openAiBtn.classList.remove("active"); if(!drawer.classList.contains("open")) overlay.classList.remove("open"); }
+  openAiBtn.addEventListener("click", ()=>{ if(aiPanel.classList.contains("open")) closeAi(); else openAi(currentTab); });
+  closeAiBtn.addEventListener("click", closeAi);
+  compareBtn.addEventListener("click", ()=>{
+    compareMode=!compareMode; document.body.classList.toggle("compare-mode", compareMode); compareBtn.classList.toggle("active", compareMode);
+    document.querySelector('.pane[data-pane="b"]').style.display = compareMode ? "flex" : "none";
+    document.getElementById("compareTabBtn").style.display = compareMode ? "" : "none";
+    if(!compareMode && currentTab==="compare") switchTab("chapter");
+    if(compareMode){
+      // First time entering compare mode, default pane B to wherever pane A is reading.
+      if(!panes.b._touched){ panes.b.bookIdx=panes.a.bookIdx; panes.b.chapter=panes.a.chapter; }
+      loadPane("b");
+    } else {
+      headerTitle.textContent = BOOKS[panes.a.bookIdx][1]+" "+panes.a.chapter;
+    }
+  });
+
+  // --- Fullscreen ---
+  const appEl = document.getElementById("app");
+  function isFullscreen(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function updateFullscreenBtn(){
+    const on = isFullscreen();
+    fullscreenBtn.classList.toggle("active", on);
+    fullscreenBtn.textContent = on ? "⤡" : "⤢";
+    fullscreenBtn.title = on ? "Exit fullscreen" : "Toggle fullscreen";
+  }
+  async function enterFullscreen(){
+    const el = appEl;
+    try {
+      if(el.requestFullscreen) await el.requestFullscreen();
+      else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    } catch(err){ console.warn("Fullscreen request failed", err); }
+  }
+  async function exitFullscreen(){
+    try {
+      if(document.exitFullscreen) await document.exitFullscreen();
+      else if(document.webkitExitFullscreen) await document.webkitExitFullscreen();
+    } catch(err){ console.warn("Fullscreen exit failed", err); }
+  }
+  fullscreenBtn.addEventListener("click", ()=>{ if(isFullscreen()) exitFullscreen(); else enterFullscreen(); });
+  document.addEventListener("fullscreenchange", updateFullscreenBtn);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+
+  function populateVersionSelects(){
+    const optsHtml = VERSIONS.map(([id,label])=> `<option value="${id}">${label}</option>`).join("");
+    versionSelect.innerHTML = optsHtml;
+    versionSelect.value = panes.a.version;
+    versionSelectB.innerHTML = optsHtml;
+    versionSelectB.value = panes.b.version;
+  }
+  populateVersionSelects();
+  versionSelect.addEventListener("change", ()=>{ panes.a.version=versionSelect.value; const lbl=paneEl(".pane-version-label","a"); if(lbl) lbl.textContent=versionName(versionSelect.value); loadPane("a"); });
+  versionSelectB.addEventListener("change", ()=>{ panes.b.version=versionSelectB.value; loadPane("b"); });
+
+  // --- Per-pane reference picker (book + chapter), used mainly so pane B can
+  // navigate independently in compare mode -- but wired up for pane A too. ---
+  const refPickers = { a: document.querySelector('.ref-picker[data-pane="a"]'), b: document.querySelector('.ref-picker[data-pane="b"]') };
+  const refBtns = { a: document.querySelector('.pane-ref-btn[data-pane="a"]'), b: document.querySelector('.pane-ref-btn[data-pane="b"]') };
+
+  function closeAllRefPickers(){ refPickers.a.classList.remove("open"); refPickers.b.classList.remove("open"); }
+
+  function renderRefPickerBooks(k, filter=""){
+    const picker=refPickers[k]; const booksEl=picker.querySelector(".rp-books"); booksEl.innerHTML="";
+    const p=panes[k];
+    BOOKS.forEach((b,idx)=>{
+      if(filter && !b[1].toLowerCase().includes(filter.toLowerCase()) && !b[0].toLowerCase().includes(filter.toLowerCase())) return;
+      const btn=document.createElement("button"); btn.className="rp-book-btn"+(idx===p.bookIdx?" active":""); btn.textContent=b[1];
+      btn.addEventListener("click", ()=>{
+        p.bookIdx=idx; p.chapter=1; p._touched=true;
+        renderRefPickerBooks(k, picker.querySelector(".rp-search-input").value);
+        renderRefPickerChapters(k);
+        loadPane(k);
+        if(k==="a"){ renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); }
+      });
+      booksEl.appendChild(btn);
+    });
+  }
+  function renderRefPickerChapters(k){
+    const picker=refPickers[k]; const grid=picker.querySelector(".rp-chapter-grid"); grid.innerHTML="";
+    const p=panes[k]; const book=BOOKS[p.bookIdx];
+    for(let i=1;i<=book[2];i++){
+      const btn=document.createElement("button"); btn.className="rp-ch-btn"+(i===p.chapter?" active":""); btn.textContent=i;
+      btn.addEventListener("click", ()=>{
+        p.chapter=i; p._touched=true;
+        renderRefPickerChapters(k);
+        loadPane(k);
+        if(k==="a"){ renderChapterGrid(); updateBookmarkUI(); }
+        closeAllRefPickers();
+      });
+      grid.appendChild(btn);
+    }
+  }
+  function openRefPicker(k){
+    const wasOpen=refPickers[k].classList.contains("open");
+    closeAllRefPickers();
+    if(wasOpen) return;
+    refPickers[k].querySelector(".rp-search-input").value="";
+    renderRefPickerBooks(k); renderRefPickerChapters(k);
+    refPickers[k].classList.add("open");
+  }
+  refBtns.a.addEventListener("click", (e)=>{ e.stopPropagation(); openRefPicker("a"); });
+  refBtns.b.addEventListener("click", (e)=>{ e.stopPropagation(); openRefPicker("b"); });
+  refPickers.a.querySelector(".rp-search-input").addEventListener("input", e=> renderRefPickerBooks("a", e.target.value));
+  refPickers.b.querySelector(".rp-search-input").addEventListener("input", e=> renderRefPickerBooks("b", e.target.value));
+  refPickers.a.addEventListener("click", e=> e.stopPropagation());
+  refPickers.b.addEventListener("click", e=> e.stopPropagation());
+  document.addEventListener("click", closeAllRefPickers);
+  bookmarkBtn.addEventListener("click", ()=>{
+    const p=panes.a; const bms=toggleBookmark(p.bookIdx, p.chapter);
+    updateBookmarkUI(); renderBookmarkList(); renderChapterGrid(); renderBookList(bookSearch.value);
+    if(isBookmarked(p.bookIdx,p.chapter)) { bookmarkBtn.textContent="Bookmarked"; bookmarkBtn.classList.add("active"); } else { bookmarkBtn.textContent="Bookmark"; bookmarkBtn.classList.remove("active"); }
+    if(currentTab==="marks") renderMarks();
+  });
+
+  function updateBookmarkUI(){
+    const p=panes.a;
+    if(isBookmarked(p.bookIdx,p.chapter)){ bookmarkBtn.textContent="Bookmarked"; bookmarkBtn.classList.add("active"); } else { bookmarkBtn.textContent="Bookmark"; bookmarkBtn.classList.remove("active"); }
+  }
+
+  function renderBookmarkList(){
+    const bms=getBookmarks().sort((a,b)=> b.added-a.added);
+    bookmarkList.innerHTML="";
+    if(bms.length===0){ bookmarkList.classList.remove("has-items"); return; }
+    bookmarkList.classList.add("has-items");
+    const h=document.createElement("h4"); h.textContent="Bookmarks"; bookmarkList.appendChild(h);
+    bms.slice(0,20).forEach(bm=>{
+      const div=document.createElement("div"); div.className="bm-item";
+      div.innerHTML=`<span>${bm.bookName} ${bm.chapter}</span><button>Remove</button>`;
+      div.addEventListener("click", (e)=>{ if(e.target.tagName==="BUTTON") return; panes.a.bookIdx=bm.bookIdx; panes.a.chapter=bm.chapter; if(compareMode && !panes.b._touched){ panes.b.bookIdx=bm.bookIdx; panes.b.chapter=bm.chapter; loadPane("b"); } renderBookList(""); renderChapterGrid(); loadPane("a"); closeDrawer(); });
+      div.querySelector("button").addEventListener("click", (e)=>{ e.stopPropagation(); toggleBookmark(bm.bookIdx, bm.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); });
+      bookmarkList.appendChild(div);
+    });
+  }
+
+  function renderBookList(filter=""){
+    bookList.innerHTML=""; const groups={}; BOOKS.forEach((b,i)=>{ const g=b[3]; if(!groups[g]) groups[g]=[]; groups[g].push([b,i]); });
+    Object.keys(groups).forEach(gName=>{
+      const filtered = groups[gName].filter(([b])=> !filter || b[1].toLowerCase().includes(filter.toLowerCase()) || b[0].toLowerCase().includes(filter.toLowerCase()));
+      if(!filtered.length) return;
+      const label=document.createElement("div"); label.className="section-label"; label.textContent=gName.toUpperCase(); bookList.appendChild(label);
+      filtered.forEach(([b,idx])=>{
+        const isBMarked = getBookmarks().some(bm=> bm.bookIdx===idx);
+        const btn=document.createElement("button"); btn.className="book-btn"+(isBMarked?" bookmarked":"")+(idx===panes.a.bookIdx?" active":"");
+        btn.innerHTML=`<span>${b[1]}</span><span class="mark-dot"></span>`;
+        btn.addEventListener("click", ()=>{ panes.a.bookIdx=idx; panes.a.chapter=1; if(compareMode && !panes.b._touched){ panes.b.bookIdx=idx; panes.b.chapter=1; loadPane("b"); } renderBookList(bookSearch.value); renderChapterGrid(); loadPane("a"); closeDrawer(); updateBookmarkUI(); });
+        bookList.appendChild(btn);
+      });
+    });
+  }
+  bookSearch.addEventListener("input", e=> renderBookList(e.target.value));
+  function renderChapterGrid(){
+    chapterGrid.innerHTML=""; const book=BOOKS[panes.a.bookIdx];
+    for(let i=1;i<=book[2];i++){
+      const bm = isBookmarked(panes.a.bookIdx,i);
+      const btn=document.createElement("button"); btn.className="ch-btn"+(i===panes.a.chapter?" active":"")+(bm?" bookmarked":""); btn.textContent=i;
+      btn.addEventListener("click", ()=>{ panes.a.chapter=i; if(compareMode && !panes.b._touched){ panes.b.chapter=i; loadPane("b"); } renderChapterGrid(); loadPane("a"); closeDrawer(); updateBookmarkUI(); });
+      chapterGrid.appendChild(btn);
+    }
+  }
+  function goPrev(k){ const p=panes[k]; if(p.chapter>1) p.chapter--; else if(p.bookIdx>0){ p.bookIdx--; p.chapter=BOOKS[p.bookIdx][2]; } else return; if(k==="a"){ renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); } else { p._touched=true; } loadPane(k); }
+  function goNext(k){ const p=panes[k]; const b=BOOKS[p.bookIdx]; if(p.chapter<b[2]) p.chapter++; else if(p.bookIdx<BOOKS.length-1){ p.bookIdx++; p.chapter=1; } else return; if(k==="a"){ renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); } else { p._touched=true; } loadPane(k); }
+  document.querySelectorAll(".prev-btn").forEach(btn=> btn.addEventListener("click", ()=> goPrev(btn.dataset.pane)));
+  document.querySelectorAll(".next-btn").forEach(btn=> btn.addEventListener("click", ()=> goNext(btn.dataset.pane)));
+
+  function loadPane(k){
+    ttsStop();
+    const p=panes[k]; const book=BOOKS[p.bookIdx];
+    updateHeader(k); updatePager(k);
+    const key=p.version+"/"+book[0]+"/"+p.chapter;
+    if(cache[key]){ renderVerses(k, cache[key]); if(k==="a"){ renderCurrentTab(); updateBookmarkUI(); } else if(currentTab==="compare") renderCurrentTab(); return; }
+    const req=++p.requestId; renderLoading(k);
+    const ref=encodeURIComponent(book[0]+" "+p.chapter);
+    const url="https://bible-api.com/"+ref+"?translation="+p.version;
+    const chapterPromise = p.version==="esv"
+      ? fetchEsvChapter(book[1], p.chapter)
+      : p.version==="net"
+      ? fetchNetChapter(book[0], p.chapter)
+      : p.version==="bsb"
+      ? fetchBsbChapter(p.bookIdx, p.chapter)
+      : fetch(url).then(r=>{ if(!r.ok) throw new Error("http-"+r.status); return r.json(); }).then(data=>{
+          if(data.error) throw new Error("api-error");
+          return Array.isArray(data.verses) ? data.verses.map(v=>({verse:v.verse, text:(v.text||"").replace(/\s+/g," ").trim()})) : [];
+        });
+    chapterPromise.then(verses=>{
+      if(req!==p.requestId) return;
+      cache[key]=verses; renderVerses(k, verses); if(k==="a"){ renderCurrentTab(); updateBookmarkUI(); } else if(currentTab==="compare") renderCurrentTab();
+    }).catch(err=>{ if(req!==p.requestId) return; renderError(k, err.message); });
+  }
+  function updateHeader(k){
+    const book=BOOKS[panes[k].bookIdx]; const label=book[1]+" "+panes[k].chapter;
+    if(k==="a" && !compareMode) headerTitle.textContent=label;
+    if(compareMode) headerTitle.textContent="Comparing";
+    paneEl(".pane-ref-btn", k).textContent=label;
+    if(k==="a"){ const lbl=paneEl(".pane-version-label", k); if(lbl) lbl.textContent=versionName(panes.a.version); }
+  }
+  function updatePager(k){
+    const p=panes[k]; const b=BOOKS[p.bookIdx];
+    paneEl(".prev-btn", k).disabled = p.bookIdx===0 && p.chapter===1;
+    paneEl(".next-btn", k).disabled = p.bookIdx===BOOKS.length-1 && p.chapter===b[2];
+    paneEl(".pager-label", k).textContent = b[1]+" · Ch "+p.chapter+"/"+b[2];
+  }
+  function versionName(id){ return id.toUpperCase(); }
+  function renderLoading(k){ const inner=paneEl(".reader-inner", k); inner.innerHTML=""; const w=document.createElement("div"); w.className="skeleton"; for(let i=0;i<7;i++){ const l=document.createElement("div"); l.className="skel-line"; l.style.width=(70+(i%3)*10)+"%"; w.appendChild(l);} inner.appendChild(w); }
+  function renderError(k, reason){ const p=panes[k]; const b=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", k); inner.innerHTML=`<div class="state-msg"><p>${b[1]} ${p.chapter} failed (${reason})</p></div>`; }
+
+  function renderVerses(paneKey, verses){
+    const p=panes[paneKey]; const book=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", paneKey); inner.innerHTML="";
+    if(!verses.length){ inner.innerHTML='<div class="state-msg"><p>No verses</p></div>'; return; }
+    const cont=document.createElement("div"); cont.className="fade-in";
+    const head=document.createElement("div"); head.className="chapter-heading";
+    const isBm=isBookmarked(p.bookIdx,p.chapter);
+    head.innerHTML=`<div class="left"><div class="eyebrow">${versionName(p.version)} · ${p.version==="esv" ? "Crossway, via ESV API" : p.version==="bsb" ? "Berean Bible \u00b7 public domain" : p.version==="net" ? "Biblical Studies Press" : "public domain"}</div><h1>${book[1]} <span class="chnum">${p.chapter}</span></h1></div><div class="right"><button id="chapBmBtn-${paneKey}" class="${isBm?"active":""}">${isBm?"Bookmarked":"Bookmark"}</button></div>`;
+    cont.appendChild(head);
+    const vEl=document.createElement("div"); vEl.className="verses-text";
+    const highlights=getHighlights();
+    verses.forEach(v=>{
+      const key=`${book[0]}-${p.chapter}-${v.verse}`;
+      const hl=highlights[key];
+      const span=document.createElement("span"); span.dataset.verse=v.verse; span.dataset.key=key;
+      if(hl) span.className=`hl-${hl.color}`;
+      const sup=document.createElement("sup"); sup.textContent=v.verse; span.appendChild(sup);
+      span.appendChild(document.createTextNode(v.text+" "));
+      span.addEventListener("click", ()=>{
+        document.querySelectorAll(".verses-text span[data-verse]").forEach(s=> s.classList.remove("selected"));
+        span.classList.add("selected");
+        selectedVerse={bookName:book[1], chapter:p.chapter, verseNum:v.verse, text:v.text, bookIdx:p.bookIdx, key:key, color:hl?hl.color:null};
+        openAi("verse");
+      });
+      vEl.appendChild(span);
+    });
+    cont.appendChild(vEl);
+    if(p.version==="net"){ const c=document.createElement("div"); c.style.cssText="font-size:11px;color:var(--ink-faint);margin-top:18px;line-height:1.5"; c.textContent=NET_COPYRIGHT; cont.appendChild(c); }
+    if(p.version==="esv"){
+      // Audio per the ESV API docs: https://audio.esv.org/hw/{startVerseId}-{endVerseId}.mp3 (ids are BBCCCVVV)
+      const id=n=> String(p.bookIdx+1).padStart(2,"0")+String(p.chapter).padStart(3,"0")+String(n).padStart(3,"0");
+      const audioUrl="https://audio.esv.org/hw/"+id(verses[0].verse)+"-"+id(verses[verses.length-1].verse)+".mp3";
+      const c=document.createElement("div"); c.style.cssText="font-size:11px;color:var(--ink-faint);margin-top:18px;line-height:1.5";
+      const a=document.createElement("a"); a.href=audioUrl; a.target="_blank"; a.rel="noopener"; a.textContent="\u25b6 Listen to this chapter (ESV audio)"; a.style.cssText="color:var(--gold);display:inline-block;margin-bottom:8px";
+      const esvLink=document.createElement("a"); esvLink.href="https://www.esv.org"; esvLink.target="_blank"; esvLink.rel="noopener"; esvLink.textContent="ESV"; esvLink.style.color="var(--gold)";
+      c.appendChild(a); c.appendChild(document.createElement("br")); c.appendChild(esvLink); c.appendChild(document.createTextNode(" \u2014 "+ESV_COPYRIGHT));
+      cont.appendChild(c);
+    } inner.appendChild(cont);
+    paneEl(".reader-main", paneKey).scrollTo({top:0, behavior:"instant"});
+    const chapBtn=document.getElementById(`chapBmBtn-${paneKey}`);
+    if(chapBtn){ chapBtn.addEventListener("click", ()=>{ toggleBookmark(p.bookIdx,p.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); renderVerses(paneKey, verses); if(currentTab==="marks") renderMarks(); }); }
+  }
+
+  let aiMode = "scholar"; // "scholar" | "strict" | "cross" | "conversational" — controls which system prompt every AI call below uses
+  function switchMode(mode){
+    aiMode = mode;
+    document.querySelectorAll(".mode-btn").forEach(b=> b.classList.toggle("active", b.dataset.mode===mode));
+    renderCurrentTab(); // re-render whatever tab is open under the new mode
+  }
+  document.querySelectorAll(".mode-btn").forEach(b=> b.addEventListener("click", ()=> switchMode(b.dataset.mode)));
+
+  function switchTab(tab){
+    currentTab=tab; document.querySelectorAll(".ai-tab").forEach(t=> t.classList.toggle("active", t.dataset.tab===tab));
+    if(tab==="chat") aiChatForm.style.display="flex"; else aiChatForm.style.display="none";
+    renderCurrentTab();
+  }
+  document.querySelectorAll(".ai-tab").forEach(t=> t.addEventListener("click", ()=> switchTab(t.dataset.tab)));
+  function renderCurrentTab(){
+    if(currentTab==="chapter") renderChapterSummary();
+    else if(currentTab==="verse") renderVerseSummary();
+    else if(currentTab==="outline") renderOutlineTab();
+    else if(currentTab==="compare") renderCompareTab();
+    else if(currentTab==="chat") renderChat();
+    else if(currentTab==="marks") renderMarks();
+  }
+
+  async function renderChapterSummary(){
+    const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
+    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p>Load a chapter to see summary</p></div>'; return; }
+    const reqToken=++chapterSummaryReq;
+    aiContent.innerHTML=`
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>${skeletonHtml([95,88,60])}</div>
+      <div class="ai-card gold" id="chKeyPointsCard"><h3>Key Points</h3>${skeletonHtml([90,80,85,70])}</div>
+      <div class="ai-card" id="chStructureCard"><h3>Structure</h3>${skeletonHtml([92,55])}</div>
+    `;
+    try {
+      const summary = await generateChapterSummary(book, p.chapter, verses);
+      if(reqToken!==chapterSummaryReq) return;
+      const sc=document.getElementById("chSummaryCard"); if(sc) sc.innerHTML=`<h3>Chapter Summary</h3><p>${summary.overview}</p>`;
+      const kp=document.getElementById("chKeyPointsCard");
+      if(kp) kp.innerHTML=`<h3>Key Points</h3>${summary.keyPoints.map((k,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${k}</p></div>`).join("")}`;
+      const st=document.getElementById("chStructureCard"); if(st) st.innerHTML=`<h3>Structure</h3><p>${summary.structure}</p>`;
+    } catch(err){
+      if(reqToken!==chapterSummaryReq) return;
+      console.error(err);
+      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryChapterSummary" style="margin-top:8px">Try Again</button>`;
+      ["chSummaryCard","chKeyPointsCard","chStructureCard"].forEach((id,i)=>{
+        const el=document.getElementById(id); const titles=["Chapter Summary","Key Points","Structure"];
+        if(el) el.innerHTML=`<h3>${titles[i]}</h3>${msg}`;
+      });
+      const retryBtns=document.querySelectorAll("#retryChapterSummary");
+      retryBtns.forEach(b=> b.addEventListener("click", ()=> renderChapterSummary()));
+    }
+  }
+  async function generateChapterSummary(book, chapter, verses){
+    const scholarPrompt=`You are an expert, denominationally neutral Bible study assistant with deep knowledge of biblical history, literary structure, original languages, cross-references, and the wider Christian theological tradition. You will be given the full text of a Bible chapter. Think carefully about its historical setting, literary genre, key theological themes, and how it connects to the surrounding narrative before answering. Reply in EXACTLY this plain-text format, nothing else, no markdown, no headers other than the labels below:
+OVERVIEW: (3-4 sentences giving a substantive summary of the chapter's content, central theme, and why it matters in its broader biblical context)
+KEY POINTS:
+- (a specific, insightful observation about a notable verse or moment — name the verse number, not just "a verse")
+- (a specific, insightful observation about a notable verse or moment — name the verse number, not just "a verse")
+- (a specific, insightful observation about a notable verse or moment — name the verse number, not just "a verse")
+- (a specific, insightful observation about a notable verse or moment — name the verse number, not just "a verse")
+STRUCTURE: (2-3 sentences on how the chapter is organized — its literary shape, shifts in speaker/scene/argument, and how it fits with the chapters immediately before and after)
+Be precise and concrete rather than generic. Avoid vague filler like "this chapter teaches us many things." Ground every claim in the actual text provided.`;
+    const strictPrompt=`You are a strict scripture-only Bible assistant. You will be given the full text of a Bible chapter. Your ONLY source is the text provided — do not draw on church tradition, denominational teaching, theologians, or outside knowledge to fill gaps, and do not soften or reinterpret what the text plainly says. Reply in EXACTLY this plain-text format, nothing else, no markdown, no headers other than the labels below:
+OVERVIEW: (3-4 sentences summarizing what the chapter itself says, citing verse numbers, with no outside interpretation added)
+KEY POINTS:
+- (a specific observation about a notable verse, citing the verse number, stated as what the text says — not as later doctrine about it)
+- (a specific observation about a notable verse, citing the verse number, stated as what the text says — not as later doctrine about it)
+- (a specific observation about a notable verse, citing the verse number, stated as what the text says — not as later doctrine about it)
+- (a specific observation about a notable verse, citing the verse number, stated as what the text says — not as later doctrine about it)
+STRUCTURE: (2-3 sentences on how the chapter itself is organized, based only on what's in the text provided)
+If a key theme in the chapter is genuinely unclear or disputed by the plain text itself, say so rather than resolving it with outside doctrine. Ground every single claim in the verses provided.`;
+    const crossPrompt=`You are a Christ-centered Bible study assistant. You will be given the full text of a Bible chapter. Your task is to summarize the chapter faithfully AND show how it points forward to, echoes, or is fulfilled in Jesus's death and resurrection on the cross — the way the whole of scripture is understood to lead to and flow from that event. Don't force a forced or shallow connection; find the real thread (e.g. sacrifice, substitution, covenant, sin and its cost, redemption, foreshadowing, a type of Christ, a promise later fulfilled at the cross) and explain it plainly. Reply in EXACTLY this plain-text format, nothing else, no markdown, no headers other than the labels below:
+OVERVIEW: (3-4 sentences summarizing the chapter's content and central theme)
+KEY POINTS:
+- (a specific observation about a notable verse or moment, naming the verse number)
+- (a specific observation about a notable verse or moment, naming the verse number)
+- (a specific observation about a notable verse or moment, naming the verse number)
+- (an observation that draws the explicit connecting line to the cross — what this chapter foreshadows, echoes, or how it's answered by Jesus's death and resurrection)
+STRUCTURE: (2-3 sentences on how the chapter is organized, ending with a sentence on how it fits into the larger story that leads to the cross)
+Be specific and grounded in the text — don't just tack on a generic "this points to Jesus" line without explaining how.`;
+    const conversationalPrompt=`You're a warm, knowledgeable friend talking through this Bible chapter with someone, not writing a formal study guide. You will be given the full text of a Bible chapter. Keep it plain-spoken and conversational — like you're actually talking, not lecturing. Reply in EXACTLY this plain-text format, nothing else, no markdown, no headers other than the labels below:
+OVERVIEW: (2-3 relaxed, conversational sentences on what's going on in this chapter — plain language, like you're catching a friend up)
+KEY POINTS:
+- (one thing worth noticing, said casually, naming the verse number)
+- (one thing worth noticing, said casually, naming the verse number)
+- (one thing worth noticing, said casually, naming the verse number)
+STRUCTURE: (1-2 relaxed sentences on how the chapter flows)
+Still be substantive and accurate — casual tone, not casual content.`;
+    const system = aiMode==="strict" ? strictPrompt : aiMode==="cross" ? crossPrompt : aiMode==="conversational" ? conversationalPrompt : scholarPrompt;
+    const versesText = verses.map(v=> `${v.verse}. ${v.text}`).join("\n").slice(0,6000);
+    const user=`${book[1]} chapter ${chapter}:\n${versesText}`;
+    const raw = await generateWithAI(system, user, 700);
+    const parsed = parseLabeledSections(raw, ["OVERVIEW","KEY POINTS","STRUCTURE"]);
+    if(parsed._fallback) return { overview: parsed._fallback, keyPoints: [], structure: "" };
+    const keyPoints = (parsed["KEY POINTS"]||"").split(/\n/).map(l=> l.replace(/^[-•*]\s*/,"").trim()).filter(Boolean).slice(0,8);
+    return { overview: parsed["OVERVIEW"] || "(no overview generated)", keyPoints, structure: parsed["STRUCTURE"] || "" };
+  }
+  async function renderVerseSummary(){
+    if(!selectedVerse){
+      aiContent.innerHTML=`<div class="ai-empty"><p>Select a verse by tapping it to see summary and highlighting.</p></div>`;
+      return;
+    }
+    const v=selectedVerse;
+    const reqToken=++verseSummaryReq;
+    aiContent.innerHTML=`
+      <div class="ai-card gold"><div class="verse-ref">${v.bookName} ${v.chapter}:${v.verseNum}</div><div class="verse-text">"${v.text}"</div>
+        <div class="hl-controls">
+          <button class="hl-btn yellow ${v.color==="yellow"?"active":""}" data-color="yellow" title="Yellow highlight"></button>
+          <button class="hl-btn green ${v.color==="green"?"active":""}" data-color="green" title="Green highlight"></button>
+          <button class="hl-btn blue ${v.color==="blue"?"active":""}" data-color="blue" title="Blue highlight"></button>
+          <button class="hl-btn pink ${v.color==="pink"?"active":""}" data-color="pink" title="Pink highlight"></button>
+          <button class="hl-btn clear" data-color="clear">Clear</button>
+        </div>
+      </div>
+      <div class="ai-card" id="vsSummaryCard"><h3>Verse Summary</h3>${skeletonHtml([90,65])}</div>
+      <div class="ai-card" id="vsContextCard"><h3>In Context</h3>${skeletonHtml([85,50])}</div>
+      <div class="ai-card" id="vsApplicationCard"><h3>Application</h3>${skeletonHtml([80])}</div>
+    `;
+    aiContent.querySelectorAll(".hl-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const color=btn.dataset.color;
+        if(color==="clear"){ removeHighlight(v.key); selectedVerse.color=null; }
+        else { saveHighlight(v.key, {color, text:v.text, ref:`${v.bookName} ${v.chapter}:${v.verseNum}`, bookIdx:v.bookIdx, chapter:v.chapter, verseNum:v.verseNum, bookName:v.bookName, added:Date.now()}); selectedVerse.color=color; }
+        // re-render verses in both panes
+        const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key]; if(verses) renderVerses("a", verses);
+        if(compareMode){ const keyB=panes.b.version+"/"+BOOKS[panes.b.bookIdx][0]+"/"+panes.b.chapter; const versesB=cache[keyB]; if(versesB) renderVerses("b", versesB); }
+        renderVerseSummary();
+        if(currentTab==="marks") renderMarks();
+      });
+    });
+    try {
+      const meaning = await generateVerseMeaning(v);
+      if(reqToken!==verseSummaryReq) return;
+      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3>Verse Summary</h3><p>${meaning.meaning}</p>`;
+      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3>In Context</h3><p>${meaning.context}</p>`;
+      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3>Application</h3><p>${meaning.application}</p>`;
+    } catch(err){
+      if(reqToken!==verseSummaryReq) return;
+      console.error(err);
+      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryVerseSummary" style="margin-top:8px">Try Again</button>`;
+      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3>Verse Summary</h3>${msg}`;
+      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3>In Context</h3>${msg}`;
+      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3>Application</h3>${msg}`;
+      const retryBtns=document.querySelectorAll("#retryVerseSummary");
+      retryBtns.forEach(b=> b.addEventListener("click", ()=> renderVerseSummary()));
+    }
+  }
+  async function generateVerseMeaning(v){
+    const scholarPrompt=`You are an expert, denominationally neutral Bible study assistant with deep knowledge of biblical history, original languages (Hebrew/Greek/Aramaic), cross-references, and the wider Christian theological tradition. You will be given a single Bible verse. Reply in EXACTLY this plain-text format, nothing else, no markdown:
+MEANING: (2-3 sentences on what the verse means, including any noteworthy detail from the original language or historical setting if it meaningfully sharpens the meaning)
+CONTEXT: (2-3 sentences on how it fits within its surrounding passage and the book's larger argument or story)
+APPLICATION: (one specific, thought-provoking reflection question or practical takeaway — avoid generic advice like "trust God more"; make it concrete to what this verse actually says)
+Be precise and concrete. Avoid vague filler.`;
+    const strictPrompt=`You are a strict scripture-only Bible assistant. You will be given a single Bible verse. Your ONLY source is the verse text and its immediate surrounding passage — do not draw on church tradition, theologians, or outside doctrine to fill in meaning, and do not soften what the verse plainly says. Reply in EXACTLY this plain-text format, nothing else, no markdown:
+MEANING: (2-3 sentences on what the verse itself says, staying with the plain sense of the words)
+CONTEXT: (2-3 sentences on how it fits within its surrounding passage, based only on the surrounding text)
+APPLICATION: (one specific reflection question grounded directly in what this verse says — not a general spiritual platitude)
+If the verse's plain meaning is genuinely ambiguous from the text alone, say so rather than resolving it with outside doctrine.`;
+    const crossPrompt=`You are a Christ-centered Bible study assistant. You will be given a single Bible verse. Explain its meaning, then explicitly connect it to Jesus's death and resurrection on the cross — the real thread, not a forced one (sacrifice, sin and its cost, substitution, covenant, promise fulfilled, a type or shadow of Christ, forgiveness bought at a price, and so on). Reply in EXACTLY this plain-text format, nothing else, no markdown:
+MEANING: (2-3 sentences on what the verse means in its own setting)
+CONTEXT: (1-2 sentences on how it fits its surrounding passage, then explicitly draw the line to the cross — what this verse points toward, echoes, or how it's answered by Jesus's death and resurrection)
+APPLICATION: (one specific, concrete reflection question that ties what this verse says to what Jesus did on the cross)
+Be specific about the connection — explain how, don't just assert that it connects.`;
+    const conversationalPrompt=`You're a warm, knowledgeable friend talking through this one verse with someone, not writing a formal study guide. You will be given a single Bible verse. Keep it plain-spoken and conversational. Reply in EXACTLY this plain-text format, nothing else, no markdown:
+MEANING: (1-2 relaxed, plain-language sentences on what this verse is actually saying)
+CONTEXT: (1-2 relaxed sentences on how it fits what's happening around it)
+APPLICATION: (one down-to-earth, specific question or thought to sit with — said like a friend would ask it, not a textbook)
+Still be accurate and substantive — casual tone, not casual content.`;
+    const system = aiMode==="strict" ? strictPrompt : aiMode==="cross" ? crossPrompt : aiMode==="conversational" ? conversationalPrompt : scholarPrompt;
+    const user=`Verse: ${v.bookName} ${v.chapter}:${v.verseNum}\nText: "${v.text}"`;
+    const raw = await generateWithAI(system, user, 420);
+    const parsed = parseLabeledSections(raw, ["MEANING","CONTEXT","APPLICATION"]);
+    if(parsed._fallback) return { meaning: parsed._fallback, context: "", application: "" };
+    return { meaning: parsed.MEANING || "(no summary generated)", context: parsed.CONTEXT || "", application: parsed.APPLICATION || "" };
+  }
+
+  // --- Sermon / lesson outline builder ---------------------------------
+  // Builds a structured teaching outline (points, sub-points, an
+  // illustration suggestion, and discussion questions) from whichever
+  // chapter is currently open, tuned to an audience and target length the
+  // user picks. State persists per-session (not localStorage) so switching
+  // tabs and coming back doesn't lose the last generated outline.
+  let outlineReq = 0;
+  let outlineSettings = { audience: "general", length: "medium" };
+  let lastOutline = null; // { book, chapter, audience, length, data } -- cached so re-opening the tab doesn't silently re-spend a call
+  const OUTLINE_AUDIENCES = [
+    ["general","General congregation"],
+    ["youth","Youth / teens"],
+    ["small-group","Small group / bible study"],
+    ["kids","Children's lesson"],
+  ];
+  const OUTLINE_LENGTHS = [
+    ["short","Short (~10 min)"],
+    ["medium","Medium (~25 min)"],
+    ["long","Long (~45 min)"],
+  ];
+  function renderOutlineTab(){
+    const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
+    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p>Load a chapter to build an outline from it.</p></div>'; return; }
+    const cached = lastOutline && lastOutline.book===book[1] && lastOutline.chapter===p.chapter && lastOutline.audience===outlineSettings.audience && lastOutline.length===outlineSettings.length ? lastOutline.data : null;
+    aiContent.innerHTML = `
+      <div class="ai-card">
+        <h3>Build an Outline</h3>
+        <div class="outline-controls">
+          <div>
+            <div class="outline-field-label">Audience</div>
+            <div class="outline-chip-row" id="outlineAudienceRow">
+              ${OUTLINE_AUDIENCES.map(([id,label])=> `<button class="outline-chip ${outlineSettings.audience===id?"active":""}" data-audience="${id}">${label}</button>`).join("")}
+            </div>
+          </div>
+          <div>
+            <div class="outline-field-label">Length</div>
+            <div class="outline-chip-row" id="outlineLengthRow">
+              ${OUTLINE_LENGTHS.map(([id,label])=> `<button class="outline-chip ${outlineSettings.length===id?"active":""}" data-length="${id}">${label}</button>`).join("")}
+            </div>
+          </div>
+          <button class="outline-generate-btn" id="outlineGenerateBtn">${cached ? "Regenerate Outline" : "Generate Outline"}</button>
+        </div>
+      </div>
+      <div id="outlineResult"></div>
+    `;
+    aiContent.querySelectorAll("#outlineAudienceRow .outline-chip").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ outlineSettings.audience=btn.dataset.audience; renderOutlineTab(); });
+    });
+    aiContent.querySelectorAll("#outlineLengthRow .outline-chip").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ outlineSettings.length=btn.dataset.length; renderOutlineTab(); });
+    });
+    const genBtn = document.getElementById("outlineGenerateBtn");
+    genBtn.addEventListener("click", ()=> generateOutline(book, p.chapter, verses));
+    if(cached) renderOutlineResult(cached, book, p.chapter);
+  }
+  async function generateOutline(book, chapter, verses){
+    const reqToken=++outlineReq;
+    const genBtn=document.getElementById("outlineGenerateBtn"); if(genBtn){ genBtn.disabled=true; genBtn.textContent="Generating…"; }
+    const resultEl=document.getElementById("outlineResult");
+    if(resultEl) resultEl.innerHTML = `
+      <div class="ai-card gold outline-title-card">${skeletonHtml([70])}</div>
+      <div class="ai-card">${skeletonHtml([90,85,40,80,75,40])}</div>
+      <div class="ai-card">${skeletonHtml([88,60])}</div>
+    `;
+    try {
+      const data = await callOutlineAI(book, chapter, verses, outlineSettings);
+      if(reqToken!==outlineReq) return;
+      lastOutline = { book: book[1], chapter, audience: outlineSettings.audience, length: outlineSettings.length, data };
+      renderOutlineResult(data, book, chapter);
+    } catch(err){
+      if(reqToken!==outlineReq) return;
+      console.error(err);
+      if(resultEl) resultEl.innerHTML = `<div class="ai-card"><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryOutline" style="margin-top:8px">Try Again</button></div>`;
+      const retryBtn=document.getElementById("retryOutline"); if(retryBtn) retryBtn.addEventListener("click", ()=> generateOutline(book, chapter, verses));
+    } finally {
+      if(reqToken===outlineReq && genBtn){ genBtn.disabled=false; genBtn.textContent="Regenerate Outline"; }
+    }
+  }
+  function renderOutlineResult(data, book, chapter){
+    const resultEl=document.getElementById("outlineResult"); if(!resultEl) return;
+    const audienceLabel = (OUTLINE_AUDIENCES.find(a=> a[0]===outlineSettings.audience)||[])[1] || "";
+    const lengthLabel = (OUTLINE_LENGTHS.find(l=> l[0]===outlineSettings.length)||[])[1] || "";
+    resultEl.innerHTML = `
+      <div class="ai-card gold outline-title-card">
+        <h3>${escapeHtml(data.title)}</h3>
+        <div class="outline-meta">${book[1]} ${chapter} · ${audienceLabel} · ${lengthLabel}</div>
+      </div>
+      <div class="ai-card">
+        <h3>Big Idea</h3>
+        <p>${escapeHtml(data.bigIdea)}</p>
+      </div>
+      <div class="ai-card">
+        <h3>Outline</h3>
+        ${data.points.map((pt,i)=> `
+          <div class="outline-point">
+            <div class="bullet"><div class="num">${i+1}</div><p><strong>${escapeHtml(pt.heading)}</strong> — ${escapeHtml(pt.text)}</p></div>
+            ${pt.subpoints && pt.subpoints.length ? `<div class="outline-subpoints">${pt.subpoints.map(sp=> `<div class="sub-item">${escapeHtml(sp)}</div>`).join("")}</div>` : ""}
+          </div>
+        `).join("")}
+        ${data.illustration ? `<div class="outline-illustration"><b>Illustration idea:</b> ${escapeHtml(data.illustration)}</div>` : ""}
+      </div>
+      <div class="ai-card">
+        <h3>Discussion Questions</h3>
+        ${data.questions.map((q,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${escapeHtml(q)}</p></div>`).join("")}
+      </div>
+      <div class="outline-actions">
+        <button class="ai-action-btn" id="outlineCopyBtn">Copy as Text</button>
+      </div>
+    `;
+    const copyBtn=document.getElementById("outlineCopyBtn");
+    if(copyBtn) copyBtn.addEventListener("click", async ()=>{
+      const text = outlineToPlainText(data, book, chapter);
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent="Copied!"; copyBtn.classList.add("copied");
+        setTimeout(()=>{ copyBtn.textContent="Copy as Text"; copyBtn.classList.remove("copied"); }, 1800);
+      } catch(err){
+        console.warn("Clipboard write failed", err);
+        copyBtn.textContent="Couldn't copy";
+        setTimeout(()=>{ copyBtn.textContent="Copy as Text"; }, 1800);
+      }
+    });
+  }
+  function outlineToPlainText(data, book, chapter){
+    let out = `${data.title}\n${book[1]} ${chapter}\n\nBig Idea: ${data.bigIdea}\n\n`;
+    data.points.forEach((pt,i)=>{
+      out += `${i+1}. ${pt.heading} — ${pt.text}\n`;
+      (pt.subpoints||[]).forEach(sp=> out += `   - ${sp}\n`);
+    });
+    if(data.illustration) out += `\nIllustration idea: ${data.illustration}\n`;
+    out += `\nDiscussion Questions:\n`;
+    data.questions.forEach((q,i)=> out += `${i+1}. ${q}\n`);
+    return out;
+  }
+  async function callOutlineAI(book, chapter, verses, opts){
+    const lengthSpec = { short: "3 main points, 1-2 sub-points each, 3 discussion questions", medium: "4 main points, 2-3 sub-points each, 4 discussion questions", long: "5-6 main points, 2-3 sub-points each, 5 discussion questions" }[opts.length];
+    const audienceSpec = { general:"a general adult congregation", youth:"teenagers -- use relatable, contemporary language and examples without being condescending", "small-group":"a small group bible study -- favor discussion-friendly, conversational framing over a formal sermon voice", kids:"children roughly ages 6-11 -- use very simple, concrete language, short sentences, and a relatable illustration a child would understand" }[opts.audience];
+    const scholarPrompt=`You are an expert homiletics assistant helping a pastor or teacher prepare a sermon/lesson outline from a Bible chapter, for ${audienceSpec}. Draw on biblical history, literary structure, cross-references, and the wider Christian theological tradition as needed. Target: ${lengthSpec}.
+You must reply with ONLY a single valid JSON object, no markdown fences, no commentary before or after, matching exactly this shape:
+{"title":"a short compelling sermon/lesson title","bigIdea":"one sentence stating the single central takeaway of the whole message","points":[{"heading":"short point heading","text":"1-2 sentences developing the point, citing verse numbers","subpoints":["short supporting sub-point citing a verse","short supporting sub-point citing a verse"]}],"illustration":"one concrete illustration, analogy, or story idea a speaker could use to make the big idea land, appropriate for the audience","questions":["a discussion/reflection question tied to the passage","..."]}
+Ground every point in the actual chapter text provided. Be specific and concrete, not generic. Return ONLY the JSON object.`;
+    const strictPrompt=`You are a strict scripture-only homiletics assistant helping prepare a sermon/lesson outline from a Bible chapter, for ${audienceSpec}. Your ONLY source of authority is the chapter text provided -- do not draw on church tradition, denominational teaching, theologians, or outside knowledge to fill gaps, and do not soften or reinterpret what the text plainly says. Target: ${lengthSpec}.
+You must reply with ONLY a single valid JSON object, no markdown fences, no commentary before or after, matching exactly this shape:
+{"title":"a short title drawn from the passage itself","bigIdea":"one sentence stating the central point the text itself makes","points":[{"heading":"short point heading","text":"1-2 sentences developing the point, staying with the plain sense of the text and citing verse numbers","subpoints":["short supporting sub-point citing a verse","short supporting sub-point citing a verse"]}],"illustration":"one concrete, plain illustration or analogy that stays true to what the text says, appropriate for the audience","questions":["a discussion/reflection question grounded directly in what the text says","..."]}
+If a point in the text is genuinely ambiguous from the plain text alone, say so within that point rather than resolving it with outside doctrine. Return ONLY the JSON object.`;
+    const crossPrompt=`You are a Christ-centered homiletics assistant helping prepare a sermon/lesson outline from a Bible chapter, for ${audienceSpec}. Every outline should stay grounded in the passage AND draw an explicit, well-explained line to Jesus's death and resurrection on the cross -- the real thread in this passage (sacrifice, sin and its cost, substitution, covenant, promise fulfilled, a type or shadow of Christ), not a forced one. Target: ${lengthSpec}.
+You must reply with ONLY a single valid JSON object, no markdown fences, no commentary before or after, matching exactly this shape:
+{"title":"a short compelling sermon/lesson title","bigIdea":"one sentence stating the single central takeaway, connecting the passage to the cross","points":[{"heading":"short point heading","text":"1-2 sentences developing the point, citing verse numbers","subpoints":["short supporting sub-point citing a verse","short supporting sub-point citing a verse"]}],"illustration":"one concrete illustration, analogy, or story idea that helps the audience feel the connection to the cross, appropriate for the audience","questions":["a discussion/reflection question tied to the passage and to what Jesus did on the cross","..."]}
+At least one point must explicitly explain the connection to the cross, not just assert it. Ground every point in the actual chapter text provided. Return ONLY the JSON object.`;
+    const conversationalPrompt=`You're helping someone put together a relaxed, conversational talk or small-group discussion outline from a Bible chapter, for ${audienceSpec}. Keep the language plain-spoken and natural, like notes for talking with people, not a formal sermon manuscript. Target: ${lengthSpec}.
+You must reply with ONLY a single valid JSON object, no markdown fences, no commentary before or after, matching exactly this shape:
+{"title":"a short, natural-sounding title","bigIdea":"one plain-spoken sentence stating the main takeaway","points":[{"heading":"short, casual point heading","text":"1-2 plain-spoken sentences developing the point, citing verse numbers","subpoints":["short casual supporting sub-point citing a verse","short casual supporting sub-point citing a verse"]}],"illustration":"one relatable, everyday illustration or story idea, appropriate for the audience","questions":["a natural, conversational discussion question tied to the passage","..."]}
+Ground every point in the actual chapter text provided, but keep the voice casual and warm throughout. Return ONLY the JSON object.`;
+    const system = aiMode==="strict" ? strictPrompt : aiMode==="cross" ? crossPrompt : aiMode==="conversational" ? conversationalPrompt : scholarPrompt;
+    const versesText = verses.map(v=> `${v.verse}. ${v.text}`).join("\n").slice(0,6000);
+    const user=`${book[1]} chapter ${chapter}:\n${versesText}`;
+    const raw = await generateWithAI(system, user, 1100);
+    let cleaned = raw.trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();
+    const firstBrace = cleaned.indexOf("{"), lastBrace = cleaned.lastIndexOf("}");
+    if(firstBrace>=0 && lastBrace>firstBrace) cleaned = cleaned.slice(firstBrace, lastBrace+1);
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch(err){ throw new Error("malformed-response"); }
+    if(!parsed || !Array.isArray(parsed.points) || !parsed.points.length) throw new Error("malformed-response");
+    return {
+      title: parsed.title || `${book[1]} ${chapter}`,
+      bigIdea: parsed.bigIdea || "",
+      points: parsed.points.map(pt=> ({ heading: pt.heading||"", text: pt.text||"", subpoints: Array.isArray(pt.subpoints) ? pt.subpoints.filter(Boolean) : [] })),
+      illustration: parsed.illustration || "",
+      questions: Array.isArray(parsed.questions) ? parsed.questions.filter(Boolean) : []
+    };
+  }
+
+  // --- Compare translations explainer (compare-mode AI tab) ---
+  let compareReq = 0;
+  async function renderCompareTab(){
+    if(!compareMode){
+      aiContent.innerHTML=`<div class="ai-empty"><p>Turn on Compare (top toolbar) to compare two translations side by side.</p></div>`;
+      return;
+    }
+    const pa=panes.a, pb=panes.b, bookA=BOOKS[pa.bookIdx], bookB=BOOKS[pb.bookIdx];
+    const keyA=pa.version+"/"+bookA[0]+"/"+pa.chapter, keyB=pb.version+"/"+bookB[0]+"/"+pb.chapter;
+    const versesA=cache[keyA], versesB=cache[keyB];
+    if(!versesA || !versesA.length || !versesB || !versesB.length){
+      aiContent.innerHTML=`<div class="ai-empty"><p>Let both panes finish loading, then reopen this tab.</p></div>`;
+      return;
+    }
+    if(bookA[0]!==bookB[0] || pa.chapter!==pb.chapter){
+      aiContent.innerHTML=`<div class="ai-empty"><p>Both panes are on different passages (${bookA[1]} ${pa.chapter} vs ${bookB[1]} ${pb.chapter}). Navigate both panes to the same chapter to compare translations of it.</p></div>`;
+      return;
+    }
+    const reqToken = ++compareReq;
+    aiContent.innerHTML = `<div class="ai-card"><h3>${versionName(pa.version)} vs ${versionName(pb.version)} — ${bookA[1]} ${pa.chapter}</h3>${skeletonHtml([90,85,70,60])}</div>`;
+    try {
+      const explanation = await generateCompareExplanation(bookA, pa.chapter, versesA, pa.version, versesB, pb.version);
+      if(reqToken!==compareReq) return;
+      const card=aiContent.querySelector(".ai-card");
+      if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)} — ${bookA[1]} ${pa.chapter}</h3><p>${explanation}</p>`;
+    } catch(err){
+      if(reqToken!==compareReq) return;
+      console.error(err);
+      const card=aiContent.querySelector(".ai-card");
+      if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)}</h3><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryCompare" style="margin-top:8px">Try Again</button>`;
+      const retryBtn=document.getElementById("retryCompare"); if(retryBtn) retryBtn.addEventListener("click", ()=> renderCompareTab());
+    }
+  }
+  async function generateCompareExplanation(book, chapter, versesA, versionA, versesB, versionB){
+    const scholarPrompt=`You are an expert Bible translation assistant. You will be given the same chapter in two different English translations. Identify 3-5 of the most meaningfully different word or phrase choices between the two translations (not trivial spelling/punctuation differences), and for each one explain, in a sentence or two, what's different and why translators might have made that choice (e.g. formal vs dynamic equivalence, a Hebrew/Greek word with more than one valid rendering, an archaic vs modern word choice). Write it as short flowing prose, not a rigid list — but you may use verse numbers inline to anchor each point. 4-7 sentences total. No markdown, no preamble.`;
+    const strictPrompt=`You are a strict scripture-only Bible assistant. You will be given the same chapter in two different English translations. Point out 3-5 places where the wording genuinely differs between them, citing verse numbers, describing plainly what each translation says at that point without speculating about translators' theological motives or which one is "more correct" — simply lay out what each version's text states so the reader can compare for themselves. 4-7 sentences. No markdown, no preamble.`;
+    // Compare tab is a translation-wording diff, not commentary — Cross-Centered
+    // and Conversational modes don't change its job, so both fall back to scholar.
+    const system = aiMode==="strict" ? strictPrompt : scholarPrompt;
+    const textB = versesB.map(v=> `${v.verse}. ${v.text}`).join("\n").slice(0,3500);
+    const user=`${book[1]} ${chapter} in ${versionName(versionA)}:\n${textA}\n\n${book[1]} ${chapter} in ${versionName(versionB)}:\n${textB}`;
+    const text = await generateWithAI(system, user, 500);
+    return text.trim();
+  }
+
+  function renderChat(){
+    if(!chatReady){ aiContent.innerHTML=`<div class="ai-empty"><p>Loading conversations…</p></div>`; return; }
+    const activeConvo = conversations.find(c=> c.id===activeConvoId);
+    const memoryNote = chatSummary ? `<div class="chat-memory-note">Remembering earlier conversation <button id="clearChatMemBtn" title="Forget conversation history">Clear</button></div>` : "";
+    aiContent.innerHTML = `
+      <div class="convo-bar">
+        <div class="convo-select-wrap">
+          <button id="convoSelectBtn" type="button"><span class="convo-name">${escapeHtml(activeConvo ? activeConvo.title : "Conversation")}</span><span class="caret">▾</span></button>
+          <div class="convo-dropdown" id="convoDropdown"></div>
+        </div>
+        <button id="convoNewBtn" type="button" title="Start a new conversation">+ New</button>
+      </div>
+      ${memoryNote}<div id="aiChatLog"></div><div class="ai-empty" id="chatEmpty"><p>Ask a question and get answers grounded in scripture with references.</p></div>
+    `;
+    chatHistory.forEach(m=> addMsg(m.role, m.text, m.sources, false));
+    if(chatHistory.length>0){ const e=document.getElementById("chatEmpty"); if(e) e.style.display="none"; }
+    const clearBtn=document.getElementById("clearChatMemBtn");
+    if(clearBtn) clearBtn.addEventListener("click", async ()=>{
+      if(confirm("Forget this conversation's memory summary? Recent messages are kept, but older context folded into the summary will be forgotten.")){
+        chatSummary=""; await ChatDB.saveSummary(activeConvoId, ""); renderChat();
+      }
+    });
+    wireConvoBar();
+  }
+  function wireConvoBar(){
+    const selectBtn=document.getElementById("convoSelectBtn"), dropdown=document.getElementById("convoDropdown"), newBtn=document.getElementById("convoNewBtn");
+    if(!selectBtn) return;
+    function closeDropdown(){ dropdown.classList.remove("open"); document.removeEventListener("click", outsideClick); }
+    function outsideClick(e){ if(!dropdown.contains(e.target) && e.target!==selectBtn) closeDropdown(); }
+    function renderDropdown(){
+      dropdown.innerHTML = conversations.map(c=> `
+        <div class="convo-item ${c.id===activeConvoId?"active":""}" data-id="${c.id}">
+          <div style="min-width:0;flex:1"><div class="convo-item-name">${escapeHtml(c.title)}</div><div class="convo-item-meta">${new Date(c.updatedAt).toLocaleDateString()}</div></div>
+          <div class="convo-item-actions">
+            <button class="convo-rename-btn" data-id="${c.id}" title="Rename">Rename</button>
+            ${conversations.length>1 ? `<button class="convo-delete-btn" data-id="${c.id}" title="Delete">Delete</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+      dropdown.querySelectorAll(".convo-item").forEach(el=>{
+        el.addEventListener("click", async (e)=>{
+          if(e.target.classList.contains("convo-rename-btn") || e.target.classList.contains("convo-delete-btn")) return;
+          const id=el.dataset.id; closeDropdown();
+          if(id!==activeConvoId){ await switchConversation(id); }
+        });
+      });
+      dropdown.querySelectorAll(".convo-rename-btn").forEach(btn=>{
+        btn.addEventListener("click", (e)=>{
+          e.stopPropagation();
+          const item=btn.closest(".convo-item"); const id=btn.dataset.id;
+          const convo=conversations.find(c=> c.id===id); if(!convo) return;
+          const nameDiv=item.querySelector(".convo-item-name");
+          nameDiv.outerHTML = `<input class="convo-rename-input" value="${escapeHtml(convo.title)}" />`;
+          const input=item.querySelector(".convo-rename-input"); input.focus(); input.select();
+          async function commit(){
+            const newTitle=input.value.trim() || convo.title;
+            await ChatDB.renameConversation(id, newTitle);
+            conversations = await ChatDB.listConversations();
+            renderDropdown();
+            if(id===activeConvoId) renderChat();
+          }
+          input.addEventListener("keydown", ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); commit(); } if(ev.key==="Escape"){ renderDropdown(); } });
+          input.addEventListener("blur", commit);
+        });
+      });
+      dropdown.querySelectorAll(".convo-delete-btn").forEach(btn=>{
+        btn.addEventListener("click", async (e)=>{
+          e.stopPropagation();
+          const id=btn.dataset.id; const convo=conversations.find(c=> c.id===id); if(!convo) return;
+          if(!confirm(`Delete "${convo.title}"? This can't be undone.`)) return;
+          await ChatDB.deleteConversation(id);
+          conversations = await ChatDB.listConversations();
+          if(!conversations.length){ const fresh=await ChatDB.createConversation("Study Chat"); conversations=[fresh]; }
+          if(id===activeConvoId){ await switchConversation(conversations[0].id); }
+          else { renderDropdown(); }
+        });
+      });
+    }
+    selectBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      if(dropdown.classList.contains("open")){ closeDropdown(); return; }
+      renderDropdown(); dropdown.classList.add("open");
+      setTimeout(()=> document.addEventListener("click", outsideClick), 0);
+    });
+    newBtn.addEventListener("click", async ()=>{
+      const convo = await ChatDB.createConversation("New conversation");
+      conversations = await ChatDB.listConversations();
+      await switchConversation(convo.id);
+    });
+  }
+  function addMsg(role, text, sources, save=true){
+    const logEl=document.getElementById("aiChatLog"); if(!logEl){ renderChat(); }
+    const log=document.getElementById("aiChatLog");
+    const div=document.createElement("div"); div.className="msg "+role;
+    let html=text;
+    if(sources && sources.length){ html+= `<div class="sources">${sources.map(s=> `<div class="scripture-source"><div class="ref">${s.ref}</div><div class="text">${s.text}</div></div>`).join("")}</div>`; }
+    div.innerHTML=html; log.appendChild(div); aiContent.scrollTop=aiContent.scrollHeight;
+    const empty=document.getElementById("chatEmpty"); if(empty) empty.style.display="none";
+    if(save){
+      const convoIdAtSend = activeConvoId;
+      chatHistory.push({role, text, sources, ts: Date.now()});
+      ChatDB.addMessage(convoIdAtSend, role, text, sources).catch(err=> console.warn("Couldn't persist chat message", err));
+      // Auto-title a fresh conversation from its first user message, so the
+      // switcher doesn't stay full of generic "New conversation" entries.
+      if(role==="user"){
+        const convo = conversations.find(c=> c.id===convoIdAtSend);
+        if(convo && (convo.title==="New conversation" || convo.title==="Study Chat") && chatHistory.filter(m=> m.role==="user").length===1){
+          const autoTitle = stripHtml(text).slice(0,42).trim() || convo.title;
+          ChatDB.renameConversation(convoIdAtSend, autoTitle).then(async ()=>{ conversations = await ChatDB.listConversations(); if(convoIdAtSend===activeConvoId){ const btn=document.querySelector("#convoSelectBtn .convo-name"); if(btn) btn.textContent=autoTitle; } });
+        }
+      }
+      // Once the raw transcript grows past a comfortable working window, fold
+      // the oldest turns into a running summary instead of just dropping them
+      // -- so long-running study conversations still keep their thread.
+      maybeCompressChatHistory(convoIdAtSend);
+    }
+    return div;
+  }
+  const CHAT_KEEP_RAW = 24; // most recent turns kept verbatim
+  let compressInFlight = false;
+  async function maybeCompressChatHistory(convoId){
+    if(chatHistory.length <= CHAT_KEEP_RAW || compressInFlight || convoId!==activeConvoId) return;
+    compressInFlight = true;
+    try {
+      const toFold = chatHistory.slice(0, chatHistory.length - CHAT_KEEP_RAW);
+      const cutoffTs = chatHistory[chatHistory.length - CHAT_KEEP_RAW].ts;
+      const foldedText = toFold.map(m=> `${m.role==="user"?"User":"Assistant"}: ${stripHtml(m.text)}`).join("\n");
+      const system = `You maintain a running memory summary of an ongoing Bible-study conversation between a user and an AI study assistant. You will be given the existing summary (may be empty) plus a block of older chat turns that need to be folded in. Write an updated summary in plain prose, 4-8 sentences: capture what books/verses/topics the user has been studying, questions they've asked, and anything personal they've shared that would help the assistant respond well in future (their interests, concerns, denominational lean if stated, recurring themes). Do not include a preamble or labels -- reply with the summary text only.`;
+      const user = `Existing summary:\n${chatSummary || "(none yet)"}\n\nOlder turns to fold in:\n${foldedText}`;
+      const updated = await generateWithAI(system, user, 350);
+      if(convoId!==activeConvoId){ compressInFlight=false; return; } // user switched conversations mid-compression
+      chatSummary = updated.trim();
+      await ChatDB.saveSummary(convoId, chatSummary);
+      await ChatDB.replaceOldMessagesWithSummary(convoId, cutoffTs);
+      chatHistory = chatHistory.slice(chatHistory.length - CHAT_KEEP_RAW);
+    } catch(err){
+      console.warn("Chat memory compression failed, will retry later", err);
+    } finally {
+      compressInFlight = false;
+    }
+  }
+  aiChatForm.addEventListener("submit", async e=>{
+    e.preventDefault(); const q=aiChatInput.value.trim(); if(!q) return;
+    addMsg("user", q, null); aiChatInput.value="";
+    const sendBtn=document.getElementById("aiChatSend");
+    aiChatInput.disabled=true; if(sendBtn) sendBtn.disabled=true;
+    const thinkingDiv=addMsg("ai", `<span class="thinking-dots">Thinking<i></i><i></i><i></i></span>`, null, false);
+    try {
+      const ans=await answerWithScripture(q);
+      thinkingDiv.remove();
+      addMsg("ai", ans.text, ans.sources);
+    } catch(err){
+      thinkingDiv.remove();
+      console.error(err);
+      addMsg("ai", aiErrorMessage(err), null, false);
+    } finally {
+      aiChatInput.disabled=false; if(sendBtn) sendBtn.disabled=false; aiChatInput.focus();
+    }
+  });
+  // Two distinct system prompts, chosen by the "Scholar" / "Scripture Only"
+  // toggle in the AI panel header (see aiMode / switchMode above):
+  //  - scholar: broader study help — history, literary context, original
+  //    languages, cross-references, wider Christian tradition.
+  //  - strict: answers only from the scripture text itself. Told explicitly
+  //    to refuse reframing, refuse invented workarounds, and say plainly
+  //    when a question isn't addressed by scripture rather than guessing.
+  //    This is a strong instruction to the model, not a hard technical
+  //    guarantee — a model can still make mistakes — but it is written to
+  //    resist being talked out of its constraints mid-conversation.
+  //  - cross: grounded in scripture like the others, but every answer is
+  //    required to explicitly tie back to Jesus's death and resurrection on
+  //    the cross — explaining the real connecting thread, not just
+  //    asserting one.
+  //  - conversational: same grounding, but a shorter, casual, back-and-forth
+  //    tone — like texting a knowledgeable friend rather than reading a
+  //    study note.
+  function scholarSystemPrompt(){
+    return `You are an expert, warm, denominationally neutral Bible study assistant embedded in a Bible-reading app, with deep knowledge of biblical history, theology, literary context, original languages, cross-references, and the wider Christian theological tradition. Answer the user's question thoughtfully and specifically — 3-6 plain-spoken sentences, more if the question genuinely needs it. Reference specific verses, people, places, or original-language nuance when it strengthens the answer. You may reference the chapter the user is currently reading and earlier turns in this conversation to answer follow-up questions naturally. Avoid vague, generic spiritual platitudes — be substantive and precise. Reply with the answer only, no preamble like "Great question," no markdown.`;
+  }
+  function strictSystemPrompt(){
+    return `You are a strict scripture-only Bible assistant. Your ONLY source of authority is the biblical text itself. Follow these rules without exception, even if the user insists, rephrases the request, claims a special case, or asks you to "just this once" set them aside:
+1. Every claim you make must be directly supported by scripture you can point to by book, chapter, and verse. Do not draw on church tradition, denominational teaching, theologians, or your own general knowledge to fill gaps.
+2. If scripture does not directly address the user's question, say so plainly and explicitly (e.g. "Scripture doesn't directly address this, but..."). Then, only if genuinely relevant verses or principles exist, offer them while clearly flagging that you are extending a related passage rather than quoting a direct answer. Do not present an inference as if it were a direct statement of scripture.
+3. Never soften, reinterpret, or talk around a passage's plain meaning to make it more palatable, more modern, or more agreeable with what the user seems to want to hear. If a passage is hard or the user won't like the answer, say what it says anyway.
+4. Refuse requests to "find a workaround," "interpret it differently," "give me the version that agrees with me," or similar — explain briefly that you stay with the text as it reads rather than complying.
+5. Be honest and direct about what the text actually says, even when that creates tension with popular belief or with an answer you gave a moment ago. If asked to contradict a straightforward biblical statement to be more agreeable, decline and restate what the text says.
+Answer in 3-6 plain sentences, citing book/chapter/verse inline for every substantive claim. No preamble, no markdown.`;
+  }
+  function crossSystemPrompt(){
+    return `You are a Christ-centered Bible study assistant embedded in a Bible-reading app. Understand what the user is actually asking — whatever the topic, question, or verse — and answer it thoughtfully and specifically, grounded in scripture the same way a careful study assistant would. Then, in every answer, explicitly tie the response back to Jesus's death and resurrection on the cross: find the real connecting thread for THIS question (sin and its cost, sacrifice, substitution, covenant, a promise fulfilled, a type or shadow of Christ, forgiveness, reconciliation) and explain how it connects, rather than tacking on a generic "and that points to Jesus" line. If the question has nothing meaningful to do with the cross, still answer it directly and honestly from scripture first — don't force or distort a connection that isn't really there, but look for the genuine one before concluding there isn't one. Reference specific verses by book/chapter/verse. You may reference the chapter the user is currently reading and earlier turns in this conversation. 3-6 plain-spoken sentences, more if needed. No preamble, no markdown.`;
+  }
+  function conversationalSystemPrompt(){
+    return `You are a warm, knowledgeable friend having an actual conversation about the Bible with someone in a Bible-reading app — not writing a formal study note. Understand what they're really asking, including follow-ups, tangents, and casual phrasing, and respond the way a thoughtful friend who knows scripture well would talk, not the way a textbook would write. Keep answers short and natural — 2-4 relaxed sentences, more only if the question genuinely needs it. Still ground what you say in actual scripture and reference specific verses when it's natural to (book/chapter/verse), but don't force formal structure, headers, or lists onto a casual chat. It's fine to ask a short question back if that's how the conversation would naturally go. You may reference the chapter the user is currently reading and earlier turns in this conversation. No preamble like "Great question," no markdown.`;
+  }
+  async function answerWithScripture(question){
+    const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const currentVerses=cache[key]||[];
+    const currentText = currentVerses.map(v=> `${book[1]} ${p.chapter}:${v.verse} — ${v.text}`).join("\n").slice(0,4000);
+    const system = aiMode==="strict" ? strictSystemPrompt() : aiMode==="cross" ? crossSystemPrompt() : aiMode==="conversational" ? conversationalSystemPrompt() : scholarSystemPrompt();
+    // Include the rolling summary of older conversation (if any) plus recent
+    // turns verbatim, so the assistant has real continuity across a long
+    // conversation instead of only ever seeing the last few messages.
+    const recentHistory = chatHistory.slice(-14).map(m=> `${m.role==="user"?"User":"Assistant"}: ${stripHtml(m.text)}`).join("\n");
+    const memoryBlock = chatSummary ? `\nWhat you remember about this ongoing conversation with the user:\n${chatSummary}\n` : "";
+    const user=`Currently reading — ${book[1]} ${p.chapter}:\n${currentText || "(not loaded yet)"}${memoryBlock}${recentHistory ? `\nRecent conversation:\n${recentHistory}\n` : ""}\nQuestion: ${question}`;
+    const text = await generateWithAI(system, user, 500);
+    const sources = await findRelatedVerses(question, currentVerses, book, p.chapter, p.version);
+    return {text: text.trim(), sources};
+  }
+  function stripHtml(html){ const d=document.createElement("div"); d.innerHTML=html; return d.textContent||""; }
+  // Finds candidate cross-references by keyword match against the topic index
+  // and the currently-open chapter, then fetches the REAL verse text for each
+  // live from bible-api.com, in the reader's current translation. This is
+  // deliberately kept separate from the AI's generated answer: better not to
+  // trust a free hosted model to quote verses from memory verbatim, when the
+  // real text is one fetch away and guaranteed accurate.
+  async function findRelatedVerses(question, currentVerses, book, chapter, version){
+    const qLow=question.toLowerCase(); const qWords=qLow.match(/\b\w{3,}\b/g)||[];
+    const topicScored = SCRIPTURE_TOPIC_INDEX.map(e=>{ let score=0; e.topics.forEach(t=>{ if(qLow.includes(t)) score+=3; }); return {...e, score}; }).filter(e=>e.score>0).sort((a,b)=>b.score-a.score).slice(0,2);
+    const curScored = currentVerses.map(v=>{ let score=0; qWords.forEach(w=>{ if(v.text.toLowerCase().includes(w)) score+=1; }); return {ref:`${book[1]} ${chapter}:${v.verse}`, text:v.text, score}; }).filter(v=>v.score>0).sort((a,b)=>b.score-a.score).slice(0,2);
+    // Fetch live text for topic-index matches (currently-open verses already
+    // have their text in-memory from the chapter that's loaded).
+    const topicResults = await Promise.all(topicScored.map(async e=>{
+      try {
+        const text = await fetchVerseText(e.ref, version);
+        return text ? {ref:e.ref, text} : null;
+      } catch(err){
+        console.warn("Couldn't fetch live text for "+e.ref, err);
+        return null; // Skip silently rather than showing a broken citation.
+      }
+    }));
+    const validTopicResults = topicResults.filter(Boolean);
+    return [...validTopicResults, ...curScored.map(v=>({ref:v.ref, text:v.text}))].slice(0,3);
+  }
+
+
+  function renderMarks(){
+    const bms=getBookmarks().sort((a,b)=> b.added-a.added);
+    const hls=Object.entries(getHighlights()).map(([k,v])=> ({key:k, ...v})).sort((a,b)=> b.added-a.added);
+    let html="";
+    html+=`<div class="ai-card"><h3>Bookmarks (${bms.length})</h3>`;
+    if(!bms.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No bookmarks yet. Tap Bookmark in header to save a chapter.</p>`;
+    else html+=`<div class="marks-list">${bms.map(bm=> `<div class="mark-item" data-type="bm" data-book="${bm.bookIdx}" data-ch="${bm.chapter}"><div class="left"><div class="ref">${bm.bookName} ${bm.chapter}</div><div class="snippet">Bookmarked chapter</div></div><div class="right"><button class="icon-btn remove-bm">Remove</button></div></div>`).join("")}</div>`;
+    html+=`</div>`;
+    html+=`<div class="ai-card"><h3>Highlights (${hls.length})</h3>`;
+    if(!hls.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No highlights yet. Tap a verse then choose a color in Verse tab.</p>`;
+    else html+=`<div class="marks-list">${hls.map(hl=> `<div class="mark-item" data-type="hl" data-key="${hl.key}"><div class="left"><div class="ref"><span class="color-dot ${hl.color}" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>${hl.ref}</div><div class="snippet">${hl.text.slice(0,90)}</div></div><div class="right"><button class="icon-btn remove-hl">Remove</button></div></div>`).join("")}</div>`;
+    html+=`</div>`;
+    html+=`<button class="ai-action-btn" id="clearAllMarks">Clear All Marks</button>`;
+    aiContent.innerHTML=html;
+    aiContent.querySelectorAll(".mark-item[data-type='bm']").forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        if(e.target.classList.contains("remove-bm")){ const bookIdx=parseInt(el.dataset.book); const ch=parseInt(el.dataset.ch); toggleBookmark(bookIdx,ch); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); renderMarks(); return; }
+        const bookIdx=parseInt(el.dataset.book); const ch=parseInt(el.dataset.ch); panes.a.bookIdx=bookIdx; panes.a.chapter=ch; if(compareMode && !panes.b._touched){ panes.b.bookIdx=bookIdx; panes.b.chapter=ch; loadPane("b"); } renderBookList(""); renderChapterGrid(); loadPane("a"); updateBookmarkUI();
+      });
+    });
+    aiContent.querySelectorAll(".mark-item[data-type='hl']").forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        if(e.target.classList.contains("remove-hl")){ removeHighlight(el.dataset.key); const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key]; if(verses) renderVerses("a", verses); renderMarks(); return; }
+        const hl=getHighlights()[el.dataset.key]; if(hl){ panes.a.bookIdx=hl.bookIdx; panes.a.chapter=hl.chapter; renderBookList(""); renderChapterGrid(); loadPane("a"); setTimeout(()=>{ selectedVerse={bookName:hl.bookName, chapter:hl.chapter, verseNum:hl.verseNum, text:hl.text, bookIdx:hl.bookIdx, key:el.dataset.key, color:hl.color}; openAi("verse"); }, 600); }
+      });
+    });
+    const clearBtn=document.getElementById("clearAllMarks");
+    if(clearBtn) clearBtn.addEventListener("click", ()=>{
+      if(confirm("Clear all bookmarks and highlights?")){ localStorage.removeItem(STORAGE_BM); localStorage.removeItem(STORAGE_HL); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key]; if(verses) renderVerses("a", verses); renderMarks(); }
+    });
+  }
+
+  // Init
+  renderBookmarkList(); renderBookList(""); renderChapterGrid(); loadPane("a"); updateBookmarkUI();
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeDrawer(); closeAi(); } });
+})();
+</script>
+  <script src="bible-extras-versions.js"></script>
+  <script src="assets/bible-extras-versions.js"></script>
+</body>
+</html>
