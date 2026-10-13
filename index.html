@@ -16,6 +16,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="stylesheet" href="bibley-features.css" />
+<script>try{var bp=JSON.parse(localStorage.getItem("bibley_prefs_v1")||"{}");if(bp.theme==="sepia"||bp.theme==="light")document.documentElement.classList.add("theme-"+bp.theme);}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <style>
@@ -160,6 +162,7 @@
   .verses-text span.hl-green { background:#a7f3d055; box-shadow:inset 0 -2px 0 #6ee7b7; }
   .verses-text span.hl-blue { background:#bfdbfe55; box-shadow:inset 0 -2px 0 #93c5fd; }
   .verses-text span.hl-pink { background:#fbcfe855; box-shadow:inset 0 -2px 0 #f9a8d4; }
+  .verses-text span.hl-purple { background:#ddd6fe55; box-shadow:inset 0 -2px 0 #c4b5fd; }
   .verses-text span.hl-yellow.selected, .verses-text span.hl-green.selected, .verses-text span.hl-blue.selected, .verses-text span.hl-pink.selected { box-shadow:inset 0 0 0 1px #c9a86766, inset 0 -2px 0 currentColor; }
 
   .pager { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-top:1px solid var(--border); background:var(--bg-header); }
@@ -234,7 +237,7 @@
 
   .hl-controls { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
   .hl-btn { width:32px; height:32px; border-radius:8px; border:2px solid transparent; cursor:pointer; display:grid; place-items:center; transition:.2s; }
-  .hl-btn.yellow { background:#fde68a; } .hl-btn.green { background:#a7f3d0; } .hl-btn.blue { background:#bfdbfe; } .hl-btn.pink { background:#fbcfe8; }
+  .hl-btn.yellow { background:#fde68a; } .hl-btn.green { background:#a7f3d0; } .hl-btn.blue { background:#bfdbfe; } .hl-btn.pink { background:#fbcfe8; } .hl-btn.purple { background:#ddd6fe; }
   .hl-btn.clear { background:transparent; border-color:var(--border); color:var(--ink-dim); font-size:12px; width:auto; padding:0 10px; font-family:'Fraunces'; }
   .hl-btn.active { border-color:var(--gold); box-shadow:0 0 0 2px #c9a86744; }
   .hl-btn:hover { transform:translateY(-1px); }
@@ -1762,7 +1765,10 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
       span.addEventListener("click", ()=>{
         document.querySelectorAll(".verses-text span[data-verse]").forEach(s=> s.classList.remove("selected"));
         span.classList.add("selected");
-        selectedVerse={bookName:book[1], chapter:p.chapter, verseNum:v.verse, text:v.text, bookIdx:p.bookIdx, key:key, color:hl?hl.color:null};
+        const curHl=getHighlights()[key];
+        selectedVerse={bookName:book[1], chapter:p.chapter, verseNum:v.verse, text:v.text, bookIdx:p.bookIdx, key:key, color:curHl?curHl.color:null};
+        // Bibley features: a tap opens the verse action sheet (highlight, note, bookmark, copy, share, Study).
+        if(window.BibleyFX && typeof window.BibleyFX.onVerseTap==="function"){ try { window.BibleyFX.onVerseTap(Object.assign({paneKey, version:p.version}, selectedVerse), span); return; } catch(err){ console.warn("verse sheet failed", err); } }
         openAi("verse");
       });
       vEl.appendChild(span);
@@ -1783,6 +1789,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     paneEl(".reader-main", paneKey).scrollTo({top:0, behavior:"instant"});
     const chapBtn=document.getElementById(`chapBmBtn-${paneKey}`);
     if(chapBtn){ chapBtn.addEventListener("click", ()=>{ toggleBookmark(p.bookIdx,p.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); renderVerses(paneKey, verses); if(currentTab==="marks") renderMarks(); }); }
+    if(window.BibleyFX && typeof window.BibleyFX.onChapter==="function"){ try { window.BibleyFX.onChapter(paneKey, {bookIdx:p.bookIdx, chapter:p.chapter, version:p.version, count:verses.length}); } catch(err){ console.warn("chapter hook failed", err); } }
   }
 
   let aiMode = "scholar"; // "scholar" | "strict" | "cross" | "conversational" — controls which system prompt every AI call below uses
@@ -1924,6 +1931,7 @@ Still be substantive and accurate — casual tone, not casual content.`;
           <button class="hl-btn green ${v.color==="green"?"active":""}" data-color="green" title="Green highlight"></button>
           <button class="hl-btn blue ${v.color==="blue"?"active":""}" data-color="blue" title="Blue highlight"></button>
           <button class="hl-btn pink ${v.color==="pink"?"active":""}" data-color="pink" title="Pink highlight"></button>
+          <button class="hl-btn purple ${v.color==="purple"?"active":""}" data-color="purple" title="Purple highlight"></button>
           <button class="hl-btn clear" data-color="clear">Clear</button>
         </div>
       </div>
@@ -2559,6 +2567,22 @@ Answer in 3-6 plain sentences, citing book/chapter/verse inline for every substa
     });
   }
 
+  // Bridge for bibley-features.js (highlights sheet, My Bible, plans, verse of the day, share card, reader settings).
+  window.BibleyCore = {
+    BOOKS, VERSIONS, panes,
+    versionName, versionFullName,
+    getHighlights, saveHighlight, removeHighlight, getBookmarks,
+    fetchVerseText: (ref, version)=> fetchVerseText(ref, version),
+    chapterVerses: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; return null; },
+    isCompare: ()=> compareMode,
+    goPrev: (k)=> goPrev(k||"a"), goNext: (k)=> goNext(k||"a"),
+    goTo: (bookIdx, chapter)=>{ if(!BOOKS[bookIdx]) return; const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
+    rerender: ()=>{ ["a","b"].forEach(k=>{ if(k==="b" && !compareMode) return; const p=panes[k]; const key=p.version+"/"+BOOKS[p.bookIdx][0]+"/"+p.chapter; if(cache[key]){ const sc=paneEl(".reader-main", k).scrollTop; renderVerses(k, cache[key]); paneEl(".reader-main", k).scrollTop=sc; } }); if(currentTab==="marks") renderMarks(); },
+    refreshLists: ()=>{ renderBookmarkList(); renderChapterGrid(); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); },
+    studyVerse: (v)=>{ selectedVerse={bookName:v.bookName, chapter:v.chapter, verseNum:v.verseNum, text:v.text, bookIdx:v.bookIdx, key:v.key, color:v.color||null}; openAi("verse"); },
+    closeDrawer: ()=> closeDrawer(), closeAi: ()=> closeAi()
+  };
+
   // Init
   renderBookmarkList(); renderBookList(""); renderChapterGrid(); loadPane("a"); updateBookmarkUI();
   // Home-screen shortcuts: #continue (default), #search, #ask
@@ -2580,5 +2604,6 @@ Answer in 3-6 plain sentences, citing book/chapter/verse inline for every substa
 </div>
 <div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
 <script src="pwa.js" defer></script>
+<script src="bibley-features.js" defer></script>
 </body>
 </html>
