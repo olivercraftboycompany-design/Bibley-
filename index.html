@@ -1141,8 +1141,9 @@
   // --- Real AI: two independent free, keyless, browser-callable text APIs ----
   // Both were verified to work directly from a browser via fetch(), no API key,
   // no signup, no CORS proxy needed:
-  //   1. LLM7.io      (https://api.llm7.io/v1)        -- PRIMARY
-  //   2. Pollinations  (https://text.pollinations.ai)  -- FALLBACK
+  //   0. Pollinations with Oliver's pk_ key (gen.pollinations.ai) -- PRIMARY (2026-10-13)
+  //   1. LLM7.io      (https://api.llm7.io/v1)        -- FALLBACK
+  //   2. Pollinations  (https://text.pollinations.ai)  -- LAST RESORT (keyless)
   // If the primary provider fails after its own retries, we automatically fall
   // through to the fallback provider before giving up. This is still free,
   // best-effort infrastructure -- no keyless AI API anywhere guarantees 100%
@@ -1213,6 +1214,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     if(msg.indexOf("api-5")===0) return "server-error";
     if(msg.indexOf("api-")===0) return "api-error";
     if(msg==="empty-response" || msg==="malformed-response") return "bad-response";
+    if(msg==="key-not-allowed" || msg==="key-paused") return "rate-limited";
     if(err instanceof TypeError) return "network"; // fetch throws TypeError on network/CORS failure
     return "unknown";
   }
@@ -1290,6 +1292,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     try { data = await response.json(); } catch(e) { throw new Error("malformed-response"); }
     const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     if(!content) throw new Error("empty-response");
+    if(looksLikeProviderNotice(content)) throw new Error("api-402");
     return content;
   }
   async function callPollinations(system, userMessage, maxTokens){
@@ -1302,9 +1305,67 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     throw lastErr;
   }
 
+
+  // --- Pollinations with Oliver's own key (gen.pollinations.ai) -------------
+  // A "pk_" publishable key is meant to sit in public browser code. It lifts the
+  // keyless rate limit. Pollinations answers HTTP 200 with a plain-text notice
+  // ("isn't allowed to use ...", "allow it for this key") when the key has not
+  // been granted a model yet: that notice must NEVER be shown as an answer, so
+  // it is treated as a failure and the key is skipped for a while (falls back).
+  const POLLINATIONS_KEY = "pk_wLLzLQrHReXH2Gqc";
+  const POLLINATIONS_KEY_MODELS = ["openai-mini", "openai"]; // GPT-5.4 Mini, then GPT-5.4 Nano
+  let pollinationsKeyPausedUntil = 0;
+  function looksLikeProviderNotice(text){
+    return /isn['’]t allowed to use|allow it for this key|enter\.pollinations\.ai|API key (?:used|budget)|insufficient pollen|PAYMENT_REQUIRED|rate limit(?:ed)? (?:exceeded|reached)/i.test(String(text||""));
+  }
+  async function callPollinationsKeyWithModel(model, system, userMessage, maxTokens){
+    const response = await fetchWithTimeout("https://gen.pollinations.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + POLLINATIONS_KEY },
+      body: JSON.stringify({
+        model,
+        messages: [{ role:"system", content:system }, { role:"user", content:userMessage }],
+        reasoning_effort: "low",
+        max_completion_tokens: Math.max(maxTokens || 400, 1200)
+      })
+    }, 40000);
+    if(!response.ok){
+      const err = new Error("api-"+response.status);
+      if(response.status===401 || response.status===402 || response.status===403){ err.noRetry = true; err.pauseKey = true; }
+      throw err;
+    }
+    let data;
+    try { data = await response.json(); } catch(e) { throw new Error("malformed-response"); }
+    const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if(!content) throw new Error("empty-response");
+    if(looksLikeProviderNotice(content)){ const err = new Error("key-not-allowed"); err.noRetry = true; err.modelDenied = true; throw err; }
+    return content;
+  }
+  async function callPollinationsKey(system, userMessage, maxTokens){
+    if(Date.now() < pollinationsKeyPausedUntil){ const e = new Error("key-paused"); e.noRetry = true; throw e; }
+    let lastErr; let denied = 0;
+    for(const model of POLLINATIONS_KEY_MODELS){
+      try { return await callPollinationsKeyWithModel(model, system, userMessage, maxTokens); }
+      catch(err){
+        lastErr = err;
+        if(err.modelDenied){ denied++; continue; }          // try the next model
+        if(err.pauseKey){ break; }                          // key/budget problem: no point trying another model
+        if(err.message==="api-429"){ break; }
+      }
+    }
+    // Key not usable right now (not granted / out of budget): skip it for 10 min
+    // so visitors don't pay an extra round trip on every question.
+    if(lastErr && (lastErr.pauseKey || denied===POLLINATIONS_KEY_MODELS.length)){
+      pollinationsKeyPausedUntil = Date.now() + 10*60*1000;
+      lastErr.noRetry = true;
+    }
+    throw lastErr;
+  }
+
   // Order matters: first entry is the primary provider, tried (with its own
   // retries) before falling through to the next.
   const AI_PROVIDERS = [
+    { name: "PollinationsKey", call: callPollinationsKey },
     { name: "LLM7", call: callLLM7 },
     { name: "Pollinations", call: callPollinations }
   ];
@@ -1321,7 +1382,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
       } catch(err){
         lastErr = err;
         const isLastAttempt = i===attempts-1;
-        if(isLastAttempt) break;
+        if(isLastAttempt || (err && err.noRetry)) break;
         // Free tiers tell us how long to wait; wait if it's short, otherwise move on.
         if(err.retryAfter){ if(err.retryAfter>20) break; await sleep(err.retryAfter*1000+300); continue; }
         const kind = describeAiError(err);
@@ -1692,9 +1753,43 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     else if(currentTab==="marks") renderMarks();
   }
 
+  // Chapter summaries are tap-to-generate (2026-10-13): firing one on every
+  // panel open / chapter change burned AI requests nobody asked for. Results are
+  // kept per chapter+version+mode for this visit so re-opening costs nothing.
+  const chapterSummaryCache = {};
+  function chapterSummaryHtml(summary){
+    const esc = s=> escapeHtml(String(s||""));
+    return `
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3><p>${esc(summary.overview)}</p></div>
+      <div class="ai-card gold" id="chKeyPointsCard"><h3>Key Points</h3>${(summary.keyPoints||[]).map((k,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${esc(k)}</p></div>`).join("")}</div>
+      ${summary.structure ? `<div class="ai-card" id="chStructureCard"><h3>Structure</h3><p>${esc(summary.structure)}</p></div>` : ""}
+      <button class="ai-action-btn" id="regenChapterSummary" style="margin-top:4px">↻ Regenerate</button>`;
+  }
   async function renderChapterSummary(){
     const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
     if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p>Load a chapter to see summary</p></div>'; return; }
+    const sumKey = key+"/"+aiMode;
+    const cached = chapterSummaryCache[sumKey];
+    if(cached){
+      ++chapterSummaryReq;
+      aiContent.innerHTML = chapterSummaryHtml(cached);
+      const rb=document.getElementById("regenChapterSummary");
+      if(rb) rb.addEventListener("click", ()=>{ delete chapterSummaryCache[sumKey]; generateChapterSummaryNow(); });
+      return;
+    }
+    ++chapterSummaryReq; // cancels any in-flight summary for a previous chapter
+    aiContent.innerHTML = `
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>
+        <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px">${escapeHtml(book[1])} ${p.chapter}: overview, key points and structure.</p>
+        <button class="ai-action-btn" id="genChapterSummary">✨ Summarize this chapter</button>
+      </div>`;
+    const gb=document.getElementById("genChapterSummary");
+    if(gb) gb.addEventListener("click", ()=> generateChapterSummaryNow());
+  }
+  async function generateChapterSummaryNow(){
+    const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
+    if(!verses || !verses.length) return renderChapterSummary();
+    const sumKey = key+"/"+aiMode;
     const reqToken=++chapterSummaryReq;
     aiContent.innerHTML=`
       <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>${skeletonHtml([95,88,60])}</div>
@@ -1703,21 +1798,16 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     `;
     try {
       const summary = await generateChapterSummary(book, p.chapter, verses);
-      if(reqToken!==chapterSummaryReq) return;
-      const sc=document.getElementById("chSummaryCard"); if(sc) sc.innerHTML=`<h3>Chapter Summary</h3><p>${summary.overview}</p>`;
-      const kp=document.getElementById("chKeyPointsCard");
-      if(kp) kp.innerHTML=`<h3>Key Points</h3>${summary.keyPoints.map((k,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${k}</p></div>`).join("")}`;
-      const st=document.getElementById("chStructureCard"); if(st) st.innerHTML=`<h3>Structure</h3><p>${summary.structure}</p>`;
+      chapterSummaryCache[sumKey] = summary;
+      if(reqToken!==chapterSummaryReq || currentTab!=="chapter") return;
+      renderChapterSummary();
     } catch(err){
       if(reqToken!==chapterSummaryReq) return;
-      console.error(err);
+      console.warn(err);
       const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryChapterSummary" style="margin-top:8px">Try Again</button>`;
-      ["chSummaryCard","chKeyPointsCard","chStructureCard"].forEach((id,i)=>{
-        const el=document.getElementById(id); const titles=["Chapter Summary","Key Points","Structure"];
-        if(el) el.innerHTML=`<h3>${titles[i]}</h3>${msg}`;
-      });
-      const retryBtns=document.querySelectorAll("#retryChapterSummary");
-      retryBtns.forEach(b=> b.addEventListener("click", ()=> renderChapterSummary()));
+      aiContent.innerHTML=`<div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>${msg}</div>`;
+      const rb=document.getElementById("retryChapterSummary");
+      if(rb) rb.addEventListener("click", ()=> generateChapterSummaryNow());
     }
   }
   async function generateChapterSummary(book, chapter, verses){
@@ -1806,7 +1896,7 @@ Still be substantive and accurate — casual tone, not casual content.`;
       const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3>Application</h3><p>${meaning.application}</p>`;
     } catch(err){
       if(reqToken!==verseSummaryReq) return;
-      console.error(err);
+      console.warn(err);
       const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryVerseSummary" style="margin-top:8px">Try Again</button>`;
       const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3>Verse Summary</h3>${msg}`;
       const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3>In Context</h3>${msg}`;
@@ -1915,7 +2005,7 @@ Still be accurate and substantive — casual tone, not casual content.`;
       renderOutlineResult(data, book, chapter);
     } catch(err){
       if(reqToken!==outlineReq) return;
-      console.error(err);
+      console.warn(err);
       if(resultEl) resultEl.innerHTML = `<div class="ai-card"><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryOutline" style="margin-top:8px">Try Again</button></div>`;
       const retryBtn=document.getElementById("retryOutline"); if(retryBtn) retryBtn.addEventListener("click", ()=> generateOutline(book, chapter, verses));
     } finally {
@@ -2043,7 +2133,7 @@ Ground every point in the actual chapter text provided, but keep the voice casua
       if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)} — ${bookA[1]} ${pa.chapter}</h3><p>${explanation}</p>`;
     } catch(err){
       if(reqToken!==compareReq) return;
-      console.error(err);
+      console.warn(err);
       const card=aiContent.querySelector(".ai-card");
       if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)}</h3><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryCompare" style="margin-top:8px">Try Again</button>`;
       const retryBtn=document.getElementById("retryCompare"); if(retryBtn) retryBtn.addEventListener("click", ()=> renderCompareTab());
@@ -2300,7 +2390,7 @@ Ground every point in the actual chapter text provided, but keep the voice casua
       addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text), ans.sources);
     } catch(err){
       thinkingDiv.remove();
-      console.error(err);
+      console.warn(err);
       addMsg("ai", aiErrorMessage(err), null, false);
     } finally {
       aiChatInput.disabled=false; if(sendBtn) sendBtn.disabled=false; aiChatInput.focus();
