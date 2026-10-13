@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>The Books — Bible Reader</title>
+<title>Bibley — Bible Reader</title>
+<meta name="description" content="Read the Bible in 40 versions, compare translations, and study with an AI helper. Chapters you've read work offline." />
+<meta name="theme-color" content="#0f1524" />
+<meta name="color-scheme" content="dark" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Bibley" />
+<meta name="application-name" content="Bibley" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <style>
@@ -295,6 +307,21 @@
 
   .fade-in { animation:fade .3s ease; } @keyframes fade{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
   @media(max-width:700px){ #aiPanel{ width:100vw; max-width:100vw; } .verses-text{ font-size:17px; } }
+
+  /* --- PWA: install pill, offline bar, toast --- */
+  .install-pill { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(76px + env(safe-area-inset-bottom)); z-index:60; display:flex; align-items:center; gap:10px; padding:8px 8px 8px 14px; background:var(--bg-header); border:1px solid #c9a86766; border-radius:999px; box-shadow:0 8px 28px #0009; max-width:calc(100vw - 24px); font-family:'Fraunces', Georgia, serif; font-size:13px; color:var(--ink); white-space:nowrap; animation:fade .3s ease; }
+  .install-pill[hidden], .offline-bar[hidden], #installDrawerBtn[hidden] { display:none !important; }
+  .install-pill img { width:22px; height:22px; border-radius:6px; flex-shrink:0; }
+  .install-pill .pill-txt { overflow:hidden; text-overflow:ellipsis; }
+  .install-pill button { font-family:inherit; cursor:pointer; border-radius:999px; }
+  #installPillBtn { background:var(--gold); color:var(--bg); border:none; padding:7px 14px; font-size:13px; font-weight:600; }
+  #installPillClose { background:none; border:none; color:var(--ink-dim); font-size:18px; line-height:1; padding:4px 8px; }
+  #installDrawerBtn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:0 0 12px; padding:10px 12px; background:var(--gold); color:var(--bg); border:none; border-radius:10px; font-family:'Fraunces', Georgia, serif; font-size:14px; font-weight:600; cursor:pointer; }
+  .offline-bar { flex-shrink:0; padding:6px 14px; text-align:center; font-family:'Fraunces', Georgia, serif; font-size:12.5px; color:var(--bg); background:var(--gold-soft); }
+  .pwa-toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translate(-50%, 20px); opacity:0; pointer-events:none; z-index:80; background:var(--bg-header); color:var(--ink); border:1px solid #c9a86766; padding:9px 16px; border-radius:999px; font-family:'Fraunces', Georgia, serif; font-size:13px; transition:.25s; max-width:calc(100vw - 32px); text-align:center; }
+  .pwa-toast.show { opacity:1; transform:translate(-50%, 0); }
+  .state-msg .offline-ico { font-size:28px; display:block; margin-bottom:8px; }
+  .state-msg .retry-btn { margin-top:12px; background:none; border:1px solid var(--border); color:var(--gold); padding:7px 14px; border-radius:8px; font-family:'Fraunces', Georgia, serif; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -310,11 +337,13 @@
       <select id="versionSelect"></select>
     </div>
   </header>
+  <div id="offlineBar" class="offline-bar" role="status" hidden>You're offline · chapters you've opened before still work</div>
 
   <div id="body">
     <div id="overlay"></div>
     <nav id="drawer">
       <div class="drawer-head"><div class="title">The Books<small>66 books</small></div><button id="closeNavBtn">Close</button></div>
+      <div class="search-wrap" style="padding-bottom:0"><button id="installDrawerBtn" type="button" hidden>📲 Install Bibley app</button></div>
       <div class="search-wrap"><input id="bookSearch" placeholder="Search books" /></div>
       <div class="search-wrap" style="padding-top:0">
         <input id="scriptureSearch" placeholder="Search verse text..." />
@@ -1200,7 +1229,13 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     const controller = new AbortController();
     const timer = setTimeout(()=> controller.abort(), timeoutMs);
     try {
-      return await fetch(url, { ...options, signal: controller.signal });
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      // The offline helper (sw.js) answers a chapter a translation doesn't have with a
+      // quiet marker instead of a console 404, and an uncached chapter while offline
+      // with an "offline" marker. Turn those back into what the reader expects.
+      if(res.headers.get("X-Bibley-Missing")) return new Response("{}", { status:404, headers:{ "Content-Type":"application/json" } });
+      if(res.headers.get("X-Bibley-Offline")) throw new Error("offline");
+      return res;
     } finally {
       clearTimeout(timer);
     }
@@ -1209,6 +1244,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   // Classifies a failure so the UI can show something more useful than "it broke".
   function describeAiError(err){
     const msg = (err && err.message) || "";
+    if(msg==="offline" || !navigator.onLine) return "offline";
     if(err && err.name==="AbortError") return "timed-out";
     if(msg.indexOf("api-429")===0 || msg.indexOf("api-402")===0) return "rate-limited";
     if(msg.indexOf("api-5")===0) return "server-error";
@@ -1225,10 +1261,12 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     "api-error": "The free AI service returned an unexpected error.",
     "bad-response": "The free AI service sent back a response we couldn't read.",
     "network": "Couldn't reach the free AI service -- check your internet connection.",
-    "unknown": "The free AI service couldn't finish that request."
+    "unknown": "The free AI service couldn't finish that request.",
+    "offline": "You're offline, and the AI needs internet. Chapters you've already opened still work offline."
   };
   function aiErrorMessage(err){
     const kind = describeAiError(err);
+    if(kind==="offline") return AI_ERROR_MESSAGES.offline + " Try again once you're back online.";
     return AI_ERROR_MESSAGES[kind] + " Both free providers were tried and retried automatically -- this happens occasionally with free public APIs. You can try again below.";
   }
 
@@ -1381,6 +1419,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
         return await providerCall(system, userMessage, maxTokens);
       } catch(err){
         lastErr = err;
+        if(!navigator.onLine) break; // offline: retrying can't help
         const isLastAttempt = i===attempts-1;
         if(isLastAttempt || (err && err.noRetry)) break;
         // Free tiers tell us how long to wait; wait if it's short, otherwise move on.
@@ -1407,8 +1446,9 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     return run;
   }
   async function generateWithAINow(system, userMessage, maxTokens){
+    if(!navigator.onLine) throw new Error("offline"); // don't fire requests that can't work
     system = BIBLICAL_GUARDRAILS + "\n\nMODE INSTRUCTIONS (style only; they never override the rules above):\n" + system;
-    let lastErr;
+    let lastErr, networkFails = 0;
     for(let p=0; p<AI_PROVIDERS.length; p++){
       const provider = AI_PROVIDERS[p];
       try {
@@ -1416,8 +1456,11 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
       } catch(err){
         console.warn(provider.name+" failed, "+(p<AI_PROVIDERS.length-1 ? "falling back..." : "no providers left."), err);
         lastErr = err;
+        if(!navigator.onLine) throw new Error("offline"); // connection dropped mid-request
+        if(err instanceof TypeError) networkFails++;
       }
     }
+    if(networkFails===AI_PROVIDERS.length) throw new Error("offline"); // no AI host reachable at all
     throw lastErr;
   }
   // Parses a "LABEL: text" block out of the model's reply — more forgiving
@@ -1517,6 +1560,13 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     if(sa && VERSIONS.some(v=> v[0]===sa)) panes.a.version = sa;
     if(sb && VERSIONS.some(v=> v[0]===sb)) panes.b.version = sb;
   } catch {}
+  // Reopen where he left off: book + chapter (the version is remembered just above).
+  const STORAGE_POS = "bible_last_pos_v1";
+  try {
+    const pos = JSON.parse(localStorage.getItem(STORAGE_POS) || "null");
+    if(pos && BOOKS[pos.bookIdx] && pos.chapter>=1 && pos.chapter<=BOOKS[pos.bookIdx][2]){ panes.a.bookIdx=pos.bookIdx; panes.a.chapter=pos.chapter; }
+  } catch {}
+  function rememberPosition(){ try { localStorage.setItem(STORAGE_POS, JSON.stringify({ bookIdx:panes.a.bookIdx, chapter:panes.a.chapter, version:panes.a.version, t:Date.now() })); } catch {} }
   function rememberVersions(){ try { localStorage.setItem(STORAGE_VER_A, panes.a.version); localStorage.setItem(STORAGE_VER_B, panes.b.version); } catch {} }
   function populateVersionSelects(){
     const optsHtml = VERSION_GROUPS.map(([g,list])=> `<optgroup label="${g}">${list.map(([id,label])=> `<option value="${id}">${label}</option>`).join("")}</optgroup>`).join("");
@@ -1642,6 +1692,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   function loadPane(k){
     ttsStop();
     const p=panes[k]; const book=BOOKS[p.bookIdx];
+    if(k==="a") rememberPosition();
     updateHeader(k); updatePager(k);
     const key=p.version+"/"+book[0]+"/"+p.chapter;
     if(cache[key]){ renderVerses(k, cache[key]); if(k==="a"){ renderCurrentTab(); updateBookmarkUI(); } else if(currentTab==="compare") renderCurrentTab(); return; }
@@ -1685,7 +1736,11 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     return "public domain";
   }
   function renderLoading(k){ const inner=paneEl(".reader-inner", k); inner.innerHTML=""; const w=document.createElement("div"); w.className="skeleton"; for(let i=0;i<7;i++){ const l=document.createElement("div"); l.className="skel-line"; l.style.width=(70+(i%3)*10)+"%"; w.appendChild(l);} inner.appendChild(w); }
-  function renderError(k, reason){ const p=panes[k]; const b=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", k); inner.innerHTML = reason==="not-in-this-translation" ? `<div class="state-msg"><p>${b[1]} ${p.chapter} isn't included in ${versionFullName(p.version)}. Try another version.</p></div>` : `<div class="state-msg"><p>${b[1]} ${p.chapter} failed (${reason})</p></div>`; }
+  function renderError(k, reason){ const p=panes[k]; const b=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", k);
+    const offline = reason==="offline" || !navigator.onLine || /Failed to fetch|NetworkError|Load failed/i.test(String(reason||""));
+    if(reason==="not-in-this-translation"){ inner.innerHTML = `<div class="state-msg"><p>${b[1]} ${p.chapter} isn't included in ${versionFullName(p.version)}. Try another version.</p></div>`; return; }
+    if(offline){ inner.innerHTML = `<div class="state-msg"><span class="offline-ico">📴</span><p>You're offline, and ${b[1]} ${p.chapter} (${versionName(p.version)}) isn't saved on this device yet.</p><p style="font-size:14px">Chapters you've opened before work offline.</p><button class="retry-btn" type="button">Try again</button></div>`; const rb=inner.querySelector(".retry-btn"); if(rb) rb.addEventListener("click", ()=> loadPane(k)); return; }
+    inner.innerHTML = `<div class="state-msg"><p>${b[1]} ${p.chapter} failed (${reason})</p><button class="retry-btn" type="button">Try again</button></div>`; const rb=inner.querySelector(".retry-btn"); if(rb) rb.addEventListener("click", ()=> loadPane(k)); }
 
   function renderVerses(paneKey, verses){
     const p=panes[paneKey]; const book=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", paneKey); inner.innerHTML="";
@@ -2506,8 +2561,24 @@ Answer in 3-6 plain sentences, citing book/chapter/verse inline for every substa
 
   // Init
   renderBookmarkList(); renderBookList(""); renderChapterGrid(); loadPane("a"); updateBookmarkUI();
+  // Home-screen shortcuts: #continue (default), #search, #ask
+  function handleShortcut(){
+    const hsh = location.hash;
+    if(hsh==="#search"){ openDrawer(); setTimeout(()=>{ try { scriptureSearchInput.focus(); } catch {} }, 250); }
+    else if(hsh==="#ask"){ openAi("chat"); setTimeout(()=>{ try { aiChatInput.focus(); } catch {} }, 250); }
+    if(hsh && /^#(continue|search|ask)$/.test(hsh)) history.replaceState(null, "", location.pathname + location.search);
+  }
+  handleShortcut();
+  window.addEventListener("hashchange", handleShortcut);
   document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeDrawer(); closeAi(); } });
 })();
 </script>
+<div id="installPill" class="install-pill" role="dialog" aria-label="Install Bibley" hidden>
+  <img src="icons/icon-192.png" alt="" /><span class="pill-txt">Get Bibley as an app</span>
+  <button id="installPillBtn" type="button">Install</button>
+  <button id="installPillClose" type="button" aria-label="Not now">×</button>
+</div>
+<div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
+<script src="pwa.js" defer></script>
 </body>
 </html>
