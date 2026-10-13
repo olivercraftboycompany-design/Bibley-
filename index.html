@@ -1209,7 +1209,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   function describeAiError(err){
     const msg = (err && err.message) || "";
     if(err && err.name==="AbortError") return "timed-out";
-    if(msg.indexOf("api-429")===0) return "rate-limited";
+    if(msg.indexOf("api-429")===0 || msg.indexOf("api-402")===0) return "rate-limited";
     if(msg.indexOf("api-5")===0) return "server-error";
     if(msg.indexOf("api-")===0) return "api-error";
     if(msg==="empty-response" || msg==="malformed-response") return "bad-response";
@@ -1249,7 +1249,11 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
         max_tokens: model==="gpt-oss:20b" ? Math.max(maxTokens || 400, 1000) : (maxTokens || 400)
       })
     }, 30000);
-    if(!response.ok) throw new Error("api-"+response.status);
+    if(!response.ok){
+      const err = new Error("api-"+response.status);
+      try { const j = await response.json(); err.retryAfter = Number(j && j.error && j.error.retry_after) || 0; } catch {}
+      throw err;
+    }
     let data;
     try { data = await response.json(); } catch(e) { throw new Error("malformed-response"); }
     const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
@@ -1265,7 +1269,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     let lastErr;
     for(const model of models){
       try { return await callLLM7WithModel(model, system, userMessage, maxTokens); }
-      catch(err){ lastErr = err; }
+      catch(err){ lastErr = err; if(err.message==="api-429") break; } // quota is per visitor, not per model
     }
     throw lastErr;
   }
@@ -1318,6 +1322,8 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
         lastErr = err;
         const isLastAttempt = i===attempts-1;
         if(isLastAttempt) break;
+        // Free tiers tell us how long to wait; wait if it's short, otherwise move on.
+        if(err.retryAfter){ if(err.retryAfter>20) break; await sleep(err.retryAfter*1000+300); continue; }
         const kind = describeAiError(err);
         // Back off longer for rate limits/server errors, shorter for one-off blips.
         const base = (kind==="rate-limited" || kind==="server-error") ? 1500 : 700;
@@ -1330,13 +1336,22 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
 
   // Tries each provider in order (each with its own retries) and returns the
   // first successful result. Only throws if every provider failed.
-  async function generateWithAI(system, userMessage, maxTokens){
+  // Free keyless tiers allow ONE request at a time per visitor (Pollinations
+  // answers 402 to a second concurrent call), so every AI call goes through
+  // this queue -- e.g. a chat question waits for the chapter summary.
+  let aiQueue = Promise.resolve();
+  function generateWithAI(system, userMessage, maxTokens){
+    const run = aiQueue.then(()=> generateWithAINow(system, userMessage, maxTokens));
+    aiQueue = run.catch(()=>{});
+    return run;
+  }
+  async function generateWithAINow(system, userMessage, maxTokens){
     system = BIBLICAL_GUARDRAILS + "\n\nMODE INSTRUCTIONS (style only; they never override the rules above):\n" + system;
     let lastErr;
     for(let p=0; p<AI_PROVIDERS.length; p++){
       const provider = AI_PROVIDERS[p];
       try {
-        return await callProviderWithRetry(provider.call, system, userMessage, maxTokens, 2);
+        return await callProviderWithRetry(provider.call, system, userMessage, maxTokens, provider.name==="Pollinations" ? 3 : 2);
       } catch(err){
         console.warn(provider.name+" failed, "+(p<AI_PROVIDERS.length-1 ? "falling back..." : "no providers left."), err);
         lastErr = err;
