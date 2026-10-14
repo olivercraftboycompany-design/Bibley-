@@ -11,7 +11,7 @@
   const K = {
     HL: "bible_highlights_v2", BM: "bible_bookmarks_v2", NOTES: "bibley_notes_v1", VBM: "bibley_vbm_v1",
     PLAN: "bibley_plan_v1", READ: "bibley_read_v1", ACT: "bibley_activity_v1", PREFS: "bibley_prefs_v1",
-    SEEN: "bibley_today_seen_v1", VOTD: "bibley_votd_v1", POS: "bible_last_pos_v1"
+    SEEN: "bibley_today_seen_v1", VOTD: "bibley_votd_v1", POS: "bible_last_pos_v1", NB: "bibley_notebook_v1"
   };
   const COLORS = ["yellow", "green", "blue", "pink", "purple"];
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
@@ -295,7 +295,7 @@
     const c = +m[2]; if (c < 1 || c > BOOKS[b][2]) return null;
     return { b, c, v: m[3] ? +m[3] : null };
   }
-  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS];
+  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB];
   function exportBackup() {
     const data = {}; BACKUP_KEYS.forEach(k => { const v = load(k, null); if (v != null) data[k] = v; });
     const blob = new Blob([JSON.stringify({ app: "Bibley", kind: "backup", v: 1, exported: new Date().toISOString(), data }, null, 1)], { type: "application/json" });
@@ -314,6 +314,7 @@
     if (Array.isArray(d[K.BM])) { const cur = load(K.BM, []); d[K.BM].forEach(x => { if (!cur.some(y => y.bookIdx === x.bookIdx && y.chapter === x.chapter)) cur.push(x); }); save(K.BM, cur); }
     if (d[K.PLAN]) { const cur = getPlan(); if (!cur || Object.keys(d[K.PLAN].done || {}).length > Object.keys(cur.done || {}).length) save(K.PLAN, d[K.PLAN]); }
     if (d[K.PREFS] && !localStorage.getItem(K.PREFS)) { save(K.PREFS, d[K.PREFS]); applyPrefs(); }
+    if (d[K.NB] && window.BibleyNotes && window.BibleyNotes.importData) window.BibleyNotes.importData(d[K.NB]);
     C.rerender(); C.refreshLists(); updateDock(); toast("Backup imported ✓");
     return true;
   }
@@ -496,10 +497,11 @@
   let dock;
   function buildDock() {
     const pager = document.querySelector('.pane[data-pane="a"] .pager'); if (!pager || pager.querySelector(".fx-dock")) return;
-    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">☀️</button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">🔖</button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">🔥<b>0</b></button><button type="button" data-a="aa" aria-label="Reading settings" title="Text & theme">Aa</button></div>`);
+    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">☀️</button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">🔖</button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">🔥<b>0</b></button><button type="button" data-a="notes" class="fx-notes-b" aria-label="Notes notebook" title="Notes"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h6M10 12h6M10 16h4"/></svg><span>Notes</span></button><button type="button" data-a="aa" aria-label="Reading settings" title="Text & theme">Aa</button></div>`);
     const label = pager.querySelector(".pager-label"); pager.insertBefore(dock, label.nextSibling); pager.classList.add("fx-has-dock");
     dock.querySelector('[data-a="today"]').onclick = todaySheet; dock.querySelector('[data-a="mb"]').onclick = myBible;
     dock.querySelector('[data-a="plans"]').onclick = plansSheet; dock.querySelector('[data-a="aa"]').onclick = settingsSheet;
+    dock.querySelector('[data-a="notes"]').onclick = () => { if (window.BibleyNotes) window.BibleyNotes.open(); else toast("Notes are still loading"); };
     updateDock();
   }
   function updateDock() { if (!dock) return; const s = streak(); const b = dock.querySelector(".fx-streak-b b"); b.textContent = s.n; dock.querySelector(".fx-streak-b").style.opacity = s.n ? 1 : .75; }
@@ -558,9 +560,22 @@
     onVerseTap(v, span) { verseSheet(v); },
     onChapter,
     open: { today: todaySheet, myBible, plans: plansSheet, settings: settingsSheet, share: shareSheet },
+    // used by bibley-notes.js (the paged Notes notebook)
+    ui: { openSheet, closeSheet, toast, jumpTo, copyText, h, esc, refOf, vname, isOpen: view => sheetView === view, onClose: fn => { onSheetClose = fn; } },
+    legacyNotes: {
+      key: K.NOTES,
+      all: () => notes(),
+      set(key, text) { const n = notes()[key]; if (!n) return false; setNote({ key, bookIdx: n.bookIdx, chapter: n.chapter, verseNum: n.verseNum, text: n.verseText, version: n.version }, text); decorateAll(); C.refreshLists(); return true; }
+    },
     _test: { votdRef, planDays, streak, importBackup, exportData: () => { const d = {}; BACKUP_KEYS.forEach(k => d[k] = load(k, null)); return d; }, closeSheet, summarize, drawCard }
   };
   buildDock(); wireSwipe();
+  // Paged Notes notebook (bibley-notes.js) loads after the core features.
+  (function loadNotes() {
+    if (document.querySelector('script[data-bibley-notes]')) return;
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-notes.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = "bibley-notes.js"; s.defer = true; s.dataset.bibleyNotes = "1"; document.body.appendChild(s);
+  })();
   ["a", "b"].forEach(k => { const p = C.panes[k]; const el = document.querySelector(`.pane[data-pane="${k}"] .verses-text`); if (el) onChapter(k, { bookIdx: p.bookIdx, chapter: p.chapter, version: p.version }); });
   // Open screen: once a day show Today (verse of the day, continue reading, plan) unless opened from a shortcut.
   const fromShortcut = /^#(search|ask)$/.test(location.hash) || /[?&]src=shortcut/.test(location.search);
