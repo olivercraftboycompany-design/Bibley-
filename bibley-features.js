@@ -56,13 +56,15 @@
   function setNote(v, text) {
     const all = notes(); text = String(text || "").trim();
     if (!text) delete all[v.key];
-    else all[v.key] = { text, ref: refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, verseText: v.text, version: v.version, updated: Date.now(), added: (all[v.key] && all[v.key].added) || Date.now() };
+    else { all[v.key] = { text, ref: v.ref || refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, verseText: v.text, version: v.version, updated: Date.now(), added: (all[v.key] && all[v.key].added) || Date.now() };
+      if (v.verses && v.verses.length > 1) { all[v.key].verses = v.verses.slice(); all[v.key].verseEnd = v.verses[v.verses.length - 1]; } }
     save(K.NOTES, all);
   }
   function toggleVbm(v) {
     const all = vbms(); let on;
     if (all[v.key]) { delete all[v.key]; on = false; }
-    else { all[v.key] = { ref: refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, text: v.text, version: v.version, added: Date.now() }; on = true; }
+    else { all[v.key] = { ref: v.ref || refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, text: v.text, version: v.version, added: Date.now() }; on = true;
+      if (v.verses && v.verses.length > 1) { all[v.key].verses = v.verses.slice(); all[v.key].verseEnd = v.verses[v.verses.length - 1]; all[v.key].range = true; } }
     save(K.VBM, all); return on;
   }
   async function copyText(t) {
@@ -164,16 +166,45 @@
 
   /* ================= jump to verse ================= */
   let pendingJump = null;
-  function jumpTo(b, c, v) {
+  // v5.1: jumpTo(b, c, v, verses) opens the chapter, scrolls the verse to just under the top of the
+  // reader (clear of the header) and pulses it ~1.8s; with a verses array (a range bookmark) the
+  // first verse is scrolled to and every verse in the range pulses. Works when the chapter is already open.
+  function jumpTo(b, c, v, verses) {
     closeSheet(); C.closeAi && C.closeAi();
-    pendingJump = v ? { b, c, v } : null;
+    pendingJump = v ? { b, c, v, verses: (verses && verses.length) ? verses.slice() : null, at: Date.now() } : null;
     C.goTo(b, c);
+    // already-open chapter: the reader may not re-render, so run the jump once the verse is on screen
+    if (pendingJump) setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && verseSpan(b, c, v)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 80);
+  }
+  const verseSpan = (b, c, n) => BOOKS[b] ? document.querySelector(`.pane[data-pane="a"] .verses-text span[data-key="${vKey(b, c, n)}"]`) : null;
+  function scrollToVerse(span) {
+    const box = span.closest(".reader-main");
+    if (!box) { span.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+    const br = box.getBoundingClientRect(), sr = span.getBoundingClientRect();
+    const room = Math.max(24, Math.min(140, box.clientHeight * 0.18));
+    box.scrollTo({ top: Math.max(0, box.scrollTop + (sr.top - br.top) - room), behavior: "smooth" });
+  }
+  function pulseVerses(spans) {
+    spans.forEach(s => { s.classList.remove("fx-flash"); void s.offsetWidth; s.classList.add("fx-flash"); });
+    setTimeout(() => spans.forEach(s => s.classList.remove("fx-flash")), 2000);
   }
   function doPendingJump(k, info) {
     if (!pendingJump || k !== "a" || pendingJump.b !== info.bookIdx || pendingJump.c !== info.chapter) return;
-    const v = pendingJump.v; pendingJump = null;
-    const span = document.querySelector(`.pane[data-pane="a"] .verses-text span[data-verse="${v}"]`);
-    if (span) { requestAnimationFrame(() => { span.scrollIntoView({ block: "center", behavior: "smooth" }); span.classList.add("fx-flash"); setTimeout(() => span.classList.remove("fx-flash"), 2000); }); }
+    const j = pendingJump; pendingJump = null;
+    const want = (j.verses && j.verses.length ? j.verses : [j.v]).map(Number).sort((a, b) => a - b);
+    let tries = 0;
+    const go = () => {
+      const q = n => verseSpan(j.b, j.c, n);
+      const first = q(want[0]);
+      if (!first) { if (++tries < 40) setTimeout(go, 75); return; }
+      requestAnimationFrame(() => {
+        scrollToVerse(first);
+        pulseVerses(want.map(q).filter(Boolean));
+        // the reader can re-settle once fonts/notes load; correct once if the verse drifted out of place
+        setTimeout(() => { const box = first.closest(".reader-main"); if (!box || !first.isConnected) return; const d = first.getBoundingClientRect().top - box.getBoundingClientRect().top; if (d < 0 || d > box.clientHeight * 0.6) scrollToVerse(first); }, 650);
+      });
+    };
+    go();
   }
 
   // Study Assistant answers: "Open chapter" under a cited verse opens that chapter and jumps
@@ -189,7 +220,7 @@
     pendingJump = { b, c, v };
     if (window.innerWidth < 900 && C.closeAi) C.closeAi();
     C.goTo(b, c);
-    setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && document.querySelector(`.pane[data-pane="a"] .verses-text span[data-verse="${v}"]`)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 60);
+    setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && verseSpan(b, c, v)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 60);
   }, true);
 
   /* ================= v4 studio hooks (bibley-studio.js: image maker, memorize, page turn) ================= */
@@ -199,47 +230,148 @@
   function openImageMaker(d) { const s = studio(); if (s) s.imageMaker(d); else shareSheet(d); }
   function openMemorize(d) { const s = studio(); if (s) s.memorize(d); else toast("Memorize is still loading"); }
 
-  /* ================= verse action sheet ================= */
-  function verseSheet(v, mode) {
-    const ref = refOf(v.bookIdx, v.chapter, v.verseNum);
-    openSheet("verse", ref + " · " + vname(v.version), body => {
-      const hl = C.getHighlights()[v.key], color = hl ? hl.color : null;
-      const note = notes()[v.key]; const bm = !!vbms()[v.key];
-      body.append(h(`<div class="fx-vtext">${esc(v.text)}</div>`));
-      if (mode === "note") {
-        const box = h(`<div><textarea class="fx-textarea" placeholder="What stands out to you? A prayer, a question, a thought…" aria-label="Note">${esc(note ? note.text : "")}</textarea>
-          <div class="fx-row" style="margin-top:10px"><button class="fx-btn primary" data-a="save" style="flex:1">Save note</button>${note ? '<button class="fx-btn danger" data-a="del">Delete</button>' : ""}<button class="fx-btn" data-a="back">Back</button></div></div>`);
-        body.append(box);
-        const ta = box.querySelector("textarea"); setTimeout(() => { try { ta.focus(); } catch {} }, 280);
-        box.querySelector('[data-a="save"]').onclick = () => { setNote(v, ta.value); decorateAll(); toast(ta.value.trim() ? "Note saved ✎" : "Note removed"); verseSheet(v); };
-        const del = box.querySelector('[data-a="del"]'); if (del) del.onclick = () => { setNote(v, ""); decorateAll(); toast("Note deleted"); verseSheet(v); };
-        box.querySelector('[data-a="back"]').onclick = () => verseSheet(v);
-        return;
-      }
-      const sw = h(`<div class="fx-swatches" role="group" aria-label="Highlight colour">${COLORS.map(c => `<button class="fx-sw ${c} ${color === c ? "on" : ""}" data-c="${c}" aria-label="${c} highlight" title="${c}"></button>`).join("")}<button class="fx-sw clear" data-c="" aria-label="Remove highlight" title="No highlight">⊘</button></div>`);
-      body.append(sw);
-      sw.querySelectorAll(".fx-sw").forEach(b => b.onclick = () => {
-        const c = b.dataset.c || null; setHighlight(v, c); v.color = c;
+  /* ================= verse selection (v5.1: select several verses at once) ================= */
+  // Tap a verse: it is selected and the action bar appears. Tap more verses (same chapter) to add or
+  // remove them. Every action works on the whole selection: highlight colours each verse; copy and share
+  // give one passage in verse order with a proper reference ("John 3:16-18", "John 3:16, 18");
+  // bookmark and note save ONE entry for the range (bibley_vbm_v1 / bibley_notes_v1, key "JHN-3-16.17.18",
+  // with verses:[16,17,18]); Image Maker and Memorize get the combined text + reference.
+  // The selection clears on chapter change and with the X.
+  const ICON = {
+    note: "&#128221;", bm: "&#128278;", copy: "&#128203;", study: "&#10024;",
+    share: '<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>'
+  };
+  let sel = null, selBar = null;
+  // "16-18, 20, 22-23" from a sorted list of verse numbers
+  function verseLabel(nums) {
+    const out = []; let i = 0;
+    while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++; out.push(j > i ? nums[i] + "-" + nums[j] : String(nums[i])); i = j + 1; }
+    return out.join(", ");
+  }
+  function selList() { return sel ? [...sel.verses.values()].sort((a, b) => a.verseNum - b.verseNum) : []; }
+  // the selection as one passage target: single verse = the verse itself (old keys, old behaviour)
+  function selTarget() {
+    const vs = selList(); if (!vs.length) return null;
+    if (vs.length === 1) { const v = vs[0]; return Object.assign({}, v, { ref: refOf(v.bookIdx, v.chapter, v.verseNum), verses: [v.verseNum], single: true }); }
+    const nums = vs.map(v => v.verseNum), f = vs[0];
+    let text = "";
+    vs.forEach((v, i) => { text += (i && v.verseNum !== vs[i - 1].verseNum + 1 ? " ... " : (i ? " " : "")) + v.text; });
+    return { key: chKey(f.bookIdx, f.chapter) + "-" + nums.join("."), bookIdx: f.bookIdx, chapter: f.chapter, verseNum: f.verseNum, bookName: BOOKS[f.bookIdx][1],
+      version: f.version, paneKey: f.paneKey, verses: nums, label: verseLabel(nums), ref: BOOKS[f.bookIdx][1] + " " + f.chapter + ":" + verseLabel(nums), text,
+      numbered: vs.map(v => v.verseNum + " " + v.text).join(" "), single: false };
+  }
+  const passageQuote = t => t.single ? verseQuote(t) : t.numbered + "\n\u2014 " + t.ref + " (" + vname(t.version) + ")";
+  function paintSel() {
+    document.querySelectorAll(".verses-text span.fx-sel").forEach(s => s.classList.remove("fx-sel"));
+    document.querySelectorAll(".verses-text span.selected").forEach(s => s.classList.remove("selected"));
+    if (!sel) return;
+    sel.verses.forEach(v => { const s = document.querySelector(`.pane[data-pane="${sel.pane}"] .verses-text span[data-key="${v.key}"]`); if (s) s.classList.add("fx-sel"); });
+  }
+  function clearSel() {
+    sel = null; paintSel();
+    document.body.classList.remove("fx-selecting");
+    if (selBar) selBar.classList.remove("open");
+  }
+  function onVerseTap(v, span) {
+    const fresh = !sel || sel.pane !== v.paneKey || sel.bookIdx !== v.bookIdx || sel.chapter !== v.chapter || sel.version !== v.version;
+    if (fresh) sel = { pane: v.paneKey, bookIdx: v.bookIdx, chapter: v.chapter, version: v.version, verses: new Map() };
+    if (sel.verses.has(v.verseNum)) sel.verses.delete(v.verseNum); else sel.verses.set(v.verseNum, v);
+    if (!sel.verses.size) { clearSel(); return; }
+    paintSel(); renderSelBar();
+  }
+  function ensureSelBar() {
+    if (selBar) return selBar;
+    selBar = h(`<div class="fx-selbar" role="toolbar" aria-label="Selected verses">
+      <div class="fx-selbar-top"><div class="t"><b></b><span></span></div><button type="button" class="fx-selbar-x" aria-label="Clear selection" title="Clear">&times;</button></div>
+      <div class="fx-swatches fx-selbar-sw" role="group" aria-label="Highlight colour">${COLORS.map(c => `<button type="button" class="fx-sw ${c}" data-c="${c}" aria-label="${c} highlight" title="${c}"></button>`).join("")}<button type="button" class="fx-sw clear" data-c="" aria-label="Remove highlight" title="No highlight">&#8856;</button></div>
+      <div class="fx-selbar-acts">
+        <button type="button" class="fx-act" data-a="note"><span class="e">${ICON.note}</span><i>Note</i></button>
+        <button type="button" class="fx-act" data-a="bm"><span class="e">${ICON.bm}</span><i>Bookmark</i></button>
+        <button type="button" class="fx-act" data-a="copy"><span class="e">${ICON.copy}</span><i>Copy</i></button>
+        <button type="button" class="fx-act" data-a="sharetext"><span class="e">${ICON.share}</span><i>Share</i></button>
+        <button type="button" class="fx-act" data-a="img"><span class="e">${SVG_IMG}</span><i>Image</i></button>
+        <button type="button" class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span><i>Memorize</i></button>
+        <button type="button" class="fx-act" data-a="study"><span class="e">${ICON.study}</span><i>Study</i></button>
+      </div></div>`);
+    document.body.appendChild(selBar);
+    selBar.querySelector(".fx-selbar-x").onclick = clearSel;
+    selBar.querySelectorAll(".fx-sw").forEach(b => b.onclick = () => {
+      const c = b.dataset.c || null, vs = selList();
+      vs.forEach(v => {
+        setHighlight(v, c); v.color = c;
         document.querySelectorAll(`.verses-text span[data-key="${v.key}"]`).forEach(s => { COLORS.forEach(x => s.classList.remove("hl-" + x)); if (c) s.classList.add("hl-" + c); });
-        sw.querySelectorAll(".fx-sw").forEach(x => x.classList.toggle("on", !!c && x.dataset.c === c));
-        C.refreshLists();
       });
-      if (note) body.append(h(`<div class="fx-card" style="padding:10px 12px"><div class="fx-eyebrow">Your note</div><div style="margin-top:6px;white-space:pre-wrap;font-size:14.5px">${esc(note.text)}</div></div>`));
-      const acts = h(`<div class="fx-actions st-six">
-        <button class="fx-act ${note ? "on" : ""}" data-a="note"><span class="e">📝</span>${note ? "Edit note" : "Note"}</button>
-        <button class="fx-act ${bm ? "on" : ""}" data-a="bm"><span class="e">🔖</span>${bm ? "Saved" : "Bookmark"}</button>
-        <button class="fx-act" data-a="copy"><span class="e">📋</span>Copy</button>
-        <button class="fx-act" data-a="share"><span class="e">${SVG_IMG}</span>Image</button>
-        <button class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span>Memorize</button>
-        <button class="fx-act" data-a="study"><span class="e">✨</span>Study</button></div>`);
-      body.append(acts);
-      acts.querySelector('[data-a="note"]').onclick = () => verseSheet(v, "note");
-      acts.querySelector('[data-a="bm"]').onclick = () => { const on = toggleVbm(v); decorateAll(); toast(on ? "Verse bookmarked 🔖" : "Bookmark removed"); verseSheet(v); };
-      acts.querySelector('[data-a="copy"]').onclick = async () => { toast(await copyText(verseQuote(v)) ? "Copied ✓" : "Couldn't copy"); };
-      acts.querySelector('[data-a="share"]').onclick = () => openImageMaker({ text: v.text, ref, version: v.version });
-      acts.querySelector('[data-a="mem"]').onclick = () => openMemorize({ key: v.key, text: v.text, ref, version: v.version, bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum });
-      acts.querySelector('[data-a="study"]').onclick = () => { closeSheet(); C.studyVerse(v); };
+      C.refreshLists(); renderSelBar();
+      if (vs.length > 1) toast(c ? `Highlighted ${vs.length} verses` : `Highlight removed from ${vs.length} verses`, 1600);
     });
+    const act = (a, fn) => { selBar.querySelector(`[data-a="${a}"]`).onclick = fn; };
+    act("note", () => { const t = selTarget(); if (t) noteSheet(t); });
+    act("bm", () => {
+      const t = selTarget(); if (!t) return;
+      const on = toggleVbm(t); decorateAll(); C.refreshLists(); renderSelBar();
+      toast(on ? (t.single ? "Verse bookmarked" : t.ref + " bookmarked") : "Bookmark removed");
+    });
+    act("copy", async () => { const t = selTarget(); if (t) toast(await copyText(passageQuote(t)) ? (t.single ? "Copied" : "Copied " + t.ref) : "Couldn't copy"); });
+    act("sharetext", async () => {
+      const t = selTarget(); if (!t) return; const txt = passageQuote(t);
+      if (navigator.share) { try { await navigator.share({ title: t.ref, text: txt }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+      toast(await copyText(txt) ? "Copied (sharing isn't available here)" : "Couldn't share");
+    });
+    act("img", () => { const t = selTarget(); if (t) openImageMaker({ text: t.text, ref: t.ref, version: t.version }); });
+    act("mem", () => { const t = selTarget(); if (t) openMemorize({ key: t.key, text: t.text, ref: t.ref, version: t.version, bookIdx: t.bookIdx, chapter: t.chapter, verseNum: t.verseNum }); });
+    act("study", () => {
+      const t = selTarget(); if (!t) return; clearSel();
+      if (t.single) C.studyVerse(t);
+      else C.studyVerse({ bookName: t.bookName, chapter: t.chapter, verseNum: t.label, text: t.text, bookIdx: t.bookIdx, key: vKey(t.bookIdx, t.chapter, t.verseNum), color: null });
+    });
+    return selBar;
+  }
+  function renderSelBar() {
+    const t = selTarget(); if (!t) { clearSel(); return; }
+    ensureSelBar();
+    const vs = selList(), n = vs.length;
+    selBar.querySelector(".t b").textContent = n + " selected";
+    selBar.querySelector(".t span").textContent = t.ref + " \u00b7 " + vname(t.version);
+    const colors = new Set(vs.map(v => { const hl = C.getHighlights()[v.key]; return hl ? hl.color : null; }));
+    const one = colors.size === 1 ? [...colors][0] : undefined;
+    selBar.querySelectorAll(".fx-sw").forEach(b => b.classList.toggle("on", !!one && b.dataset.c === one));
+    const note = notes()[t.key], bm = !!vbms()[t.key];
+    const nb = selBar.querySelector('[data-a="note"]'); nb.classList.toggle("on", !!note); nb.querySelector("i").textContent = note ? "Edit note" : "Note";
+    const bb = selBar.querySelector('[data-a="bm"]'); bb.classList.toggle("on", bm); bb.querySelector("i").textContent = bm ? "Saved" : "Bookmark";
+    document.body.classList.add("fx-selecting");
+    placeSelBar();
+    selBar.classList.add("open");
+  }
+  // sit just above the chapter pager (Prev / dock / Next) when it is at the bottom of the screen
+  function placeSelBar() {
+    if (!selBar) return;
+    const pg = document.querySelector('.pane[data-pane="' + ((sel && sel.pane) || "a") + '"] .pager');
+    let off = 0;
+    if (pg) { const r = pg.getBoundingClientRect(); if (r.height && r.bottom >= window.innerHeight - 4 && r.top < window.innerHeight) off = Math.max(0, Math.round(window.innerHeight - r.top)); }
+    selBar.style.bottom = off ? off + "px" : "";
+    selBar.classList.toggle("fx-above-pager", !!off);
+  }
+  window.addEventListener("resize", () => { if (sel) placeSelBar(); });
+  // note on one verse (old key) or on the selected range (range key); back to the bar afterwards
+  function noteSheet(t) {
+    const note = notes()[t.key];
+    openSheet("verse", (t.single ? refOf(t.bookIdx, t.chapter, t.verseNum) : t.ref) + " \u00b7 " + vname(t.version), body => {
+      body.append(h(`<div class="fx-vtext">${esc(t.single ? t.text : t.numbered)}</div>`));
+      const box = h(`<div><textarea class="fx-textarea" placeholder="What stands out to you? A prayer, a question, a thought..." aria-label="Note">${esc(note ? note.text : "")}</textarea>
+        <div class="fx-row" style="margin-top:10px"><button class="fx-btn primary" data-a="save" style="flex:1">Save note</button>${note ? '<button class="fx-btn danger" data-a="del">Delete</button>' : ""}<button class="fx-btn" data-a="back">Back</button></div></div>`);
+      body.append(box);
+      const ta = box.querySelector("textarea"); setTimeout(() => { try { ta.focus(); } catch {} }, 280);
+      const back = () => { closeSheet(); paintSel(); if (sel) renderSelBar(); };
+      box.querySelector('[data-a="save"]').onclick = () => { setNote(t, ta.value); decorateAll(); C.refreshLists(); toast(ta.value.trim() ? "Note saved" : "Note removed"); back(); };
+      const del = box.querySelector('[data-a="del"]'); if (del) del.onclick = () => { setNote(t, ""); decorateAll(); C.refreshLists(); toast("Note deleted"); back(); };
+      box.querySelector('[data-a="back"]').onclick = back;
+    });
+  }
+  // kept for callers that still open the old one-verse sheet: it now selects that verse
+  function verseSheet(v, mode) {
+    sel = { pane: v.paneKey || "a", bookIdx: v.bookIdx, chapter: v.chapter, version: v.version, verses: new Map([[v.verseNum, v]]) };
+    paintSel(); renderSelBar();
+    if (mode === "note") noteSheet(selTarget());
   }
 
   /* ================= My Bible ================= */
@@ -252,7 +384,8 @@
       const a = hls[k], n = ns[k], m = bms[k], any = a || n || m;
       const b = any.bookIdx, c = any.chapter, v = any.verseNum;
       if (!BOOKS[b]) return;
-      out.push({ type: "verse", key: k, b, c, v, ref: refOf(b, c, v), text: (a && a.text) || (n && n.verseText) || (m && m.text) || "", color: a && a.color, note: n && n.text, bm: !!m,
+      const rng = [m, n, a].find(x => x && Array.isArray(x.verses) && x.verses.length > 1);
+      out.push({ type: "verse", key: k, b, c, v, verses: rng ? rng.verses : null, ref: rng && rng.ref ? rng.ref : refOf(b, c, v), text: (a && a.text) || (n && n.verseText) || (m && m.text) || "", color: a && a.color, note: n && n.text, bm: !!m,
         t: Math.max((a && a.added) || 0, (n && n.updated) || 0, (m && m.added) || 0), order: b * 1e6 + c * 1e3 + v });
     });
     (C.getBookmarks() || []).forEach(x => { if (BOOKS[x.bookIdx]) out.push({ type: "chapter", b: x.bookIdx, c: x.chapter, ref: refOf(x.bookIdx, x.chapter), text: "Bookmarked chapter", bm: true, t: x.added || 0, order: x.bookIdx * 1e6 + x.chapter * 1e3 }); });
@@ -288,7 +421,7 @@
         list.querySelectorAll("[data-i]").forEach(el => el.onclick = e => {
           const it = items[+el.dataset.i];
           if (e.target.closest("[data-del]")) { removeItem(it); myBible(); return; }
-          jumpTo(it.b, it.c, it.v || null);
+          jumpTo(it.b, it.c, it.v || null, it.verses);
         });
       };
       input.oninput = () => { mbQuery = input.value; draw(); };
@@ -538,7 +671,10 @@
   function updateDock() { if (!dock) return; const s = streak(); const b = dock.querySelector(".fx-streak-b b"); b.textContent = s.n; dock.querySelector(".fx-streak-b").style.opacity = s.n ? 1 : .75; }
   function decorate(k) {
     const ns = notes(), bm = vbms();
-    document.querySelectorAll(`.pane[data-pane="${k}"] .verses-text span[data-key]`).forEach(s => { s.classList.toggle("fx-has-note", !!ns[s.dataset.key]); s.classList.toggle("fx-has-bm", !!bm[s.dataset.key]); });
+    // range bookmarks/notes (v5.1) mark every verse they cover
+    const spread = all => { const o = {}; Object.keys(all).forEach(key => { const x = all[key]; o[key] = 1; if (x && Array.isArray(x.verses) && BOOKS[x.bookIdx]) x.verses.forEach(n => { o[vKey(x.bookIdx, x.chapter, n)] = 1; }); }); return o; };
+    const nsAll = spread(ns), bmAll = spread(bm);
+    document.querySelectorAll(`.pane[data-pane="${k}"] .verses-text span[data-key]`).forEach(s => { s.classList.toggle("fx-has-note", !!nsAll[s.dataset.key]); s.classList.toggle("fx-has-bm", !!bmAll[s.dataset.key]); });
   }
   function decorateAll() { decorate("a"); decorate("b"); }
   let cur = { a: null, b: null };
@@ -568,6 +704,8 @@
   }
   let swipeDir = { a: null, b: null };
   function onChapter(k, info) {
+    // the selection belongs to one chapter: a different chapter (or version) clears it, a re-render keeps it
+    if (sel && sel.pane === k) { if (sel.bookIdx !== info.bookIdx || sel.chapter !== info.chapter || (info.version && sel.version !== info.version)) clearSel(); else paintSel(); }
     cur[k] = info; decorate(k);
     if (k === "a") { addDone(info); doPendingJump(k, info); }
     const rm = document.querySelector(`.pane[data-pane="${k}"] .reader-main`);
@@ -588,7 +726,11 @@
 
   /* ================= public hooks ================= */
   window.BibleyFX = {
-    onVerseTap(v, span) { verseSheet(v); },
+    onVerseTap(v, span) { onVerseTap(v, span); },
+    jumpToVerse: (b, c, v, verses) => jumpTo(b, c, v, verses),
+    clearSelection: () => clearSel(),
+    redecorate: () => decorateAll(),
+    selection: () => selTarget(),
     onChapter,
     open: { today: todaySheet, myBible, plans: plansSheet, settings: settingsSheet, share: shareSheet },
     // used by bibley-notes.js (the paged Notes notebook)

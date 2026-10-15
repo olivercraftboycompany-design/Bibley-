@@ -76,7 +76,7 @@
   function bookIdxByName(name) { const i = BOOKS.findIndex(b => b[1] === name); return i; }
   function verseInfo() {
     const gold = aiContent.querySelector(".ai-card.gold .verse-ref");
-    const refStr = txt(gold); const m = refStr.match(/^(.+)\s(\d+):(\d+)$/); if (!m) return null;
+    const refStr = txt(gold); const m = refStr.match(/^(.+)\s(\d+):(\d+)(?:[-,\s\d]*)$/); if (!m) return null;
     const bookIdx = bookIdxByName(m[1]);
     let vt = txt(aiContent.querySelector(".ai-card.gold .verse-text")).replace(/^["\u201c]|["\u201d]$/g, "");
     const p = id => txt(document.querySelector("#" + id + " p"));
