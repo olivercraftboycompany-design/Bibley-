@@ -4,10 +4,9 @@
       offline), 4 fonts, alignment, text size. Download or Share.
    2. Memorize mode: hide words step by step, peek by tapping, then a "type it from memory" test
       with a score. Your memory verses are listed with progress.
-   3. Page turn animation when changing chapters (buttons, swipe, Next chapter), direction aware.
-      On/off in Aa settings; quick fade if the phone asks for reduced motion.
+   3. (Page turn animation: removed in v4.2.)
    4. What's new: an updates log shown once per version (X closes it for good until the next update).
-   Stored on the device only: "bibley_memorize_v1", "bibley_imagemaker_v1", "bibley_page_anim", "bibley_seen_version".
+   Stored on the device only: "bibley_memorize_v1", "bibley_imagemaker_v1", "bibley_seen_version".
    No notifications. ASCII only in this file (symbols are written as escapes). */
 (() => {
   "use strict";
@@ -15,7 +14,7 @@
   if (!FX || !FX.ui || !C) { console.warn("Bibley studio: features bridge missing"); return; }
   const { openSheet, closeSheet, toast, h, esc, vname } = FX.ui;
   const BOOKS = C.BOOKS;
-  const K_MEM = "bibley_memorize_v1", K_IMG = "bibley_imagemaker_v1", K_ANIM = "bibley_page_anim";
+  const K_MEM = "bibley_memorize_v1", K_IMG = "bibley_imagemaker_v1";
   const LQ = "\u201C", RQ = "\u201D", DOT = "\u00B7";
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -390,58 +389,23 @@
     });
   }
 
-  /* ===================================================================
-     3. PAGE TURN ANIMATION
-     =================================================================== */
-  const reduceMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const animOn = () => localStorage.getItem(K_ANIM) !== "off";
-  function setAnim(on) { try { localStorage.setItem(K_ANIM, on ? "on" : "off"); } catch {} document.documentElement.classList.toggle("st-pageturn", on); }
-  document.documentElement.classList.toggle("st-pageturn", animOn());
-  const pending = {};
-  function snapshot(k, dir) {
-    if (!animOn()) return;
-    const rm = document.querySelector('.pane[data-pane="' + k + '"] .reader-main'); if (!rm) return;
-    const r = rm.getBoundingClientRect(); if (r.width < 50 || r.height < 50) return;
-    if (pending[k]) finish(k, true);
-    const wrap = document.createElement("div"); wrap.className = "st-turn"; wrap.setAttribute("aria-hidden", "true");
-    wrap.style.cssText = "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px";
-    const page = document.createElement("div"); page.className = "st-page " + (dir === "prev" ? "prev" : "next");
-    const inner = document.createElement("div"); inner.className = "st-page-inner";
-    const clone = rm.cloneNode(true); clone.querySelectorAll("[id]").forEach(n => n.removeAttribute("id")); clone.removeAttribute("id");
-    clone.style.cssText = "position:absolute;left:0;top:" + (-rm.scrollTop) + "px;width:" + r.width + "px;height:auto;min-height:" + r.height + "px;overflow:visible;margin:0";
-    inner.appendChild(clone); page.appendChild(inner);
-    const sheen = document.createElement("div"); sheen.className = "st-sheen"; page.appendChild(sheen);
-    const shade = document.createElement("div"); shade.className = "st-shade";
-    wrap.appendChild(shade); wrap.appendChild(page); document.body.appendChild(wrap);
-    pending[k] = { wrap, page, timer: setTimeout(() => finish(k), 2500) };
-  }
-  function finish(k, instant) {
-    const p = pending[k]; if (!p) return; delete pending[k]; clearTimeout(p.timer);
-    if (instant) { p.wrap.remove(); return; }
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      p.wrap.classList.add(reduceMotion() ? "go-fade" : "go");
-      setTimeout(() => p.wrap.remove(), reduceMotion() ? 260 : 700);
-    }));
-  }
-  // capture prev/next button taps before the reader changes the page
-  document.addEventListener("click", e => {
-    const b = e.target.closest && e.target.closest(".prev-btn, .next-btn"); if (!b || b.disabled) return;
-    snapshot(b.dataset.pane || "a", b.classList.contains("prev-btn") ? "prev" : "next");
-  }, true);
-  // swipe and "Next chapter" go through BibleyCore
-  ["goNext", "goPrev"].forEach(fn => { const orig = C[fn]; if (typeof orig !== "function") return; C[fn] = function (k) { snapshot(k || "a", fn === "goNext" ? "next" : "prev"); return orig.apply(this, arguments); }; });
-  const origOnChapter = FX.onChapter;
-  FX.onChapter = function (k, info) { const out = origOnChapter.apply(this, arguments); if (pending[k]) finish(k); return out; };
-
+  /* 3. (page turn animation removed in v4.2; chapter changes use the reader's own swipe slide) */
+  try { localStorage.removeItem("bibley_page_anim"); } catch {}
+  document.documentElement.classList.remove("st-pageturn");
 
   /* ===================================================================
      4. WHAT'S NEW (updates log)
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "4.1";
+  const APP_VERSION = "4.2";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "4.2", date: "October 2026", items: [
+      ["Removed the page-turn animation", "Chapters switch the simple way again: a quick slide when you swipe, an instant change with the buttons."],
+      ["Open chapter jumps to the verse", "Open chapter now jumps straight to the verse: tap it under a verse in the Study Assistant and Bibley opens that chapter, scrolls to the verse and makes it glow."],
+      ["Study Assistant: removed the mode buttons", "Study Assistant: removed the mode buttons. It now answers in one clear, friendly, scripture-grounded voice."]
+    ] },
     { v: "4.1", date: "October 2026", items: [
       ["Image Maker backgrounds", "Image Maker: classic Night, Dawn and Parchment backgrounds are back + 6 new backgrounds: Moonlight, Lakeside, Golden Field, Neon, Marble and Heaven."],
       ["Text shadow switch", "Turn the soft shadow behind the words on or off in the Image Maker."]
@@ -450,7 +414,7 @@
       ["AI study help fixed", "Verse and chapter summaries now come back complete (Summary, In Context and Application), retry on their own if an answer gets cut off, and no longer make up Hebrew or Greek words."],
       ["Verse Image Maker", "Tap a verse, then Image: 12 backgrounds, 4 fonts, alignment and size. Make a phone wallpaper or a square post, then download or share it."],
       ["Memorize mode", "Tap a verse, then Memorize. Words disappear step by step, tap a blank to peek, then type it from memory for a score. Find them all under My memory verses."],
-      ["Page turn animation", "Chapters now turn like real pages (buttons and swipe). Turn it off in Aa settings."],
+      ["Page turn animation", "Chapters turned like real pages. (Removed in 4.2.)"],
       ["More Bible versions", "Added NRSV, ISV, CEV, plus a Catholic group with NABRE, RSV-CE and NJB."],
       ["What's new", "This updates log. It shows once after each update."]
     ] },
@@ -493,7 +457,6 @@
      =================================================================== */
   const api = window.BibleyStudio = {
     imageMaker, memorize, memoryList, renderImage, score, maskedHtml,
-    pageTurn: { enabled: animOn, set: setAnim },
     whatsNew, APP_VERSION, CHANGELOG,
     backgrounds: Object.keys(BGS), fonts: Object.keys(FONTS), ICON, _lastBlob: null
   };

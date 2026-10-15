@@ -176,6 +176,22 @@
     if (span) { requestAnimationFrame(() => { span.scrollIntoView({ block: "center", behavior: "smooth" }); span.classList.add("fx-flash"); setTimeout(() => span.classList.remove("fx-flash"), 2000); }); }
   }
 
+  // Study Assistant answers: "Open chapter" under a cited verse opens that chapter and jumps
+  // straight to the verse (scrolls to it and pulses it). Runs before the reader's own handler.
+  document.addEventListener("click", e => {
+    const o = e.target.closest && e.target.closest(".vref-open"); if (!o) return;
+    const m = /^(.+?)\s+(\d+):(\d+)/.exec(String(o.dataset.ref || "").trim()); if (!m) return;
+    const want = m[1].toLowerCase().replace(/\s+/g, " ");
+    const b = C.BOOKS.findIndex(x => String(x[1]).toLowerCase() === want || String(x[0]).toLowerCase() === want);
+    if (b < 0) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const c = +m[2], v = +m[3];
+    pendingJump = { b, c, v };
+    if (window.innerWidth < 900 && C.closeAi) C.closeAi();
+    C.goTo(b, c);
+    setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && document.querySelector(`.pane[data-pane="a"] .verses-text span[data-verse="${v}"]`)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 60);
+  }, true);
+
   /* ================= v4 studio hooks (bibley-studio.js: image maker, memorize, page turn) ================= */
   const SVG_IMG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>';
   const SVG_MEM = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 0 0-5.6-1.5A3 3 0 0 0 4 8a3 3 0 0 0 0 5 3 3 0 0 0 3 4.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3 3 0 0 1 20 8a3 3 0 0 1 0 5 3 3 0 0 1-3 4.5A3 3 0 0 1 12 19z"/><path d="M12 5v14"/></svg>';
@@ -442,7 +458,6 @@
         <div class="fx-set"><label class="h">Line spacing</label>${seg("lh", [[1.5, "Tight"], [1.78, "Normal"], [2.1, "Roomy"]])}</div>
         <div class="fx-set"><label class="h">Theme</label>${seg("theme", [["dark", '<span class="fx-theme-dot" style="background:#141b2e"></span>Dark'], ["sepia", '<span class="fx-theme-dot" style="background:#f4ecd8"></span>Sepia'], ["light", '<span class="fx-theme-dot" style="background:#fff"></span>Light']])}</div>
         <div class="fx-set"><label class="h">Preview</label><div class="fx-preview"><sup style="color:var(--gold);font-size:.6em">1</sup> In the beginning was the Word, and the Word was with God, and the Word was God.</div></div>
-        <div class="fx-set"><label class="h">Page turn animation</label><div class="fx-seg" data-k="pageanim"><button data-v="on" class="${localStorage.getItem("bibley_page_anim") !== "off" ? "on" : ""}">On</button><button data-v="off" class="${localStorage.getItem("bibley_page_anim") === "off" ? "on" : ""}">Off</button></div></div>
         <button class="fx-btn block" data-a="wn" style="margin-bottom:8px">What's new in Bibley</button>
         <button class="fx-btn block" data-a="reset">Reset to default</button></div>`);
       body.append(el);
@@ -450,7 +465,6 @@
       r.oninput = () => { setPref("size", +r.value); el.querySelector(".sz").textContent = r.value + "px"; };
       el.querySelectorAll(".fx-seg").forEach(s => s.querySelectorAll("button").forEach(b => b.onclick = () => {
         const k = s.dataset.k; s.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
-        if (k === "pageanim") { const on = b.dataset.v === "on"; if (studio()) studio().pageTurn.set(on); else { try { localStorage.setItem("bibley_page_anim", on ? "on" : "off"); } catch {} } toast(on ? "Page turn animation on" : "Page turn animation off"); return; }
         setPref(k, k === "lh" ? +b.dataset.v : b.dataset.v);
       }));
       el.querySelector('[data-a="reset"]').onclick = () => { save(K.PREFS, {}); applyPrefs(); settingsSheet(); };
@@ -557,7 +571,6 @@
     cur[k] = info; decorate(k);
     if (k === "a") { addDone(info); doPendingJump(k, info); }
     const rm = document.querySelector(`.pane[data-pane="${k}"] .reader-main`);
-    if (rm && swipeDir[k] && document.documentElement.classList.contains("st-pageturn")) swipeDir[k] = null; // the page turn animation replaces the slide
     if (rm && swipeDir[k]) { rm.classList.remove("fx-swipe-next", "fx-swipe-prev"); void rm.offsetWidth; rm.classList.add("fx-swipe-" + swipeDir[k]); const d = swipeDir[k]; swipeDir[k] = null; setTimeout(() => rm.classList.remove("fx-swipe-" + d), 400); }
   }
   function wireSwipe() {
