@@ -415,6 +415,7 @@
 
 </div>
 
+<script src="bibley-ai.js"></script>
 <script>
 (() => {
   // --- IndexedDB: multiple named Bible-study conversations -----------------
@@ -589,7 +590,9 @@
   //   - labs.bible.org        -> "net"
   //   - bible.helloao.org     -> ids listed in HAO_IDS (bsb + other languages)
   //   - bolls.life            -> ids listed in BOLLS_CODES (NKJV, ESV, NLT, ...)
-  // NIV is intentionally missing: its publisher blocks free Bible APIs.
+  // NIV / NIrV / NIVUK / TNIV are missing on purpose: bolls.life lists them, but every verse it
+  // returns for them is a notice that Biblica (the NIV publisher) prohibited it (checked 2026-10-14).
+  // Added 2026-10-14 via bolls.life: NRSV (Catholic Ed.), ISV, CEV, NABRE, RSV-CE, NJB.
   const VERSION_GROUPS = [
     ["Popular modern", [
       ["nkjv","NKJV — New King James Version"],
@@ -603,7 +606,9 @@
       ["web","WEB — World English Bible"],
       ["mev","MEV — Modern English Version"],
       ["rsv","RSV — Revised Standard Version"],
-      ["ceb","CEB — Common English Bible"]
+      ["ceb","CEB — Common English Bible"],
+      ["nrsv","NRSV \u2014 New Revised Standard Version (Catholic Ed.)"],
+      ["isv","ISV \u2014 International Standard Version"]
     ]],
     ["Easy to read", [
       ["amp","AMP — Amplified Bible"],
@@ -611,6 +616,7 @@
       ["gnt","GNT — Good News Translation"],
       ["erv","ERV — Easy-to-Read Version"],
       ["nlv","NLV — New Life Version"],
+      ["cev","CEV \u2014 Contemporary English Version"],
       ["bbe","BBE — Bible in Basic English"]
     ]],
     ["Classic & literal", [
@@ -624,6 +630,11 @@
       ["webbe","WEBBE — World English Bible (British)"],
       ["oeb-us","OEB-US — Open English Bible (US, partial)"],
       ["oeb-cw","OEB-CW — Open English Bible (UK, partial)"]
+    ]],
+    ["Catholic", [
+      ["nabre","NABRE \u2014 New American Bible (Revised Edition)"],
+      ["rsvce","RSV-CE \u2014 Revised Standard Version Catholic Ed."],
+      ["njb","NJB \u2014 New Jerusalem Bible"]
     ]],
     ["Messianic", [
       ["cjb","CJB — Complete Jewish Bible"],
@@ -645,7 +656,7 @@
   const VERSIONS = VERSION_GROUPS.flatMap(g=> g[1]);
   // bolls.life codes (keyless, CORS "*"). Copyrighted texts are served by
   // bolls.life; we only fetch one chapter at a time and show a credit line.
-  const BOLLS_CODES = { nkjv:"NKJV", esv:"ESV", nlt:"NLT", csb:"CSB17", nasb:"NASB", lsb:"LSB", mev:"MEV", rsv:"RSV", ceb:"CEB", amp:"AMP", msg:"MSG", gnt:"GNT", erv:"ERV", nlv:"NLV", gnv:"GNV", lsv:"LSV", cjb:"CJB", tlv:"TLV", ylt:"YLT" };
+  const BOLLS_CODES = { nkjv:"NKJV", esv:"ESV", nlt:"NLT", csb:"CSB17", nasb:"NASB", lsb:"LSB", mev:"MEV", rsv:"RSV", ceb:"CEB", amp:"AMP", msg:"MSG", gnt:"GNT", erv:"ERV", nlv:"NLV", gnv:"GNV", lsv:"LSV", cjb:"CJB", tlv:"TLV", ylt:"YLT", nrsv:"NRSVCE", isv:"ISV", cev:"CEVD", nabre:"NABRE", rsvce:"RSV2CE", njb:"NJB1985" };
   // bible.helloao.org translation ids (Free Use Bible API, no limits).
   const HAO_IDS = { bsb:"BSB", arbnav:"ARBNAV", hinirv:"HINIRV", benirv:"ben_irv", hbomas:"HBOMAS" };
   // bible-api.com versions whose "?translation=" lookup is broken but whose
@@ -1270,7 +1281,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   function aiErrorMessage(err){
     const kind = describeAiError(err);
     if(kind==="offline") return AI_ERROR_MESSAGES.offline + " Try again once you're back online.";
-    return AI_ERROR_MESSAGES[kind] + " Both free providers were tried and retried automatically -- this happens occasionally with free public APIs. You can try again below.";
+    return AI_ERROR_MESSAGES[kind] + " All the free AI providers were tried and retried automatically -- this happens occasionally with free public APIs. You can try again below.";
   }
 
   // Each provider is a plain (system, userMessage, maxTokens) -> text function,
@@ -1451,6 +1462,10 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   async function generateWithAINow(system, userMessage, maxTokens){
     if(!navigator.onLine) throw new Error("offline"); // don't fire requests that can't work
     system = BIBLICAL_GUARDRAILS + "\n\nMODE INSTRUCTIONS (style only; they never override the rules above):\n" + system;
+    // v4: bibley-ai.js runs the provider chain with answer checks (complete sections,
+    // no mid-sentence cut-offs, no invented Hebrew/Greek). The code below is the old
+    // chain, kept only as a fallback if that file failed to load.
+    if(window.BibleyAI && typeof window.BibleyAI.generate==="function") return window.BibleyAI.generate(system, userMessage, maxTokens);
     let lastErr, networkFails = 0;
     for(let p=0; p<AI_PROVIDERS.length; p++){
       const provider = AI_PROVIDERS[p];
@@ -1970,7 +1985,7 @@ Still be substantive and accurate — casual tone, not casual content.`;
   }
   async function generateVerseMeaning(v){
     const scholarPrompt=`You are an expert, denominationally neutral Bible study assistant with deep knowledge of biblical history, original languages (Hebrew/Greek/Aramaic), cross-references, and the wider Christian theological tradition. You will be given a single Bible verse. Reply in EXACTLY this plain-text format, nothing else, no markdown:
-MEANING: (2-3 sentences on what the verse means, including any noteworthy detail from the original language or historical setting if it meaningfully sharpens the meaning)
+MEANING: (2-3 sentences on what the verse means, including a noteworthy detail from the historical setting if it sharpens the meaning; mention an original-language word only if you are certain of it, in English letters, otherwise leave original languages out)
 CONTEXT: (2-3 sentences on how it fits within its surrounding passage and the book's larger argument or story)
 APPLICATION: (one specific, thought-provoking reflection question or practical takeaway — avoid generic advice like "trust God more"; make it concrete to what this verse actually says)
 Be precise and concrete. Avoid vague filler.`;
