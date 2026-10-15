@@ -398,13 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "4.2";
+  const APP_VERSION = "5.0";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
-    { v: "4.2", date: "October 2026", items: [
+    { v: "5.0", date: "October 2026", release: true, items: [
+      ["Bibley is officially out of beta", "Bibley is officially out of beta: full release. Thanks for reading with it."],
       ["Removed the page-turn animation", "Chapters switch the simple way again: a quick slide when you swipe, an instant change with the buttons."],
-      ["Open chapter jumps to the verse", "Open chapter now jumps straight to the verse: tap it under a verse in the Study Assistant and Bibley opens that chapter, scrolls to the verse and makes it glow."],
-      ["Study Assistant: removed the mode buttons", "Study Assistant: removed the mode buttons. It now answers in one clear, friendly, scripture-grounded voice."]
+      ["Open chapter jumps to the verse", "Tap Open chapter under a verse in the Study Assistant: Bibley opens that chapter, scrolls straight to the verse and makes it glow."],
+      ["Study Assistant: removed the mode buttons", "No more Scholar / Scripture Only / Cross-Centered / Conversational. It now answers in one clear, friendly, scripture-grounded voice."]
     ] },
     { v: "4.1", date: "October 2026", items: [
       ["Image Maker backgrounds", "Image Maker: classic Night, Dawn and Parchment backgrounds are back + 6 new backgrounds: Moonlight, Lakeside, Golden Field, Neon, Marble and Heaven."],
@@ -433,7 +434,10 @@
     const li = it => '<li><b>' + esc(it[0]) + "</b><span>" + esc(it[1]) + "</span></li>";
     const wrap = h('<div class="st-wn-wrap" role="dialog" aria-modal="true" aria-labelledby="stWnTitle"><div class="st-wn">' +
       '<button type="button" class="st-wn-x" aria-label="Close what\'s new">&times;</button>' +
-      '<div class="fx-eyebrow">What\'s new ' + DOT + " version " + esc(cur.v) + '</div><h2 id="stWnTitle">Bibley just got better</h2>' +
+      '<div class="fx-eyebrow">What\'s new ' + DOT + " version " + esc(cur.v) + "</div>" +
+      (cur.release
+        ? '<h2 id="stWnTitle" class="st-wn-hero">Bibley ' + esc(cur.v) + ' &mdash; The Full Release</h2><p class="st-wn-thanks">Thanks for being here from the start.</p>'
+        : '<h2 id="stWnTitle">Bibley just got better</h2>') +
       '<ul class="st-wn-list">' + cur.items.map(li).join("") + "</ul>" +
       '<details class="st-wn-earlier"><summary>Earlier updates</summary>' + earlier.map(e => '<div class="st-wn-v">Version ' + esc(e.v) + '</div><ul class="st-wn-list small">' + e.items.map(li).join("") + "</ul>").join("") + "</details>" +
       '<button type="button" class="fx-btn primary block st-wn-ok">Got it</button></div></div>');
@@ -445,6 +449,41 @@
     document.addEventListener("keydown", onKey);
     requestAnimationFrame(() => wrap.classList.add("open"));
     setTimeout(() => { try { wrap.querySelector(".st-wn-x").focus({ preventScroll: true }); } catch {} }, 300);
+    if (cur.release) setTimeout(confetti, 250);
+  }
+  // Full-release celebration: a short confetti burst drawn on a canvas (no library).
+  // Skipped when the phone asks for reduced motion.
+  function confetti() {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const old = document.querySelector(".st-confetti"); if (old) old.remove();
+    const cv = document.createElement("canvas"); cv.className = "st-confetti"; cv.setAttribute("aria-hidden", "true");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), W = window.innerWidth, H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    document.body.appendChild(cv);
+    const g = cv.getContext("2d"); g.scale(dpr, dpr);
+    const COLORS = ["#d8b673", "#c9a867", "#f3d999", "#fff7ec", "#ffffff", "#6d8fd6", "#3f63b8", "#9db7f0"];
+    const N = Math.min(170, Math.round(W * H / 2600));
+    const parts = [];
+    for (let i = 0; i < N; i++) {
+      const fromLeft = i % 2 === 0;
+      parts.push({ x: fromLeft ? W * 0.08 : W * 0.92, y: H * 0.78, vx: (fromLeft ? 1 : -1) * (2 + Math.random() * 8), vy: -(10 + Math.random() * 10),
+        w: 6 + Math.random() * 6, h: 3 + Math.random() * 5, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.35,
+        c: COLORS[i % COLORS.length], round: Math.random() < 0.25, wob: Math.random() * 6.28 });
+    }
+    const DUR = 2600, t0 = performance.now();
+    function frame(now) {
+      const t = now - t0; g.clearRect(0, 0, W, H);
+      const fade = t > DUR - 600 ? Math.max(0, (DUR - t) / 600) : 1;
+      for (const p of parts) {
+        p.vy += 0.32; p.vx *= 0.985; p.vy *= 0.985; p.x += p.vx + Math.sin(p.wob += 0.12) * 0.6; p.y += p.vy; p.r += p.vr;
+        g.save(); g.globalAlpha = fade; g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c;
+        if (p.round) { g.beginPath(); g.arc(0, 0, p.h * 0.7, 0, 6.283); g.fill(); }
+        else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 1.7)) + 1);
+        g.restore();
+      }
+      if (t < DUR) requestAnimationFrame(frame); else cv.remove();
+    }
+    requestAnimationFrame(frame);
   }
   function maybeWhatsNew() {
     let seen = null; try { seen = localStorage.getItem(K_SEEN_VER); } catch {}
@@ -457,7 +496,7 @@
      =================================================================== */
   const api = window.BibleyStudio = {
     imageMaker, memorize, memoryList, renderImage, score, maskedHtml,
-    whatsNew, APP_VERSION, CHANGELOG,
+    whatsNew, confetti, APP_VERSION, CHANGELOG,
     backgrounds: Object.keys(BGS), fonts: Object.keys(FONTS), ICON, _lastBlob: null
   };
   maybeWhatsNew();

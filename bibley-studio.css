@@ -71,5 +71,11 @@ html.theme-sepia .st-wn, html.theme-light .st-wn { background: linear-gradient(1
 .st-wn-earlier summary { cursor: pointer; font-family: 'Fraunces', Georgia, serif; color: var(--gold); font-size: 14px; padding: 6px 0; }
 .st-wn-v { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin: 10px 0 8px; }
 
+/* v5.0: full release celebration */
+.st-wn h2.st-wn-hero { font-size: 27px; line-height: 1.15; margin: 8px 0 6px; background: linear-gradient(90deg, #f3d999, #d8b673 45%, #9db7f0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html.theme-sepia .st-wn h2.st-wn-hero, html.theme-light .st-wn h2.st-wn-hero { background: none; color: var(--gold); }
+.st-wn-thanks { margin: 0 0 14px; font-size: 14.5px; color: var(--ink-dim); font-style: italic; }
+.st-confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 95; pointer-events: none; }
+
 /* v4.1: NEW badge on new Image Maker backgrounds */
 .st-new { position: absolute; top: 4px; right: 4px; font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: .04em; line-height: 1; padding: 2px 4px; border-radius: 6px; background: var(--gold); color: #1a1408; pointer-events: none; }
