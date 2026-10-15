@@ -91,7 +91,7 @@
       }
     },
     {
-      name: "Pollinations", timeout: 55000, attempts: 2,
+      name: "Pollinations", timeout: 45000, attempts: 2,
       call: async function (msgs, maxTokens, seed) {
         // Keyless tier: only "openai-fast"; it answers 402 to temperature/max_tokens/private.
         // It also allows only about one request every 20-30 s per visitor (measured 2026-10-14:
