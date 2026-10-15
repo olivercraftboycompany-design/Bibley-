@@ -5,7 +5,7 @@
      (stale-while-revalidate), kept across versions in their own cache, so every
      chapter you've opened works offline.
    - AI requests (POST) are never touched. No push notifications in this build. */
-const VERSION = 'bibley-v4';
+const VERSION = 'bibley-v5';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
