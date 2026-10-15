@@ -176,6 +176,13 @@
     if (span) { requestAnimationFrame(() => { span.scrollIntoView({ block: "center", behavior: "smooth" }); span.classList.add("fx-flash"); setTimeout(() => span.classList.remove("fx-flash"), 2000); }); }
   }
 
+  /* ================= v4 studio hooks (bibley-studio.js: image maker, memorize, page turn) ================= */
+  const SVG_IMG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>';
+  const SVG_MEM = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 0 0-5.6-1.5A3 3 0 0 0 4 8a3 3 0 0 0 0 5 3 3 0 0 0 3 4.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3 3 0 0 1 20 8a3 3 0 0 1 0 5 3 3 0 0 1-3 4.5A3 3 0 0 1 12 19z"/><path d="M12 5v14"/></svg>';
+  const studio = () => window.BibleyStudio || null;
+  function openImageMaker(d) { const s = studio(); if (s) s.imageMaker(d); else shareSheet(d); }
+  function openMemorize(d) { const s = studio(); if (s) s.memorize(d); else toast("Memorize is still loading"); }
+
   /* ================= verse action sheet ================= */
   function verseSheet(v, mode) {
     const ref = refOf(v.bookIdx, v.chapter, v.verseNum);
@@ -202,17 +209,19 @@
         C.refreshLists();
       });
       if (note) body.append(h(`<div class="fx-card" style="padding:10px 12px"><div class="fx-eyebrow">Your note</div><div style="margin-top:6px;white-space:pre-wrap;font-size:14.5px">${esc(note.text)}</div></div>`));
-      const acts = h(`<div class="fx-actions">
+      const acts = h(`<div class="fx-actions st-six">
         <button class="fx-act ${note ? "on" : ""}" data-a="note"><span class="e">📝</span>${note ? "Edit note" : "Note"}</button>
         <button class="fx-act ${bm ? "on" : ""}" data-a="bm"><span class="e">🔖</span>${bm ? "Saved" : "Bookmark"}</button>
         <button class="fx-act" data-a="copy"><span class="e">📋</span>Copy</button>
-        <button class="fx-act" data-a="share"><span class="e">🖼️</span>Share</button>
+        <button class="fx-act" data-a="share"><span class="e">${SVG_IMG}</span>Image</button>
+        <button class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span>Memorize</button>
         <button class="fx-act" data-a="study"><span class="e">✨</span>Study</button></div>`);
       body.append(acts);
       acts.querySelector('[data-a="note"]').onclick = () => verseSheet(v, "note");
       acts.querySelector('[data-a="bm"]').onclick = () => { const on = toggleVbm(v); decorateAll(); toast(on ? "Verse bookmarked 🔖" : "Bookmark removed"); verseSheet(v); };
       acts.querySelector('[data-a="copy"]').onclick = async () => { toast(await copyText(verseQuote(v)) ? "Copied ✓" : "Couldn't copy"); };
-      acts.querySelector('[data-a="share"]').onclick = () => shareSheet({ text: v.text, ref, version: v.version });
+      acts.querySelector('[data-a="share"]').onclick = () => openImageMaker({ text: v.text, ref, version: v.version });
+      acts.querySelector('[data-a="mem"]').onclick = () => openMemorize({ key: v.key, text: v.text, ref, version: v.version, bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum });
       acts.querySelector('[data-a="study"]').onclick = () => { closeSheet(); C.studyVerse(v); };
     });
   }
@@ -387,8 +396,9 @@
     getVotd(ver).then(v => {
       el.innerHTML = `<div class="fx-eyebrow">☀️ Verse of the day</div><div class="fx-votd-text">“${esc(v.text)}”</div>
         <div class="fx-row" style="justify-content:space-between"><div class="fx-votd-ref">${esc(v.ref)} <span class="fx-muted">· ${esc(vname(v.version))}</span></div></div>
-        <div class="fx-row" style="margin-top:12px"><button class="fx-btn small" data-a="share">🖼️ Share</button><button class="fx-btn small" data-a="copy">📋 Copy</button><button class="fx-btn small" data-a="open">📖 Read chapter</button></div>`;
-      el.querySelector('[data-a="share"]').onclick = () => shareSheet({ text: v.text, ref: v.ref, version: v.version, votd: true });
+        <div class="fx-row" style="margin-top:12px"><button class="fx-btn small st-ib" data-a="share">${SVG_IMG}Make image</button><button class="fx-btn small st-ib" data-a="mem">${SVG_MEM}Memorize</button><button class="fx-btn small" data-a="copy">📋 Copy</button><button class="fx-btn small" data-a="open">📖 Read chapter</button></div>`;
+      el.querySelector('[data-a="share"]').onclick = () => openImageMaker({ text: v.text, ref: v.ref, version: v.version, votd: true });
+      el.querySelector('[data-a="mem"]').onclick = () => openMemorize({ text: v.text, ref: v.ref, version: v.version });
       el.querySelector('[data-a="copy"]').onclick = async () => toast(await copyText(`"${v.text}" — ${v.ref} (${vname(v.version)})`) ? "Copied ✓" : "Couldn't copy");
       el.querySelector('[data-a="open"]').onclick = () => { const m = v.ref.match(/^(.+?)\s+(\d+):(\d+)/); const b = BOOKS.findIndex(x => x[0] === m[1] || x[1] === m[1]); if (b >= 0) jumpTo(b, +m[2], +m[3]); };
     }).catch(err => {
@@ -414,6 +424,8 @@
       const pb = pc.querySelector('[data-a="plans"]'); if (pb) pb.onclick = plansSheet;
       const links = h(`<div class="fx-row"><button class="fx-btn small" data-a="mb" style="flex:1">🔖 My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">🔥 Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">Aa Settings</button></div>`);
       body.append(links);
+      const memBtn = h(`<button class="fx-btn small block st-ib" data-a="memlist" style="margin-top:8px">${SVG_MEM}My memory verses</button>`); body.append(memBtn);
+      memBtn.onclick = () => { const s = studio(); if (s) s.memoryList(); else toast("Memorize is still loading"); };
       links.querySelector('[data-a="mb"]').onclick = myBible; links.querySelector('[data-a="pl"]').onclick = plansSheet; links.querySelector('[data-a="aa"]').onclick = settingsSheet;
     });
     try { localStorage.setItem(K.SEEN, dayStr()); } catch {}
@@ -430,14 +442,19 @@
         <div class="fx-set"><label class="h">Line spacing</label>${seg("lh", [[1.5, "Tight"], [1.78, "Normal"], [2.1, "Roomy"]])}</div>
         <div class="fx-set"><label class="h">Theme</label>${seg("theme", [["dark", '<span class="fx-theme-dot" style="background:#141b2e"></span>Dark'], ["sepia", '<span class="fx-theme-dot" style="background:#f4ecd8"></span>Sepia'], ["light", '<span class="fx-theme-dot" style="background:#fff"></span>Light']])}</div>
         <div class="fx-set"><label class="h">Preview</label><div class="fx-preview"><sup style="color:var(--gold);font-size:.6em">1</sup> In the beginning was the Word, and the Word was with God, and the Word was God.</div></div>
+        <div class="fx-set"><label class="h">Page turn animation</label><div class="fx-seg" data-k="pageanim"><button data-v="on" class="${localStorage.getItem("bibley_page_anim") !== "off" ? "on" : ""}">On</button><button data-v="off" class="${localStorage.getItem("bibley_page_anim") === "off" ? "on" : ""}">Off</button></div></div>
+        <button class="fx-btn block" data-a="wn" style="margin-bottom:8px">What's new in Bibley</button>
         <button class="fx-btn block" data-a="reset">Reset to default</button></div>`);
       body.append(el);
       const r = el.querySelector(".fx-range");
       r.oninput = () => { setPref("size", +r.value); el.querySelector(".sz").textContent = r.value + "px"; };
       el.querySelectorAll(".fx-seg").forEach(s => s.querySelectorAll("button").forEach(b => b.onclick = () => {
-        const k = s.dataset.k; setPref(k, k === "lh" ? +b.dataset.v : b.dataset.v); s.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+        const k = s.dataset.k; s.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+        if (k === "pageanim") { const on = b.dataset.v === "on"; if (studio()) studio().pageTurn.set(on); else { try { localStorage.setItem("bibley_page_anim", on ? "on" : "off"); } catch {} } toast(on ? "Page turn animation on" : "Page turn animation off"); return; }
+        setPref(k, k === "lh" ? +b.dataset.v : b.dataset.v);
       }));
       el.querySelector('[data-a="reset"]').onclick = () => { save(K.PREFS, {}); applyPrefs(); settingsSheet(); };
+      el.querySelector('[data-a="wn"]').onclick = () => { const s = studio(); if (s) { closeSheet(); s.whatsNew(); } else toast("Still loading"); };
     });
   }
 
@@ -540,6 +557,7 @@
     cur[k] = info; decorate(k);
     if (k === "a") { addDone(info); doPendingJump(k, info); }
     const rm = document.querySelector(`.pane[data-pane="${k}"] .reader-main`);
+    if (rm && swipeDir[k] && document.documentElement.classList.contains("st-pageturn")) swipeDir[k] = null; // the page turn animation replaces the slide
     if (rm && swipeDir[k]) { rm.classList.remove("fx-swipe-next", "fx-swipe-prev"); void rm.offsetWidth; rm.classList.add("fx-swipe-" + swipeDir[k]); const d = swipeDir[k]; swipeDir[k] = null; setTimeout(() => rm.classList.remove("fx-swipe-" + d), 400); }
   }
   function wireSwipe() {
@@ -575,6 +593,12 @@
     if (document.querySelector('script[data-bibley-notes]')) return;
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-notes.css"; document.head.appendChild(l);
     const s = document.createElement("script"); s.src = "bibley-notes.js"; s.defer = true; s.dataset.bibleyNotes = "1"; document.body.appendChild(s);
+  })();
+  // v4: Verse Image Maker, Memorize mode and the page turn animation (bibley-studio.js).
+  (function loadStudio() {
+    if (document.querySelector('script[data-bibley-studio]')) return;
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-studio.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = "bibley-studio.js"; s.defer = true; s.dataset.bibleyStudio = "1"; document.body.appendChild(s);
   })();
   ["a", "b"].forEach(k => { const p = C.panes[k]; const el = document.querySelector(`.pane[data-pane="${k}"] .verses-text`); if (el) onChapter(k, { bookIdx: p.bookIdx, chapter: p.chapter, version: p.version }); });
   // Open screen: once a day show Today (verse of the day, continue reading, plan) unless opened from a shortcut.
