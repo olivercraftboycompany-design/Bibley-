@@ -1649,17 +1649,43 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     if(isBookmarked(p.bookIdx,p.chapter)){ bookmarkBtn.textContent="Bookmarked"; bookmarkBtn.classList.add("active"); } else { bookmarkBtn.textContent="Bookmark"; bookmarkBtn.classList.remove("active"); }
   }
 
+  // v5.1: verse bookmarks (bibley_vbm_v1, written by bibley-features.js; a range bookmark carries verses:[...])
+  // show beside chapter bookmarks; tapping one jumps straight to the verse and pulses it.
+  const STORAGE_VBM = "bibley_vbm_v1";
+  function getVerseBookmarks(){
+    try { const o=JSON.parse(localStorage.getItem(STORAGE_VBM)||"{}")||{}; return Object.keys(o).map(k=> Object.assign({key:k}, o[k])).filter(x=> x && BOOKS[x.bookIdx] && x.chapter && x.verseNum); } catch { return []; }
+  }
+  function removeVerseBookmark(key){
+    try { const o=JSON.parse(localStorage.getItem(STORAGE_VBM)||"{}")||{}; delete o[key]; localStorage.setItem(STORAGE_VBM, JSON.stringify(o)); } catch {}
+    if(window.BibleyFX && typeof window.BibleyFX.redecorate==="function") window.BibleyFX.redecorate();
+  }
+  const verseBmRef = vb=> vb.ref || `${BOOKS[vb.bookIdx][1]} ${vb.chapter}:${vb.verseNum}`;
+  function jumpToVerseBookmark(vb){
+    closeDrawer();
+    const verses = Array.isArray(vb.verses) && vb.verses.length ? vb.verses : null;
+    if(window.BibleyFX && typeof window.BibleyFX.jumpToVerse==="function"){ window.BibleyFX.jumpToVerse(vb.bookIdx, vb.chapter, vb.verseNum, verses); return; }
+    panes.a.bookIdx=vb.bookIdx; panes.a.chapter=vb.chapter; renderBookList(""); renderChapterGrid(); loadPane("a"); updateBookmarkUI();
+  }
   function renderBookmarkList(){
-    const bms=getBookmarks().sort((a,b)=> b.added-a.added);
+    const items=[...getBookmarks().map(bm=> ({kind:"ch", bm, added:bm.added||0})), ...getVerseBookmarks().map(vb=> ({kind:"v", vb, added:vb.added||0}))].sort((a,b)=> b.added-a.added);
     bookmarkList.innerHTML="";
-    if(bms.length===0){ bookmarkList.classList.remove("has-items"); return; }
+    if(items.length===0){ bookmarkList.classList.remove("has-items"); return; }
     bookmarkList.classList.add("has-items");
     const h=document.createElement("h4"); h.textContent="Bookmarks"; bookmarkList.appendChild(h);
-    bms.slice(0,20).forEach(bm=>{
+    items.slice(0,30).forEach(it=>{
       const div=document.createElement("div"); div.className="bm-item";
-      div.innerHTML=`<span>${bm.bookName} ${bm.chapter}</span><button>Remove</button>`;
-      div.addEventListener("click", (e)=>{ if(e.target.tagName==="BUTTON") return; panes.a.bookIdx=bm.bookIdx; panes.a.chapter=bm.chapter; if(compareMode && !panes.b._touched){ panes.b.bookIdx=bm.bookIdx; panes.b.chapter=bm.chapter; loadPane("b"); } renderBookList(""); renderChapterGrid(); loadPane("a"); closeDrawer(); });
-      div.querySelector("button").addEventListener("click", (e)=>{ e.stopPropagation(); toggleBookmark(bm.bookIdx, bm.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); });
+      div.innerHTML=`<span></span><button>Remove</button>`;
+      if(it.kind==="v"){
+        const vb=it.vb; div.classList.add("bm-verse"); div.dataset.vkey=vb.key;
+        div.querySelector("span").textContent=verseBmRef(vb);
+        div.addEventListener("click", (e)=>{ if(e.target.tagName==="BUTTON") return; jumpToVerseBookmark(vb); });
+        div.querySelector("button").addEventListener("click", (e)=>{ e.stopPropagation(); removeVerseBookmark(vb.key); renderBookmarkList(); if(currentTab==="marks") renderMarks(); });
+      } else {
+        const bm=it.bm;
+        div.querySelector("span").textContent=`${bm.bookName} ${bm.chapter}`;
+        div.addEventListener("click", (e)=>{ if(e.target.tagName==="BUTTON") return; panes.a.bookIdx=bm.bookIdx; panes.a.chapter=bm.chapter; if(compareMode && !panes.b._touched){ panes.b.bookIdx=bm.bookIdx; panes.b.chapter=bm.chapter; loadPane("b"); } renderBookList(""); renderChapterGrid(); loadPane("a"); closeDrawer(); });
+        div.querySelector("button").addEventListener("click", (e)=>{ e.stopPropagation(); toggleBookmark(bm.bookIdx, bm.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); });
+      }
       bookmarkList.appendChild(div);
     });
   }
@@ -1898,7 +1924,7 @@ Be precise and concrete rather than generic. Avoid vague filler like "this chapt
     const reqToken=++verseSummaryReq;
     aiContent.innerHTML=`
       <div class="ai-card gold"><div class="verse-ref">${v.bookName} ${v.chapter}:${v.verseNum}</div><div class="verse-text">"${v.text}"</div>
-        <div class="hl-controls">
+        <div class="hl-controls"${/^\d+$/.test(String(v.verseNum))?"":' style="display:none"'}>
           <button class="hl-btn yellow ${v.color==="yellow"?"active":""}" data-color="yellow" title="Yellow highlight"></button>
           <button class="hl-btn green ${v.color==="green"?"active":""}" data-color="green" title="Green highlight"></button>
           <button class="hl-btn blue ${v.color==="blue"?"active":""}" data-color="blue" title="Blue highlight"></button>
@@ -2451,9 +2477,11 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     const bms=getBookmarks().sort((a,b)=> b.added-a.added);
     const hls=Object.entries(getHighlights()).map(([k,v])=> ({key:k, ...v})).sort((a,b)=> b.added-a.added);
     let html="";
-    html+=`<div class="ai-card"><h3>Bookmarks (${bms.length})</h3>`;
-    if(!bms.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No bookmarks yet. Tap Bookmark in header to save a chapter.</p>`;
-    else html+=`<div class="marks-list">${bms.map(bm=> `<div class="mark-item" data-type="bm" data-book="${bm.bookIdx}" data-ch="${bm.chapter}"><div class="left"><div class="ref">${bm.bookName} ${bm.chapter}</div><div class="snippet">Bookmarked chapter</div></div><div class="right"><button class="icon-btn remove-bm">Remove</button></div></div>`).join("")}</div>`;
+    const vbms=getVerseBookmarks().sort((a,b)=> (b.added||0)-(a.added||0));
+    const escT=s=> String(s==null?"":s).replace(/[&<>"']/g, c=> ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    html+=`<div class="ai-card"><h3>Bookmarks (${bms.length+vbms.length})</h3>`;
+    if(!bms.length && !vbms.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No bookmarks yet. Tap Bookmark in header to save a chapter, or tap verses and choose Bookmark.</p>`;
+    else html+=`<div class="marks-list">${vbms.map(vb=> `<div class="mark-item" data-type="vbm" data-vkey="${escT(vb.key)}"><div class="left"><div class="ref">${escT(verseBmRef(vb))}</div><div class="snippet">${escT(String(vb.text||"Bookmarked verse").slice(0,90))}</div></div><div class="right"><button class="icon-btn remove-vbm">Remove</button></div></div>`).join("")}${bms.map(bm=> `<div class="mark-item" data-type="bm" data-book="${bm.bookIdx}" data-ch="${bm.chapter}"><div class="left"><div class="ref">${bm.bookName} ${bm.chapter}</div><div class="snippet">Bookmarked chapter</div></div><div class="right"><button class="icon-btn remove-bm">Remove</button></div></div>`).join("")}</div>`;
     html+=`</div>`;
     html+=`<div class="ai-card"><h3>Highlights (${hls.length})</h3>`;
     if(!hls.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No highlights yet. Tap a verse then choose a color in Verse tab.</p>`;
@@ -2461,6 +2489,13 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     html+=`</div>`;
     html+=`<button class="ai-action-btn" id="clearAllMarks">Clear All Marks</button>`;
     aiContent.innerHTML=html;
+    aiContent.querySelectorAll(".mark-item[data-type='vbm']").forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        const vb=getVerseBookmarks().find(x=> x.key===el.dataset.vkey); if(!vb) return;
+        if(e.target.classList.contains("remove-vbm")){ removeVerseBookmark(vb.key); renderBookmarkList(); renderMarks(); return; }
+        jumpToVerseBookmark(vb);
+      });
+    });
     aiContent.querySelectorAll(".mark-item[data-type='bm']").forEach(el=>{
       el.addEventListener("click", (e)=>{
         if(e.target.classList.contains("remove-bm")){ const bookIdx=parseInt(el.dataset.book); const ch=parseInt(el.dataset.ch); toggleBookmark(bookIdx,ch); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); renderMarks(); return; }
