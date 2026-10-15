@@ -1,0 +1,75 @@
+/* Bibley 5.2: Lost Books (locked section). Uses the app's theme colors. */
+.lb-noscroll, .lb-noscroll body { overflow:hidden !important; }
+.lb-root { position:fixed; inset:0; z-index:95; display:none; flex-direction:column; background:var(--bg, #141b2e); color:var(--ink, #e8e1d0); font-family:'Source Serif 4', Georgia, serif; }
+.lb-root.open { display:flex; animation:lbIn .2s ease; }
+@keyframes lbIn { from { opacity:0; } to { opacity:1; } }
+.lb-top { display:flex; align-items:center; gap:8px; padding:10px 12px; padding-top:calc(10px + env(safe-area-inset-top)); border-bottom:1px solid var(--border, #c9a86733); background:var(--bg-header, #0f1524); flex-shrink:0; }
+.lb-top button { background:none; border:1px solid var(--border, #c9a86733); color:var(--gold, #c9a867); border-radius:8px; padding:6px 11px; font-family:'Fraunces', Georgia, serif; font-size:13px; cursor:pointer; flex-shrink:0; }
+.lb-title { flex:1; text-align:center; font-family:'Fraunces', Georgia, serif; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink, #e8e1d0); }
+.lb-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px calc(28px + env(safe-area-inset-bottom)); max-width:760px; width:100%; margin:0 auto; box-sizing:border-box; }
+.lb-card { background:var(--bg-panel, #111a2f); border:1px solid var(--panel-border, #2a3658); border-radius:14px; padding:16px; margin-bottom:14px; line-height:1.55; }
+.lb-card h2, .lb-intro h2, .lb-warn h2 { font-family:'Fraunces', Georgia, serif; color:var(--gold, #c9a867); margin:0 0 8px; font-size:22px; font-weight:600; }
+.lb-card h3 { font-family:'Fraunces', Georgia, serif; color:var(--gold, #c9a867); margin:0 0 8px; font-size:17px; }
+.lb-card p { margin:0 0 10px; }
+.lb-center { text-align:center; max-width:420px; margin:28px auto 14px; }
+.lb-lockico { font-size:38px; margin-bottom:6px; }
+.lb-dim { color:var(--ink-dim, #e8e1d0a6); }
+.lb-fine { color:var(--ink-faint, #e8e1d066); font-size:12.5px; margin-top:14px !important; }
+.lb-form { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.lb-in { width:100%; box-sizing:border-box; padding:12px 14px; border-radius:10px; border:1px solid var(--panel-border, #2a3658); background:var(--bg, #141b2e); color:var(--ink, #e8e1d0); font-size:17px; font-family:inherit; text-align:center; letter-spacing:.08em; }
+.lb-in:focus { outline:none; border-color:var(--gold, #c9a867); }
+.lb-show { font-size:13px; color:var(--ink-dim, #e8e1d0a6); display:flex; gap:6px; align-items:center; justify-content:center; }
+.lb-err { min-height:18px; color:#f19a8e; font-size:14px; }
+.lb-btn { display:inline-block; background:none; border:1px solid var(--border, #c9a86733); color:var(--gold, #c9a867); border-radius:10px; padding:10px 16px; font-family:'Fraunces', Georgia, serif; font-size:15px; cursor:pointer; margin:4px 0; }
+.lb-btn.primary { background:var(--gold, #c9a867); color:var(--bg, #141b2e); border-color:var(--gold, #c9a867); font-weight:600; }
+.lb-btn[disabled] { opacity:.35; cursor:default; }
+.lb-link { background:none; border:none; color:var(--gold, #c9a867); text-decoration:underline; font-family:inherit; font-size:14px; cursor:pointer; padding:8px; margin-top:6px; }
+.lb-shake { animation:lbShake .35s; border-color:#f19a8e !important; }
+@keyframes lbShake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-8px); } 75% { transform:translateX(8px); } }
+.lb-warn { max-width:460px; margin:18px auto; background:#2a1414; border:2px solid #e0a040; border-radius:16px; padding:22px 20px; text-align:center; line-height:1.55; color:#fbeee0; }
+.lb-warn h2 { color:#ffcf70 !important; font-size:26px !important; }
+.lb-warnico { width:54px; height:54px; margin:0 auto 10px; border-radius:50%; background:#e0a040; color:#2a1414; font:700 34px/54px 'Fraunces', Georgia, serif; }
+.lb-warn p { margin:0 0 12px; font-size:16.5px; }
+.lb-warn .lb-verse { font-style:italic; color:#ffe2a8; }
+.lb-warn .lb-verse span { display:block; font-style:normal; font-size:13px; opacity:.8; margin-top:2px; }
+.lb-warn .lb-btn { display:block; width:100%; margin-top:8px; }
+.lb-warn .lb-btn.primary { background:#e0a040; border-color:#e0a040; color:#2a1414; }
+.lb-warn .lb-btn:not(.primary) { color:#fbeee0; border-color:#fbeee055; }
+.lb-intro { margin:4px 0 14px; }
+.lb-eyebrow { font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:#c9a86799; font-family:'Fraunces', Georgia, serif; margin-bottom:4px; }
+.lb-continue { display:flex; flex-direction:column; align-items:flex-start; width:100%; text-align:left; background:#1d2744; border:1px solid #2f3d66; color:var(--ink, #e8e1d0); border-radius:12px; padding:12px 14px; margin-bottom:16px; cursor:pointer; font-family:inherit; }
+.lb-continue span { font-size:12px; color:var(--ink-dim, #e8e1d0a6); } .lb-continue b { font-family:'Fraunces', Georgia, serif; color:var(--gold, #c9a867); font-size:16px; font-weight:600; }
+.lb-group { margin-bottom:18px; }
+.lb-group h3 { font-family:'Fraunces', Georgia, serif; color:var(--gold, #c9a867); font-size:17px; margin:0 0 2px; }
+.lb-gnote { font-size:13px; color:var(--ink-dim, #e8e1d0a6); margin:0 0 8px; }
+.lb-blist { display:flex; flex-direction:column; gap:6px; }
+.lb-bitem { display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left; width:100%; background:var(--bg-panel, #111a2f); border:1px solid var(--panel-border, #2a3658); color:var(--ink, #e8e1d0); border-radius:10px; padding:11px 13px; cursor:pointer; font-family:inherit; }
+.lb-bitem b { font-weight:600; font-size:15.5px; } .lb-bitem span { font-size:12px; color:var(--ink-faint, #e8e1d066); white-space:nowrap; }
+.lb-credit { font-size:12.5px; color:var(--ink-faint, #e8e1d066); font-style:italic; margin:6px 0 0 !important; }
+.lb-credit.small { margin-top:18px !important; }
+.lb-chhead { font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:#c9a86799; margin:6px 0 8px; font-family:'Fraunces', Georgia, serif; }
+.lb-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(48px, 1fr)); gap:6px; }
+.lb-grid.wide { grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); }
+.lb-grid button { background:var(--bg-panel, #111a2f); border:1px solid var(--panel-border, #2a3658); color:var(--ink, #e8e1d0); border-radius:8px; padding:10px 4px; font-family:'Fraunces', Georgia, serif; font-size:14px; cursor:pointer; }
+.lb-loading { text-align:center; color:var(--ink-dim, #e8e1d0a6); padding:40px 0; }
+.lb-rtools { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.lb-tag { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#e0a040; border:1px solid #e0a04066; border-radius:999px; padding:3px 9px; font-family:'Fraunces', Georgia, serif; }
+.lb-sz button { background:none; border:1px solid var(--border, #c9a86733); color:var(--gold, #c9a867); border-radius:6px; padding:3px 9px; margin-left:4px; cursor:pointer; font-family:'Fraunces', Georgia, serif; }
+.lb-rh { font-family:'Fraunces', Georgia, serif; color:var(--gold, #c9a867); font-size:22px; margin:8px 0 4px; font-weight:600; }
+.lb-sub { font-size:13.5px; color:var(--ink-dim, #e8e1d0a6); font-style:italic; margin:0 0 10px; }
+.lb-pre { font-style:italic; color:var(--ink-dim, #e8e1d0a6); }
+.lb-text { line-height:1.75; margin-top:12px; color:var(--ink, #e8e1d0); }
+.lb-text sup { color:var(--gold, #c9a867); font-size:.6em; margin:0 3px 0 2px; font-family:'Fraunces', Georgia, serif; }
+.lb-pager { display:flex; justify-content:space-between; gap:8px; margin-top:18px; }
+.lb-pager .lb-btn { flex:1; }
+.lb-skip { padding-left:18px; margin:0; } .lb-skip li { margin-bottom:8px; } .lb-skip li span { display:block; color:var(--ink-dim, #e8e1d0a6); font-size:14px; }
+.lb-entry-wrap { padding:0 16px 10px; flex-shrink:0; }
+.lb-entry { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:#22182a; border:1px solid #e0a04055; color:var(--ink, #e8e1d0); border-radius:10px; padding:9px 12px; cursor:pointer; font-family:inherit; }
+.lb-entry b { display:block; font-family:'Fraunces', Georgia, serif; color:#ffcf70; font-size:14.5px; font-weight:600; }
+.lb-entry small { display:block; font-size:11.5px; color:var(--ink-dim, #e8e1d0a6); }
+.lb-entry-ico { font-size:18px; }
+html.theme-light .lb-warn, html.theme-sepia .lb-warn { background:#fff4e2; color:#3a2410; }
+html.theme-light .lb-warn h2, html.theme-sepia .lb-warn h2 { color:#9a5a00 !important; }
+html.theme-light .lb-warn .lb-verse, html.theme-sepia .lb-warn .lb-verse { color:#6b4410; }
+html.theme-light .lb-warn .lb-btn:not(.primary), html.theme-sepia .lb-warn .lb-btn:not(.primary) { color:#3a2410; border-color:#3a241055; }
+html.theme-light .lb-entry, html.theme-sepia .lb-entry { background:#fff4e2; } html.theme-light .lb-entry b, html.theme-sepia .lb-entry b { color:#9a5a00; }

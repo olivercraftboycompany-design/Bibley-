@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.1";
+  const APP_VERSION = "5.2";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.2", date: "October 2026", items: [
+      ["Lost Books (locked)", "A new section with ancient writings that are not in the Protestant Bible: the Apocrypha, 1 Enoch, Jubilees, early church letters, lost gospels and apocalypses. Open the Books menu and tap Lost Books. You make your own passkey the first time."],
+      ["Kept separate, with a warning", "Lost Books stays apart from the Bible: not in the book list, search, verse of the day or plans. After the passkey, a warning reminds you these are not Scripture."]
+    ] },
     { v: "5.1", date: "October 2026", items: [
       ["Select multiple verses at once", "Tap a verse, then tap more to add them. Highlight, copy, share, bookmark, add a note, make an image or memorize the whole passage at once. Tap the X to clear."],
       ["Verse bookmarks jump straight to the verse", "Tap a verse bookmark and Bibley opens the chapter, scrolls right to the verse and makes it glow. A bookmarked passage glows all the way through."]
@@ -504,4 +508,8 @@
     backgrounds: Object.keys(BGS), fonts: Object.keys(FONTS), ICON, _lastBlob: null
   };
   maybeWhatsNew();
+  // v5.2: Lost Books (separate, passkey-locked section; lostbooks.js adds its own drawer button).
+  if (!document.querySelector("script[data-lostbooks]")) {
+    const lb = document.createElement("script"); lb.src = "lostbooks.js"; lb.defer = true; lb.dataset.lostbooks = "1"; document.body.appendChild(lb);
+  }
 })();
