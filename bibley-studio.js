@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.0";
+  const APP_VERSION = "5.1";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.1", date: "October 2026", items: [
+      ["Select multiple verses at once", "Tap a verse, then tap more to add them. Highlight, copy, share, bookmark, add a note, make an image or memorize the whole passage at once. Tap the X to clear."],
+      ["Verse bookmarks jump straight to the verse", "Tap a verse bookmark and Bibley opens the chapter, scrolls right to the verse and makes it glow. A bookmarked passage glows all the way through."]
+    ] },
     { v: "5.0", date: "October 2026", release: true, items: [
       ["Bibley is officially out of beta", "Bibley is officially out of beta: full release. Thanks for reading with it."],
       ["Removed the page-turn animation", "Chapters switch the simple way again: a quick slide when you swipe, an instant change with the buttons."],
