@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.2";
+  const APP_VERSION = "5.3";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.3", date: "October 2026", items: [
+      ["6 more Lost Books", "Acts of Peter, Acts of John, the Letter to the Laodiceans, 3 Corinthians, 2 Enoch and the Apocalypse of Abraham are now in Lost Books. Same passkey and warning as before."]
+    ] },
     { v: "5.2", date: "October 2026", items: [
       ["Lost Books (locked)", "A new section with ancient writings that are not in the Protestant Bible: the Apocrypha, 1 Enoch, Jubilees, early church letters, lost gospels and apocalypses. Open the Books menu and tap Lost Books. You make your own passkey the first time."],
       ["Kept separate, with a warning", "Lost Books stays apart from the Bible: not in the book list, search, verse of the day or plans. After the passkey, a warning reminds you these are not Scripture."]
