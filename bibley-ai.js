@@ -29,6 +29,7 @@
   "use strict";
   var KEY = "pk_wLLzLQrHReXH2Gqc";
   var LS_PAUSE = "bibley_ai_pause_v1", LS_LAST = "bibley_ai_last_v1", SS_KEYPAUSE = "bibley_ai_keypause";
+  var lastKeylessAt = 0;
 
   var ACCURACY_RULES = "\n\nACCURACY RULES (always follow):\n" +
     "- Do not invent Hebrew, Greek or Aramaic words. Mention an original-language word ONLY if you are certain of its exact meaning, and write it in English letters only (for example: agape). Never use Hebrew or Greek script. If you are not sure, leave original languages out entirely; that is completely fine.\n" +
@@ -90,12 +91,25 @@
       }
     },
     {
-      name: "Pollinations", timeout: 55000, attempts: 3,
+      name: "Pollinations", timeout: 55000, attempts: 2,
       call: async function (msgs, maxTokens, seed) {
         // Keyless tier: only "openai-fast"; it answers 402 to temperature/max_tokens/private.
-        var r = await post("https://text.pollinations.ai/openai", { "Content-Type": "application/json" },
-          { model: "openai-fast", messages: msgs, seed: seed }, this.timeout);
-        if (!r.ok) throw err("api-" + r.status);
+        // It also allows only about one request every 20-30 s per visitor (measured 2026-10-14:
+        // HTTP 402 "Payment required" for ~25 s after an answer). So space requests out, and on a
+        // 402 wait and try again (up to ~45 s) instead of failing the summary.
+        var gap = 20000 - (now() - lastKeylessAt);
+        if (gap > 0) await sleep(gap);
+        var waits = [5000, 7000, 9000, 11000, 13000], r;
+        for (var w = 0; ; w++) {
+          r = await post("https://text.pollinations.ai/openai", { "Content-Type": "application/json" },
+            { model: "openai-fast", messages: msgs, seed: seed }, this.timeout);
+          if (r.status !== 402 && r.status !== 429) break;
+          if (w >= waits.length) break;
+          try { console.info("[Bibley AI] free tier busy (" + r.status + "), waiting " + (waits[w] / 1000) + " s"); } catch (e) {}
+          await sleep(waits[w]);
+        }
+        lastKeylessAt = now();
+        if (!r.ok) throw err("api-" + r.status, { noRetry: r.status === 402 || r.status === 429 });
         var c = choice(r.data), content = c && c.message && c.message.content;
         if (!content) throw err(r.data ? "empty-response" : "malformed-response");
         if (isProviderNotice(content)) throw err("api-429");
