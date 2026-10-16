@@ -398,9 +398,15 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.3";
+  const APP_VERSION = "5.4";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.4", date: "October 2026", items: [
+      ["15 Bibles as offline JSON", "BSB, WEB, KJV, ASV, YLT, LSV, Darby, Douay-Rheims and Geneva now load as one full-Bible file the first time you pick them, then read, search and do verse of the day with no internet. New: Majority Standard Bible, Free Bible Version, Translation for Translators, Unlocked Literal Bible, Webster 1833 and Revised Version 1885. Look for the Offline JSON groups at the top of the version menu."],
+      ["Study AI checks its verses", "When the AI quotes a verse, Bibley checks the words against the real text. A wrong label gets corrected right on the chip, a quote that isn't there gets flagged, and every answer lists the real verse text it cited."],
+      ["New Explore tab", "In Study: Explain, Cross-references, Background and Quiz me for the chapter or the verse you tapped. Pick Simple, Normal or Deep, and ask follow-up questions that remember the passage."],
+      ["Steadier AI", "A seconds counter while it thinks, and a Try again button whenever an answer fails."]
+    ] },
     { v: "5.3", date: "October 2026", items: [
       ["6 more Lost Books", "Acts of Peter, Acts of John, the Letter to the Laodiceans, 3 Corinthians, 2 Enoch and the Apocalypse of Abraham are now in Lost Books. Same passkey and warning as before."]
     ] },

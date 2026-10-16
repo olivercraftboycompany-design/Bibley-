@@ -5,14 +5,14 @@
      (stale-while-revalidate), kept across versions in their own cache, so every
      chapter you've opened works offline.
    - AI requests (POST) are never touched. No push notifications in this build. */
-const VERSION = 'bibley-v10';
+const VERSION = 'bibley-v11';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
 const TEXT_LIMIT = 1500;                    // chapters kept (oldest trimmed)
 
 const SHELL = [
-  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-notes.js', './bibley-notes.css', './bibley-ai.js', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './manifest.json',
+  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-notes.js', './bibley-notes.css', './bibley-ai.js', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './bibley-study.js', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-192.png', './icons/maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
@@ -105,5 +105,6 @@ self.addEventListener('fetch', e => {
   if (FONT_HOSTS.includes(url.hostname)) { e.respondWith(fonts(req)); return; }
   if (url.origin !== self.location.origin) return;
   if (!url.pathname.startsWith(new URL('./', self.location).pathname)) return;
+  if (url.pathname.indexOf('/bibles/') >= 0) return;    // offline JSON Bibles: the page keeps them in IndexedDB itself
   e.respondWith(shell(e));
 });
