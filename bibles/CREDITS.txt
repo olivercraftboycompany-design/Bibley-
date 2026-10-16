@@ -1,0 +1,22 @@
+Bibley offline JSON Bibles (bibles/*.json.gz)
+Format: gzip-compressed JSON {"v": id, "src": source, "b": [book][chapter][verse-1] = text}, 66 books in Protestant order, ASCII with \u escapes.
+Source of every file: the Free Use Bible API complete JSON (https://bible.helloao.org/api/<id>/complete.simple.json), built from ebible.org, fetched 2026-10-16.
+
+bsb      Berean Standard Bible            public domain (dedicated 2023)          helloao BSB
+web      World English Bible              public domain                           helloao ENGWEBP (ebible engwebp)
+msb      Majority Standard Bible          public domain                           ebible engmsb
+fbv      Free Bible Version               CC BY-SA 4.0, Free Bible Version / Dr. Jonathan Gallagher   ebible engfbv
+t4t      Translation for Translators      CC BY-SA 4.0, Ellis W. Deibler Jr.      ebible eng-t4t
+ulb      Unlocked Literal Bible           CC BY-SA 4.0, unfoldingWord / Door43    ebible engULB
+lsv      Literal Standard Version         CC BY-SA 4.0, Covenant Press            ebible englsv
+kjv      King James Version               public domain (outside the UK)          ebible eng-kjv2006
+asv      American Standard Version 1901   public domain                           ebible eng-asv
+ylt      Young's Literal Translation      public domain                           ebible engylt
+darby    Darby Translation                public domain                           ebible engDBY
+gnv      Geneva Bible 1599                public domain                           ebible enggnv
+dra      Douay-Rheims 1899                public domain                           ebible engDRA
+webster  Webster Bible 1833               public domain                           ebible engwebster
+rv       Revised Version 1885             public domain                           ebible eng-rv
+
+CC BY-SA texts are shared under the same license; the text is unchanged except whitespace.
+Copyrighted translations (NIV, ESV, NLT, NKJV, NASB, CSB, MSG, AMP, ...) are NOT included as files.
