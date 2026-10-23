@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.4";
+  const APP_VERSION = "5.5";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.5", date: "October 2026", items: [
+      ["Daily dose of wisdom", "A new card on the Today screen: one short passage of wisdom a day, mostly from Proverbs, plus Ecclesiastes, James and the Psalms, with a one-line reflection under it. Share it, save it, look back at the past 7 days, and keep a streak going for the days you open it."]
+    ] },
     { v: "5.4", date: "October 2026", items: [
       ["15 Bibles as offline JSON", "BSB, WEB, KJV, ASV, YLT, LSV, Darby, Douay-Rheims and Geneva now load as one full-Bible file the first time you pick them, then read, search and do verse of the day with no internet. New: Majority Standard Bible, Free Bible Version, Translation for Translators, Unlocked Literal Bible, Webster 1833 and Revised Version 1885. Look for the Offline JSON groups at the top of the version menu."],
       ["Study AI checks its verses", "When the AI quotes a verse, Bibley checks the words against the real text. A wrong label gets corrected right on the chip, a quote that isn't there gets flagged, and every answer lists the real verse text it cited."],

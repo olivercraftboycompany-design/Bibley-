@@ -562,6 +562,8 @@
     const hr = new Date().getHours(); const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
     openSheet("today", greet + " ☀️", body => {
       const v = h(`<div class="fx-card gold fx-votd"></div>`); body.append(v); votdCard(v);
+      // v5.5: Daily Dose of Wisdom (bibley-wisdom.js fills this slot; if it is still loading it fills it when it arrives).
+      const wz = h(`<div class="fx-wis-slot"></div>`); body.append(wz); if (window.BibleyWisdom) window.BibleyWisdom.render(wz);
       const pos = lastPos();
       const cont = h(`<button class="fx-btn primary block fx-continue" data-a="continue"><span style="font-size:22px">📖</span><span class="t">Continue reading<small style="color:inherit;opacity:.8">${esc(refOf(pos.bookIdx, pos.chapter))} · ${esc(vname(C.panes.a.version))}</small></span><span>→</span></button>`);
       body.append(cont);
@@ -754,6 +756,12 @@
     if (document.querySelector('script[data-bibley-studio]')) return;
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-studio.css"; document.head.appendChild(l);
     const s = document.createElement("script"); s.src = "bibley-studio.js"; s.defer = true; s.dataset.bibleyStudio = "1"; document.body.appendChild(s);
+  })();
+  // v5.5: Daily Dose of Wisdom card on the Today screen (bibley-wisdom.js).
+  (function loadWisdom() {
+    if (document.querySelector('script[data-bibley-wisdom]')) return;
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-wisdom.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = "bibley-wisdom.js"; s.defer = true; s.dataset.bibleyWisdom = "1"; document.body.appendChild(s);
   })();
   ["a", "b"].forEach(k => { const p = C.panes[k]; const el = document.querySelector(`.pane[data-pane="${k}"] .verses-text`); if (el) onChapter(k, { bookIdx: p.bookIdx, chapter: p.chapter, version: p.version }); });
   // Open screen: once a day show Today (verse of the day, continue reading, plan) unless opened from a shortcut.

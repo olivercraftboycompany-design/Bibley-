@@ -1,0 +1,17 @@
+/* bibley-wisdom.css - Bibley 5.5 Daily Dose of Wisdom card. Uses the page's own CSS vars and the fx-* card/button styles. */
+.fx-wis-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fx-wis-eb { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.fx-wis-eb svg { width: 14px; height: 14px; flex-shrink: 0; }
+.fx-wis-streak { font-family: 'Fraunces', Georgia, serif; font-size: 12px; color: var(--ink-dim); border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.fx-wis-streak b { color: var(--gold-soft); font-weight: 600; }
+.fx-wis-text { font-family: var(--fx-verse-font); font-size: 18px; line-height: 1.6; margin: 10px 0 6px; color: var(--ink); }
+.fx-wis-ref { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font-family: 'Fraunces', Georgia, serif; color: var(--gold); font-size: 15px; }
+.fx-wis-note { margin: 12px 0 2px; padding: 2px 0 2px 12px; border-left: 2px solid #c9a86766; color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
+.fx-wis-lbl { font-family: 'Fraunces', Georgia, serif; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint, var(--ink-dim)); margin-bottom: 2px; }
+.fx-wis-acts { margin-top: 12px; }
+.fx-wis-acts .fx-btn.on { border-color: var(--gold); color: var(--gold); }
+.fx-wis-seg { margin-bottom: 12px; }
+.fx-wis-day { font-family: 'Fraunces', Georgia, serif; font-size: 13px; letter-spacing: .04em; color: var(--gold-soft); }
+.fx-wis-seen { font-size: 12px; color: var(--ink-faint, var(--ink-dim)); }
+.fx-wis-seen.on { color: var(--gold); }
+.fx-wis-past .fx-wis-text { font-size: 17px; }
