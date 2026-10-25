@@ -88,10 +88,10 @@
   const range = (b0, b1) => { const out = []; for (let b = b0; b <= b1; b++) for (let c = 1; c <= BOOKS[b][2]; c++) out.push([b, c]); return out; };
   const split = (list, days) => Array.from({ length: days }, (_, d) => list.slice(Math.floor(d * list.length / days), Math.floor((d + 1) * list.length / days)));
   const PLANS = {
-    gospels30: { name: "Gospels in 30 days", ico: "✝️", blurb: "Matthew, Mark, Luke & John · ~3 chapters a day", days: () => split(range(39, 42), 30) },
-    pp31: { name: "Psalms & Proverbs in 31 days", ico: "🎵", blurb: "~5 psalms + 1 proverb a day", days: () => { const ps = split(range(18, 18), 31); return ps.map((d, i) => d.concat([[19, i + 1]])); } },
-    nt90: { name: "New Testament in 90 days", ico: "📜", blurb: "Matthew → Revelation · ~3 chapters a day", days: () => split(range(39, 65), 90) },
-    year365: { name: "Bible in a year", ico: "📖", blurb: "Genesis → Revelation · ~3–4 chapters a day", days: () => split(range(0, 65), 365) }
+    gospels30: { name: "Gospels in 30 days", ico: "✝️", icon: "cross", blurb: "Matthew, Mark, Luke & John · ~3 chapters a day", days: () => split(range(39, 42), 30) },
+    pp31: { name: "Psalms & Proverbs in 31 days", ico: "🎵", icon: "music", blurb: "~5 psalms + 1 proverb a day", days: () => { const ps = split(range(18, 18), 31); return ps.map((d, i) => d.concat([[19, i + 1]])); } },
+    nt90: { name: "New Testament in 90 days", ico: "📜", icon: "scroll", blurb: "Matthew → Revelation · ~3 chapters a day", days: () => split(range(39, 65), 90) },
+    year365: { name: "Bible in a year", ico: "📖", icon: "book", blurb: "Genesis → Revelation · ~3–4 chapters a day", days: () => split(range(0, 65), 365) }
   };
   const planDaysCache = {};
   const planDays = id => planDaysCache[id] || (planDaysCache[id] = PLANS[id].days());
@@ -109,14 +109,14 @@
       parts.push(BOOKS[b][1] + " " + chs[i][1] + (j > i ? "–" + chs[j][1] : "")); i = j + 1; }
     return parts.join(" · ");
   }
-  function startPlan(id) { save(K.PLAN, { id, started: dayStr(), done: {} }); toast(PLANS[id].name + " started 🔥"); }
+  function startPlan(id) { save(K.PLAN, { id, started: dayStr(), done: {} }); toast(PLANS[id].name + " started"); }
   function completeDay(silent) {
     const st = planState(); if (!st || st.finished && st.p.done[st.idx]) return;
     const p = st.p; p.done = p.done || {}; p.done[st.idx] = dayStr(); save(K.PLAN, p);
     const rm = readMap(); st.today.forEach(([b, c]) => { if (!rm[chKey(b, c)]) rm[chKey(b, c)] = dayStr(); }); save(K.READ, rm);
     markActive();
     const s = streak().n; const after = planState();
-    if (!silent) toast(after.finished ? "Plan complete! 🎉 " + PLANS[p.id].name : `Day ${st.idx + 1} done ✓ · 🔥 ${s}-day streak`, 3200);
+    if (!silent) toast(after.finished ? "Plan complete: " + PLANS[p.id].name : `Day ${st.idx + 1} done ✓ · ${s}-day streak`, 3200);
     updateDock(); refreshDoneButton();
   }
   // A chapter checked as read: count it toward today's plan reading; finish the day when all are read.
@@ -226,6 +226,8 @@
   /* ================= v4 studio hooks (bibley-studio.js: image maker, memorize, page turn) ================= */
   const SVG_IMG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>';
   const SVG_MEM = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 0 0-5.6-1.5A3 3 0 0 0 4 8a3 3 0 0 0 0 5 3 3 0 0 0 3 4.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3 3 0 0 1 20 8a3 3 0 0 1 0 5 3 3 0 0 1-3 4.5A3 3 0 0 1 12 19z"/><path d="M12 5v14"/></svg>';
+  /* v5.6 UI refresh: line icons (no emoji icons) */
+  const IC = {"sun": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4\"/></svg>", "bookmark": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 3.5h11v17l-5.5-4-5.5 4z\"/></svg>", "flame": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z\"/></svg>", "book": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 6.5C10.4 5 8 4.5 4 4.5v14c4 0 6.4.5 8 2 1.6-1.5 4-2 8-2v-14c-4 0-6.4.5-8 2z\"/><path d=\"M12 6.5v14\"/></svg>", "cross": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v18M7 8h10\"/></svg>", "music": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 18V5.5l11-2V16\"/><circle cx=\"6.5\" cy=\"18\" r=\"2.5\"/><circle cx=\"17.5\" cy=\"16\" r=\"2.5\"/></svg>", "scroll": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 4h11a2 2 0 0 1 2 2v1h-4\"/><path d=\"M16 7v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1h10\"/><path d=\"M7 4a2 2 0 0 0-2 2v11\"/><path d=\"M9 9h4M9 12.5h4\"/></svg>", "download": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4v11M7.5 10.5L12 15l4.5-4.5\"/><path d=\"M5 19.5h14\"/></svg>", "upload": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V4M7.5 8.5L12 4l4.5 4.5\"/><path d=\"M5 19.5h14\"/></svg>", "share": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3.5M8 7.5l4-4 4 4\"/><path d=\"M6 11H5v9.5h14V11h-1\"/></svg>", "check": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg>", "type": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 18l4.5-12L13 18M5.6 14h5.8\"/><path d=\"M15.5 11.2c.6-.8 1.5-1.2 2.5-1.2 1.6 0 2.5.9 2.5 2.5V18M20.5 14.2c-.7-.3-1.4-.4-2.2-.4-1.6 0-2.8.8-2.8 2.1s1 2.1 2.3 2.1c1.3 0 2.2-.8 2.7-1.7\"/></svg>", "notes": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z\"/><path d=\"M6 3v18\"/><path d=\"M10 8h6M10 12h6M10 16h4\"/></svg>", "copy": "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"8.5\" y=\"8.5\" width=\"11.5\" height=\"11.5\" rx=\"2\"/><path d=\"M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5\"/></svg>"};
   const studio = () => window.BibleyStudio || null;
   function openImageMaker(d) { const s = studio(); if (s) s.imageMaker(d); else shareSheet(d); }
   function openMemorize(d) { const s = studio(); if (s) s.memorize(d); else toast("Memorize is still loading"); }
@@ -238,7 +240,7 @@
   // with verses:[16,17,18]); Image Maker and Memorize get the combined text + reference.
   // The selection clears on chapter change and with the X.
   const ICON = {
-    note: "&#128221;", bm: "&#128278;", copy: "&#128203;", study: "&#10024;",
+    note: "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z\"/><path d=\"M13.5 6.5l4 4\"/></svg>", bm: "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 3.5h11v17l-5.5-4-5.5 4z\"/></svg>", copy: "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"8.5\" y=\"8.5\" width=\"11.5\" height=\"11.5\" rx=\"2\"/><path d=\"M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5\"/></svg>", study: "<svg class=\"ui-ic\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5l1.9 4.6 4.6 1.9-4.6 1.9L12 16.5l-1.9-4.6L5.5 10l4.6-1.9z\"/><path d=\"M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z\"/></svg>",
     share: '<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>'
   };
   let sel = null, selBar = null;
@@ -292,6 +294,7 @@
         <button type="button" class="fx-act" data-a="img"><span class="e">${SVG_IMG}</span><i>Image</i></button>
         <button type="button" class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span><i>Memorize</i></button>
         <button type="button" class="fx-act" data-a="study"><span class="e">${ICON.study}</span><i>Study</i></button>
+        <button type="button" class="fx-act" data-a="snb"><span class="e"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v16H8a2 2 0 0 1-2-2V3zM6 17.5A2 2 0 0 1 8 16h11M10 8h5M10 11.5h5"/></svg></span><i>Notebook</i></button>
       </div></div>`);
     document.body.appendChild(selBar);
     selBar.querySelector(".fx-selbar-x").onclick = clearSel;
@@ -319,6 +322,7 @@
     });
     act("img", () => { const t = selTarget(); if (t) openImageMaker({ text: t.text, ref: t.ref, version: t.version }); });
     act("mem", () => { const t = selTarget(); if (t) openMemorize({ key: t.key, text: t.text, ref: t.ref, version: t.version, bookIdx: t.bookIdx, chapter: t.chapter, verseNum: t.verseNum }); });
+    act("snb", () => { const t = selTarget(); if (!t) return; clearSel(); if (window.BibleyStudyNB) window.BibleyStudyNB.newFromVerse(t); else toast("Notebook is still loading"); });
     act("study", () => {
       const t = selTarget(); if (!t) return; clearSel();
       if (t.single) C.studyVerse(t);
@@ -399,7 +403,7 @@
         <div class="fx-tabs">${[["all", "All"], ["hl", "Highlights"], ["notes", "Notes"], ["bm", "Bookmarks"]].map(([k, l]) => `<button class="fx-tab ${mbFilter === k ? "on" : ""}" data-f="${k}">${l} ${cnt[k]}</button>`).join("")}</div>
         <div class="fx-list"></div>
         <div class="fx-card" style="margin-top:14px"><div class="fx-eyebrow">Backup</div><p class="fx-muted" style="margin:6px 0 10px">Everything lives on this phone. Save a backup file now and then, or move it to a new phone.</p>
-          <div class="fx-row"><button class="fx-btn small" data-a="export">⬇ Export backup</button><button class="fx-btn small" data-a="import">⬆ Import backup</button><input type="file" accept="application/json,.json" hidden></div></div></div>`);
+          <div class="fx-row"><button class="fx-btn small" data-a="export">${IC.download}Export backup</button><button class="fx-btn small" data-a="import">${IC.upload}Import backup</button><input type="file" accept="application/json,.json" hidden></div></div></div>`);
       body.append(top);
       const input = top.querySelector("input[type=search]"), list = top.querySelector(".fx-list");
       const draw = () => {
@@ -413,7 +417,7 @@
         if (jr) html += `<div class="fx-item" data-jb="${jr.b}" data-jc="${jr.c}" data-jv="${jr.v || ""}"><div class="k chap"></div><div class="b"><div class="r">↪ Go to ${esc(refOf(jr.b, jr.c, jr.v))}</div></div></div>`;
         if (!items.length) html += all.length ? `<div class="fx-empty">Nothing matches "${esc(mbQuery)}".</div>` : `<div class="fx-empty">Nothing saved yet.<br>Tap any verse while you read to highlight it, add a note, or bookmark it.</div>`;
         html += items.map((i, n) => `<div class="fx-item" data-i="${n}"><div class="k ${i.type === "chapter" ? "chap" : i.color || (i.note ? "note" : "")}"></div><div class="b">
-            <div class="r">${esc(i.ref)}${i.bm ? " <span>🔖</span>" : ""}${i.note ? " <span>✎</span>" : ""}</div>
+            <div class="r">${esc(i.ref)}${i.bm ? ` <span class="ui-mini">${IC.bookmark}</span>` : ""}${i.note ? " <span>✎</span>" : ""}</div>
             ${i.text ? `<div class="s">${esc(i.text)}</div>` : ""}${i.note ? `<div class="n">${esc(i.note)}</div>` : ""}</div>
             <button class="x" data-del="${n}" aria-label="Remove">×</button></div>`).join("");
         list.innerHTML = html;
@@ -453,13 +457,15 @@
     const c = +m[2]; if (c < 1 || c > BOOKS[b][2]) return null;
     return { b, c, v: m[3] ? +m[3] : null };
   }
-  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB];
+  // 5.7: the Study Notebook keys ride along; older backups without them import exactly as before.
+  const SNB_KEYS = ["bibley_nb_v1_notebooks", "bibley_nb_v1_notes", "bibley_nb_v1_meta"];
+  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB].concat(SNB_KEYS);
   function exportBackup() {
     const data = {}; BACKUP_KEYS.forEach(k => { const v = load(k, null); if (v != null) data[k] = v; });
     const blob = new Blob([JSON.stringify({ app: "Bibley", kind: "backup", v: 1, exported: new Date().toISOString(), data }, null, 1)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "bibley-backup-" + dayStr() + ".json";
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    toast("Backup saved to Downloads ⬇");
+    toast("Backup saved to Downloads");
   }
   function importBackup(text) {
     let j; try { j = JSON.parse(text); } catch { toast("That file isn't a Bibley backup"); return false; }
@@ -473,6 +479,7 @@
     if (d[K.PLAN]) { const cur = getPlan(); if (!cur || Object.keys(d[K.PLAN].done || {}).length > Object.keys(cur.done || {}).length) save(K.PLAN, d[K.PLAN]); }
     if (d[K.PREFS] && !localStorage.getItem(K.PREFS)) { save(K.PREFS, d[K.PREFS]); applyPrefs(); }
     if (d[K.NB] && window.BibleyNotes && window.BibleyNotes.importData) window.BibleyNotes.importData(d[K.NB]);
+    if ((d[SNB_KEYS[0]] || d[SNB_KEYS[1]]) && window.BibleyStudyNB) window.BibleyStudyNB.importData({ notebooks: d[SNB_KEYS[0]], notes: d[SNB_KEYS[1]], meta: d[SNB_KEYS[2]] });
     C.rerender(); C.refreshLists(); updateDock(); toast("Backup imported ✓");
     return true;
   }
@@ -480,16 +487,16 @@
   /* ================= plans sheet ================= */
   function streakCard() {
     const s = streak();
-    return `<div class="fx-streak"><span class="fire ${s.n ? "" : "off"}">🔥</span><div><div class="n">${s.n} day${s.n === 1 ? "" : "s"}</div><div class="fx-muted">${s.n ? (s.today ? "You read today. Keep it going!" : "Read today to keep your streak") : "Read a chapter to start a streak"}</div></div></div>`;
+    return `<div class="fx-streak"><span class="fire ${s.n ? "" : "off"}">${IC.flame}</span><div><div class="n">${s.n} day${s.n === 1 ? "" : "s"}</div><div class="fx-muted">${s.n ? (s.today ? "You read today. Keep it going!" : "Read today to keep your streak") : "Read a chapter to start a streak"}</div></div></div>`;
   }
   function todayPlanHtml(st) {
     const rm = readMap();
-    if (st.finished && st.p.done[st.idx]) return `<div class="fx-eyebrow">${esc(PLANS[st.p.id].name)}</div><p style="margin:8px 0">Plan complete! 🎉 You read all ${st.total} days.</p><div class="fx-bar"><i style="width:100%"></i></div>`;
+    if (st.finished && st.p.done[st.idx]) return `<div class="fx-eyebrow">${esc(PLANS[st.p.id].name)}</div><p style="margin:8px 0">Plan complete. You read all ${st.total} days.</p><div class="fx-bar"><i style="width:100%"></i></div>`;
     return `<div class="fx-eyebrow">${esc(PLANS[st.p.id].name)} · Day ${st.idx + 1} of ${st.total}</div>
       <div style="font-family:Fraunces,Georgia,serif;font-size:17px;margin-top:6px;color:var(--gold-soft)">${esc(summarize(st.today))}</div>
       <div class="fx-chips">${st.today.map(([b, c]) => `<button class="fx-chip ${rm[chKey(b, c)] ? "done" : ""}" data-b="${b}" data-c="${c}">${esc(refOf(b, c))}</button>`).join("")}</div>
       <div class="fx-bar" aria-label="Plan progress"><i style="width:${st.pct}%"></i></div><div class="fx-muted">${st.doneCount} of ${st.total} days · ${st.pct}%</div>
-      <button class="fx-btn primary block" data-a="markday" style="margin-top:12px">✓ Mark today's reading done</button>`;
+      <button class="fx-btn primary block" data-a="markday" style="margin-top:12px">${IC.check}Mark today's reading done</button>`;
   }
   function wirePlanCard(el) {
     el.querySelectorAll(".fx-chip[data-b]").forEach(b => b.onclick = () => jumpTo(+b.dataset.b, +b.dataset.c));
@@ -503,7 +510,7 @@
       body.append(h(`<div class="fx-eyebrow" style="margin:6px 0 10px">${st ? "Switch plan" : "Pick a plan"}</div>`));
       Object.entries(PLANS).forEach(([id, pl]) => {
         const cur = st && st.p.id === id;
-        const row = h(`<div class="fx-card"><div class="fx-plan"><div class="ico">${pl.ico}</div><div class="info"><b>${esc(pl.name)}</b><div class="fx-muted">${esc(pl.blurb)}</div></div>
+        const row = h(`<div class="fx-card"><div class="fx-plan"><div class="ico">${IC[pl.icon] || pl.ico}</div><div class="info"><b>${esc(pl.name)}</b><div class="fx-muted">${esc(pl.blurb)}</div></div>
           <button class="fx-btn small ${cur ? "" : "primary"}" data-id="${id}">${cur ? "Restart" : "Start"}</button></div></div>`);
         row.querySelector("button").onclick = () => {
           if (st && !confirm(cur ? "Restart this plan from Day 1?" : `Switch to "${pl.name}"? Your progress on the current plan resets (your streak stays).`)) return;
@@ -541,17 +548,17 @@
   }
   function votdCard(el) {
     const ver = C.panes.a.version; const ref = votdRef();
-    el.innerHTML = `<div class="fx-eyebrow">☀️ Verse of the day</div><div class="fx-votd-text"><div class="fx-skel"></div><div class="fx-skel" style="width:70%"></div></div><div class="fx-votd-ref">${esc(ref)}</div>`;
+    el.innerHTML = `<div class="fx-eyebrow fx-eb-ic">${IC.sun}Verse of the day</div><div class="fx-votd-text"><div class="fx-skel"></div><div class="fx-skel" style="width:70%"></div></div><div class="fx-votd-ref">${esc(ref)}</div>`;
     getVotd(ver).then(v => {
-      el.innerHTML = `<div class="fx-eyebrow">☀️ Verse of the day</div><div class="fx-votd-text">“${esc(v.text)}”</div>
+      el.innerHTML = `<div class="fx-eyebrow fx-eb-ic">${IC.sun}Verse of the day</div><div class="fx-votd-text">“${esc(v.text)}”</div>
         <div class="fx-row" style="justify-content:space-between"><div class="fx-votd-ref">${esc(v.ref)} <span class="fx-muted">· ${esc(vname(v.version))}</span></div></div>
-        <div class="fx-row" style="margin-top:12px"><button class="fx-btn small st-ib" data-a="share">${SVG_IMG}Make image</button><button class="fx-btn small st-ib" data-a="mem">${SVG_MEM}Memorize</button><button class="fx-btn small" data-a="copy">📋 Copy</button><button class="fx-btn small" data-a="open">📖 Read chapter</button></div>`;
+        <div class="fx-row" style="margin-top:12px"><button class="fx-btn small st-ib" data-a="share">${SVG_IMG}Make image</button><button class="fx-btn small st-ib" data-a="mem">${SVG_MEM}Memorize</button><button class="fx-btn small" data-a="copy">${IC.copy}Copy</button><button class="fx-btn small" data-a="open">${IC.book}Read chapter</button></div>`;
       el.querySelector('[data-a="share"]').onclick = () => openImageMaker({ text: v.text, ref: v.ref, version: v.version, votd: true });
       el.querySelector('[data-a="mem"]').onclick = () => openMemorize({ text: v.text, ref: v.ref, version: v.version });
       el.querySelector('[data-a="copy"]').onclick = async () => toast(await copyText(`"${v.text}" — ${v.ref} (${vname(v.version)})`) ? "Copied ✓" : "Couldn't copy");
       el.querySelector('[data-a="open"]').onclick = () => { const m = v.ref.match(/^(.+?)\s+(\d+):(\d+)/); const b = BOOKS.findIndex(x => x[0] === m[1] || x[1] === m[1]); if (b >= 0) jumpTo(b, +m[2], +m[3]); };
     }).catch(err => {
-      el.innerHTML = `<div class="fx-eyebrow">☀️ Verse of the day</div><div class="fx-votd-ref" style="margin-top:8px">${esc(ref)}</div><p class="fx-muted">${err.message === "offline" ? "You're offline. Today's verse loads when you're back online." : "Couldn't load today's verse right now."}</p><button class="fx-btn small" data-a="retry">Try again</button>`;
+      el.innerHTML = `<div class="fx-eyebrow fx-eb-ic">${IC.sun}Verse of the day</div><div class="fx-votd-ref" style="margin-top:8px">${esc(ref)}</div><p class="fx-muted">${err.message === "offline" ? "You're offline. Today's verse loads when you're back online." : "Couldn't load today's verse right now."}</p><button class="fx-btn small" data-a="retry">Try again</button>`;
       el.querySelector('[data-a="retry"]').onclick = () => votdCard(el);
     });
   }
@@ -560,20 +567,20 @@
   function lastPos() { const p = load(K.POS, null); const a = C.panes.a; return p && BOOKS[p.bookIdx] ? p : { bookIdx: a.bookIdx, chapter: a.chapter }; }
   function todaySheet() {
     const hr = new Date().getHours(); const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
-    openSheet("today", greet + " ☀️", body => {
+    openSheet("today", greet, body => {
       const v = h(`<div class="fx-card gold fx-votd"></div>`); body.append(v); votdCard(v);
       // v5.5: Daily Dose of Wisdom (bibley-wisdom.js fills this slot; if it is still loading it fills it when it arrives).
       const wz = h(`<div class="fx-wis-slot"></div>`); body.append(wz); if (window.BibleyWisdom) window.BibleyWisdom.render(wz);
       const pos = lastPos();
-      const cont = h(`<button class="fx-btn primary block fx-continue" data-a="continue"><span style="font-size:22px">📖</span><span class="t">Continue reading<small style="color:inherit;opacity:.8">${esc(refOf(pos.bookIdx, pos.chapter))} · ${esc(vname(C.panes.a.version))}</small></span><span>→</span></button>`);
+      const cont = h(`<button class="fx-btn primary block fx-continue" data-a="continue"><span class="fx-cont-ic">${IC.book}</span><span class="t">Continue reading<small style="color:inherit;opacity:.8">${esc(refOf(pos.bookIdx, pos.chapter))} · ${esc(vname(C.panes.a.version))}</small></span><span>→</span></button>`);
       body.append(cont);
       cont.onclick = () => { const a = C.panes.a; closeSheet(); if (a.bookIdx !== pos.bookIdx || a.chapter !== pos.chapter) C.goTo(pos.bookIdx, pos.chapter); };
       body.append(h(`<div style="height:12px"></div>`));
       const st = planState();
-      const pc = h(`<div class="fx-card">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">🔥 Start a reading plan</button>`}</div>`);
+      const pc = h(`<div class="fx-card">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">${IC.flame}Start a reading plan</button>`}</div>`);
       body.append(pc); wirePlanCard(pc);
       const pb = pc.querySelector('[data-a="plans"]'); if (pb) pb.onclick = plansSheet;
-      const links = h(`<div class="fx-row"><button class="fx-btn small" data-a="mb" style="flex:1">🔖 My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">🔥 Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">Aa Settings</button></div>`);
+      const links = h(`<div class="fx-row"><button class="fx-btn small" data-a="mb" style="flex:1">${IC.bookmark}My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">${IC.flame}Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">${IC.type}Settings</button></div>`);
       body.append(links);
       const memBtn = h(`<button class="fx-btn small block st-ib" data-a="memlist" style="margin-top:8px">${SVG_MEM}My memory verses</button>`); body.append(memBtn);
       memBtn.onclick = () => { const s = studio(); if (s) s.memoryList(); else toast("Memorize is still loading"); };
@@ -641,13 +648,13 @@
     openSheet("share", "Share verse", body => {
       const el = h(`<div><div class="fx-canvas-wrap"><canvas width="1080" height="1350" aria-label="Verse image preview"></canvas></div>
         <div class="fx-seg" style="margin-bottom:12px">${Object.entries(CARD_STYLES).map(([k, s]) => `<button data-s="${k}" class="${k === cardStyle ? "on" : ""}">${s.name}</button>`).join("")}</div>
-        <div class="fx-row"><button class="fx-btn primary" data-a="share" style="flex:1">📤 Share image</button><button class="fx-btn" data-a="save" style="flex:1">⬇ Save image</button></div></div>`);
+        <div class="fx-row"><button class="fx-btn primary" data-a="share" style="flex:1">${IC.share}Share image</button><button class="fx-btn" data-a="save" style="flex:1">${IC.download}Save image</button></div></div>`);
       body.append(el);
       const cv = el.querySelector("canvas"); drawCard(cv, d);
       el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { cardStyle = b.dataset.s; el.querySelectorAll("[data-s]").forEach(x => x.classList.toggle("on", x === b)); drawCard(cv, d); });
       const fname = d.ref.replace(/[^a-z0-9]+/gi, "-").replace(/-+$/, "") + ".png";
       const blob = () => new Promise(r => cv.toBlob(r, "image/png"));
-      const download = async () => { const b = await blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast("Image saved ⬇"); };
+      const download = async () => { const b = await blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast("Image saved"); };
       el.querySelector('[data-a="save"]').onclick = download;
       el.querySelector('[data-a="share"]').onclick = async () => {
         const b = await blob(); const file = new File([b], fname, { type: "image/png" });
@@ -663,14 +670,14 @@
   let dock;
   function buildDock() {
     const pager = document.querySelector('.pane[data-pane="a"] .pager'); if (!pager || pager.querySelector(".fx-dock")) return;
-    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">☀️</button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">🔖</button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">🔥<b>0</b></button><button type="button" data-a="notes" class="fx-notes-b" aria-label="Notes notebook" title="Notes"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h6M10 12h6M10 16h4"/></svg><span>Notes</span></button><button type="button" data-a="aa" aria-label="Reading settings" title="Text & theme">Aa</button></div>`);
+    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">${IC.sun}<span>Today</span></button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">${IC.bookmark}<span>My Bible</span></button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">${IC.flame}<b>0</b><span>Plans</span></button><button type="button" data-a="notes" class="fx-notes-b" aria-label="Notes notebook" title="Notes">${IC.notes}<span>Notes</span></button><button type="button" data-a="aa" aria-label="Reading settings" title="Text & theme">${IC.type}<span>Text</span></button></div>`);
     const label = pager.querySelector(".pager-label"); pager.insertBefore(dock, label.nextSibling); pager.classList.add("fx-has-dock");
     dock.querySelector('[data-a="today"]').onclick = todaySheet; dock.querySelector('[data-a="mb"]').onclick = myBible;
     dock.querySelector('[data-a="plans"]').onclick = plansSheet; dock.querySelector('[data-a="aa"]').onclick = settingsSheet;
-    dock.querySelector('[data-a="notes"]').onclick = () => { if (window.BibleyNotes) window.BibleyNotes.open(); else toast("Notes are still loading"); };
+    dock.querySelector('[data-a="notes"]').onclick = () => { if (window.BibleyStudyNB) window.BibleyStudyNB.open(); else if (window.BibleyNotes) window.BibleyNotes.open(); else toast("Notes are still loading"); };
     updateDock();
   }
-  function updateDock() { if (!dock) return; const s = streak(); const b = dock.querySelector(".fx-streak-b b"); b.textContent = s.n; dock.querySelector(".fx-streak-b").style.opacity = s.n ? 1 : .75; }
+  function updateDock() { if (!dock) return; const s = streak(); const b = dock.querySelector(".fx-streak-b b"); b.textContent = s.n; dock.querySelector(".fx-streak-b").style.opacity = s.n ? 1 : .75; dock.querySelector(".fx-streak-b").classList.toggle("ui-zero", !s.n); }
   function decorate(k) {
     const ns = notes(), bm = vbms();
     // range bookmarks/notes (v5.1) mark every verse they cover
@@ -686,7 +693,7 @@
     const inPlan = st && !(st.finished && st.p.done[st.idx]) && st.today.some(([b, c]) => b === info.bookIdx && c === info.chapter);
     const btn = box.querySelector('[data-a="read"]');
     btn.classList.toggle("is-read", read); btn.innerHTML = read ? "✓ Chapter read" : "✓ Mark chapter read";
-    box.querySelector(".hint").textContent = inPlan ? (read ? "Counted toward today's plan reading 🔥" : "This chapter is part of today's plan") : (read ? "Tap again to un-mark" : "Counts toward your 🔥 streak");
+    box.querySelector(".hint").textContent = inPlan ? (read ? "Counted toward today's plan reading" : "This chapter is part of today's plan") : (read ? "Tap again to un-mark" : "Counts toward your reading streak");
   }
   function addDone(info) {
     const inner = document.querySelector('.pane[data-pane="a"] .reader-inner .fade-in'); if (!inner || inner.querySelector(".fx-done")) return;
@@ -698,7 +705,7 @@
       if (rm[k]) { delete rm[k]; save(K.READ, rm); refreshDoneButton(); return; }
       rm[k] = dayStr(); save(K.READ, rm);
       const counted = onChapterRead(info.bookIdx, info.chapter);
-      const s = streak().n; if (!document.querySelector(".pwa-toast.show")) toast(counted ? `Read ✓ · counted for today's plan · 🔥 ${s}` : `Chapter read ✓ · 🔥 ${s}-day streak`);
+      const s = streak().n; if (!document.querySelector(".pwa-toast.show")) toast(counted ? `Read ✓ · counted for today's plan · ${s}-day streak` : `Chapter read ✓ · ${s}-day streak`);
       updateDock(); refreshDoneButton();
     };
     const nx = box.querySelector('[data-a="next"]'); if (nx) nx.onclick = () => C.goNext("a");
@@ -750,6 +757,12 @@
     if (document.querySelector('script[data-bibley-notes]')) return;
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-notes.css"; document.head.appendChild(l);
     const s = document.createElement("script"); s.src = "bibley-notes.js"; s.defer = true; s.dataset.bibleyNotes = "1"; document.body.appendChild(s);
+  })();
+  // v5.7: Study Notebook (bibley-studynb.js) - notebooks, templates, linked verses, highlights in one place.
+  (function loadStudyNB() {
+    if (document.querySelector('script[data-bibley-snb]')) return;
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-studynb.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = "bibley-studynb.js"; s.defer = true; s.dataset.bibleySnb = "1"; document.body.appendChild(s);
   })();
   // v4: Verse Image Maker, Memorize mode and the page turn animation (bibley-studio.js).
   (function loadStudio() {

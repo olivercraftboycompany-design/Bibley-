@@ -398,9 +398,16 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.5";
+  const APP_VERSION = "5.7";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.7", date: "October 2026", items: [
+      ["Study Notebook", "Notes is now a full study notebook. Make notebooks with a colour, write notes with bold, italics, headings, bullets and checklists, pin and tag them, and start from a template: SOAP, Sermon notes, Character study, Word study or Prayer journal. Verse references like John 3:16 turn into links that open the reader."],
+      ["Everything in one place", "Your highlights and bookmarks are in the notebook too, with search, sorting (recent, title, book order) and filters. Share or copy a note or a whole notebook. Tap a verse and choose Notebook to start a note on it. All your earlier notes are here, untouched."]
+    ] },
+    { v: "5.6", date: "October 2026", items: [
+      ["A fresh, cleaner look", "A tidier top bar with simple line icons, a new bottom bar with labels (Today, My Bible, Plans, Notes, Text), calmer cards and sheets, and clearer type. Everything works the same, and your notes, highlights, bookmarks, plans and saved wisdom are all still here."]
+    ] },
     { v: "5.5", date: "October 2026", items: [
       ["Daily dose of wisdom", "A new card on the Today screen: one short passage of wisdom a day, mostly from Proverbs, plus Ecclesiastes, James and the Psalms, with a one-line reflection under it. Share it, save it, look back at the past 7 days, and keep a streak going for the days you open it."]
     ] },

@@ -121,7 +121,7 @@
   /* ---------- create passkey (first time, or after Forgot) ---------- */
   function vCreate(b) {
     setTitle("Lost Books");
-    b.innerHTML = '<div class="lb-card lb-center"><div class="lb-lockico" aria-hidden="true">&#128274;</div><h2>Create your passkey</h2>' +
+    b.innerHTML = '<div class="lb-card lb-center"><div class="lb-lockico" aria-hidden="true"><svg class="ui-ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></div><h2>Create your passkey</h2>' +
       '<p class="lb-dim">This section is locked. Make a passkey (at least 4 characters). You will type it every time you open Lost Books.</p>' +
       '<form class="lb-form" autocomplete="off"><input type="password" class="lb-in" id="lbP1" placeholder="New passkey" autocomplete="new-password" minlength="4" />' +
       '<input type="password" class="lb-in" id="lbP2" placeholder="Type it again" autocomplete="new-password" minlength="4" />' +
@@ -146,7 +146,7 @@
   let tries = 0, waitUntil = 0;
   function vLock(b) {
     setTitle("Lost Books");
-    b.innerHTML = '<div class="lb-card lb-center"><div class="lb-lockico" aria-hidden="true">&#128274;</div><h2>Locked</h2><p class="lb-dim">Enter your passkey to open Lost Books.</p>' +
+    b.innerHTML = '<div class="lb-card lb-center"><div class="lb-lockico" aria-hidden="true"><svg class="ui-ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></div><h2>Locked</h2><p class="lb-dim">Enter your passkey to open Lost Books.</p>' +
       '<form class="lb-form" autocomplete="off"><input type="password" class="lb-in" id="lbPk" placeholder="Passkey" autocomplete="current-password" />' +
       '<div class="lb-err" role="alert"></div><button type="submit" class="lb-btn primary">Unlock</button></form>' +
       '<button type="button" class="lb-link" id="lbForgot">Forgot passkey?</button></div>';
@@ -274,7 +274,7 @@
   function addEntry() {
     const drawer = document.getElementById("drawer"); if (!drawer || document.getElementById("lbDrawerBtn")) return;
     const wrap = document.createElement("div"); wrap.className = "lb-entry-wrap";
-    wrap.innerHTML = '<button type="button" id="lbDrawerBtn" class="lb-entry"><span class="lb-entry-ico" aria-hidden="true">&#128274;</span><span><b>Lost Books</b><small>Outside the canon &middot; locked</small></span></button>';
+    wrap.innerHTML = '<button type="button" id="lbDrawerBtn" class="lb-entry"><span class="lb-entry-ico" aria-hidden="true"><svg class="ui-ic" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><span><b>Lost Books</b><small>Outside the canon &middot; locked</small></span></button>';
     const head = drawer.querySelector(".drawer-head");
     if (head && head.nextSibling) drawer.insertBefore(wrap, head.nextSibling); else drawer.appendChild(wrap);
     wrap.querySelector("button").onclick = () => {

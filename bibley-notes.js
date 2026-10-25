@@ -140,6 +140,11 @@
   /* ================= notebook ================= */
   let flipDir = 0;
   function open(pageId) {
+    // 5.7: the Study Notebook is the Notes screen now; it shows these pages as imported notebooks.
+    if (window.BibleyStudyNB) { window.BibleyStudyNB.open(pageId ? { nb: "old:" + pageId } : {}); return; }
+    openClassic(pageId);
+  }
+  function openClassic(pageId) {
     const d = load();
     if (pageId && pageOf(d, pageId)) { d.viewPage = pageId; save(d); }
     openSheet("notes", "Notes", renderNotebook);
@@ -325,5 +330,5 @@
     save(d);
   }
 
-  window.BibleyNotes = { open, importData, _test: { load, save, pageItems, scan, pageText, KEY } };
+  window.BibleyNotes = { open, openClassic, importData, _test: { load, save, pageItems, scan, pageText, KEY } };
 })();
