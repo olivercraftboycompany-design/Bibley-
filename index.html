@@ -19,6 +19,9 @@
 <link rel="stylesheet" href="bibley-features.css" />
 <link rel="stylesheet" href="bibley-ui16.css" />
 <script>try{var bp=JSON.parse(localStorage.getItem("bibley_prefs_v1")||"{}");if(bp.theme==="sepia"||bp.theme==="light")document.documentElement.classList.add("theme-"+bp.theme);}catch(e){}</script>
+<link rel="stylesheet" href="bibley-settings.css" />
+<link rel="stylesheet" href="bibley-nav.css" />
+<script>/* v5.9 early appearance (bibley_settings_v2 / bibley_flags_v1), applied before first paint */try{var bs=JSON.parse(localStorage.getItem("bibley_settings_v2")||"{}"),de=document.documentElement,bc=[];if(bs.themeMode==="black")bc.push("theme-black");if(bs.mode)bc.push("mode-"+bs.mode);if(bs.density==="compact")bc.push("bs-compact");if(bs.radius)bc.push("bs-r-"+bs.radius);if(bs.motion&&bs.motion!=="on")bc.push("bs-motion-"+bs.motion);if(bs.accent&&bs.accent!=="gold")de.setAttribute("data-accent",bs.accent);var bf=JSON.parse(localStorage.getItem("bibley_flags_v1")||"{}").flags||{};for(var k in bf)if(bf[k])bc.push("flag-"+k);bc.forEach(function(c){de.classList.add(c)});}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <style>
@@ -1053,7 +1056,7 @@
     document.querySelector(`.tts-btn[data-pane="${paneKey}"]`).classList.add("active");
     ttsState.utterances = verses.map(v=>{
       const u=new SpeechSynthesisUtterance(v.text);
-      u.rate=0.95; u.pitch=1;
+      u.rate=(window.BibleySettings&&window.BibleySettings.ttsRate&&window.BibleySettings.ttsRate())||0.95; u.pitch=1;
       u.onstart=()=>{
         document.querySelectorAll(`.pane[data-pane="${paneKey}"] .verses-text span.tts-current`).forEach(s=> s.classList.remove("tts-current"));
         const span=document.querySelector(`.pane[data-pane="${paneKey}"] .verses-text span[data-verse="${v.verse}"]`);

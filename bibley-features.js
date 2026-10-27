@@ -42,6 +42,7 @@
     r.classList.toggle("theme-sepia", p.theme === "sepia");
     r.classList.toggle("theme-light", p.theme === "light");
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", THEME_COLOR[p.theme] || THEME_COLOR.dark);
+    try { if (window.BibleySettings) window.BibleySettings.afterPrefs(); } catch {}
   }
   function setPref(k, v) { const p = load(K.PREFS, {}); p[k] = v; save(K.PREFS, p); applyPrefs(); }
   applyPrefs();
@@ -576,11 +577,13 @@
       body.append(cont);
       cont.onclick = () => { const a = C.panes.a; closeSheet(); if (a.bookIdx !== pos.bookIdx || a.chapter !== pos.chapter) C.goTo(pos.bookIdx, pos.chapter); };
       body.append(h(`<div style="height:12px"></div>`));
+      // v5.8: Time with God quick toggle (bibley-device.js).
+      const tw = h(`<div class="dv-today-slot"></div>`); body.append(tw); if (window.BibleyDevice) window.BibleyDevice.renderToday(tw);
       const st = planState();
-      const pc = h(`<div class="fx-card">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">${IC.flame}Start a reading plan</button>`}</div>`);
+      const pc = h(`<div class="fx-card fx-today-plan">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">${IC.flame}Start a reading plan</button>`}</div>`);
       body.append(pc); wirePlanCard(pc);
       const pb = pc.querySelector('[data-a="plans"]'); if (pb) pb.onclick = plansSheet;
-      const links = h(`<div class="fx-row"><button class="fx-btn small" data-a="mb" style="flex:1">${IC.bookmark}My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">${IC.flame}Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">${IC.type}Settings</button></div>`);
+      const links = h(`<div class="fx-row fx-today-links"><button class="fx-btn small" data-a="mb" style="flex:1">${IC.bookmark}My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">${IC.flame}Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">${IC.type}Settings</button></div>`);
       body.append(links);
       const memBtn = h(`<button class="fx-btn small block st-ib" data-a="memlist" style="margin-top:8px">${SVG_MEM}My memory verses</button>`); body.append(memBtn);
       memBtn.onclick = () => { const s = studio(); if (s) s.memoryList(); else toast("Memorize is still loading"); };
@@ -590,7 +593,9 @@
   }
 
   /* ================= settings ================= */
-  function settingsSheet() {
+  // v5.9: Settings opens the full Settings screen (bibley-settings.js); the classic sheet stays as the fallback.
+  function settingsSheet() { if (window.BibleySettings) return window.BibleySettings.open(); return readingSheet(); }
+  function readingSheet() {
     openSheet("settings", "Reading settings", body => {
       const p = prefs();
       const seg = (k, opts) => `<div class="fx-seg" data-k="${k}">${opts.map(([v, l]) => `<button data-v="${v}" class="${String(p[k]) === String(v) ? "on" : ""}">${l}</button>`).join("")}</div>`;
@@ -600,6 +605,7 @@
         <div class="fx-set"><label class="h">Line spacing</label>${seg("lh", [[1.5, "Tight"], [1.78, "Normal"], [2.1, "Roomy"]])}</div>
         <div class="fx-set"><label class="h">Theme</label>${seg("theme", [["dark", '<span class="fx-theme-dot" style="background:#141b2e"></span>Dark'], ["sepia", '<span class="fx-theme-dot" style="background:#f4ecd8"></span>Sepia'], ["light", '<span class="fx-theme-dot" style="background:#fff"></span>Light']])}</div>
         <div class="fx-set"><label class="h">Preview</label><div class="fx-preview"><sup style="color:var(--gold);font-size:.6em">1</sup> In the beginning was the Word, and the Word was with God, and the Word was God.</div></div>
+        <div class="dv-settings-slot"></div>
         <button class="fx-btn block" data-a="wn" style="margin-bottom:8px">What's new in Bibley</button>
         <button class="fx-btn block" data-a="reset">Reset to default</button></div>`);
       body.append(el);
@@ -609,7 +615,9 @@
         const k = s.dataset.k; s.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
         setPref(k, k === "lh" ? +b.dataset.v : b.dataset.v);
       }));
-      el.querySelector('[data-a="reset"]').onclick = () => { save(K.PREFS, {}); applyPrefs(); settingsSheet(); };
+      el.querySelector('[data-a="reset"]').onclick = () => { save(K.PREFS, {}); applyPrefs(); readingSheet(); };
+      // v5.8: Settings > Device (bibley-device.js fills this slot; if it is still loading it fills it when it arrives).
+      if (window.BibleyDevice) window.BibleyDevice.mountSettings(el.querySelector(".dv-settings-slot"));
       el.querySelector('[data-a="wn"]').onclick = () => { const s = studio(); if (s) { closeSheet(); s.whatsNew(); } else toast("Still loading"); };
     });
   }
@@ -670,7 +678,7 @@
   let dock;
   function buildDock() {
     const pager = document.querySelector('.pane[data-pane="a"] .pager'); if (!pager || pager.querySelector(".fx-dock")) return;
-    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">${IC.sun}<span>Today</span></button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">${IC.bookmark}<span>My Bible</span></button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">${IC.flame}<b>0</b><span>Plans</span></button><button type="button" data-a="notes" class="fx-notes-b" aria-label="Notes notebook" title="Notes">${IC.notes}<span>Notes</span></button><button type="button" data-a="aa" aria-label="Reading settings" title="Text & theme">${IC.type}<span>Text</span></button></div>`);
+    dock = h(`<div class="fx-dock"><button type="button" data-a="today" aria-label="Today" title="Today">${IC.sun}<span>Today</span></button><button type="button" data-a="mb" aria-label="My Bible" title="My Bible">${IC.bookmark}<span>My Bible</span></button><button type="button" data-a="plans" class="fx-streak-b" aria-label="Reading plans and streak" title="Reading plans">${IC.flame}<b>0</b><span>Plans</span></button><button type="button" data-a="notes" class="fx-notes-b" aria-label="Notes notebook" title="Notes">${IC.notes}<span>Notes</span></button><button type="button" data-a="aa" aria-label="Settings" title="Settings"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button></div>`);
     const label = pager.querySelector(".pager-label"); pager.insertBefore(dock, label.nextSibling); pager.classList.add("fx-has-dock");
     dock.querySelector('[data-a="today"]').onclick = todaySheet; dock.querySelector('[data-a="mb"]').onclick = myBible;
     dock.querySelector('[data-a="plans"]').onclick = plansSheet; dock.querySelector('[data-a="aa"]').onclick = settingsSheet;
@@ -749,6 +757,11 @@
       all: () => notes(),
       set(key, text) { const n = notes()[key]; if (!n) return false; setNote({ key, bookIdx: n.bookIdx, chapter: n.chapter, verseNum: n.verseNum, text: n.verseText, version: n.version }, text); decorateAll(); C.refreshLists(); return true; }
     },
+    // v5.9: used by bibley-settings.js (the Settings screen); same keys, same functions as the classic sheet
+    prefs: { get: () => prefs(), set: (k, v) => setPref(k, v), apply: () => applyPrefs(), key: K.PREFS, defaults: PREF_DEF },
+    backup: { exportFile: () => exportBackup(), importText: t => importBackup(t), keys: () => BACKUP_KEYS.slice() },
+    plan: () => { const s = planState(); return s ? { name: PLANS[s.p.id].name, day: s.idx + 1, total: s.total, pct: s.pct, done: s.doneCount } : null; },
+    readingSheet: () => readingSheet(),
     _test: { votdRef, planDays, streak, importBackup, exportData: () => { const d = {}; BACKUP_KEYS.forEach(k => d[k] = load(k, null)); return d; }, closeSheet, summarize, drawCard }
   };
   buildDock(); wireSwipe();
@@ -758,6 +771,18 @@
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-notes.css"; document.head.appendChild(l);
     const s = document.createElement("script"); s.src = "bibley-notes.js"; s.defer = true; s.dataset.bibleyNotes = "1"; document.body.appendChild(s);
   })();
+  // v5.8: Device settings - widgets, quiet hours, Time with God (bibley-device.js).
+  (function loadDevice() {
+    if (document.querySelector('script[data-bibley-device]')) return;
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-device.css"; document.head.appendChild(l);
+    const s = document.createElement("script"); s.src = "bibley-device.js"; s.defer = true; s.dataset.bibleyDevice = "1"; document.body.appendChild(s);
+  })();
+  // v5.9: Settings screen (modes, appearance, Tester) and the Books drawer / top bar (bibley-settings.js, bibley-nav.js).
+  ["settings", "nav"].forEach(n => {
+    if (document.querySelector('script[data-bibley-' + n + ']')) return;
+    if (!document.querySelector('link[href="bibley-' + n + '.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-" + n + ".css"; document.head.appendChild(l); }
+    const s = document.createElement("script"); s.src = "bibley-" + n + ".js"; s.defer = true; s.setAttribute("data-bibley-" + n, "1"); document.body.appendChild(s);
+  });
   // v5.7: Study Notebook (bibley-studynb.js) - notebooks, templates, linked verses, highlights in one place.
   (function loadStudyNB() {
     if (document.querySelector('script[data-bibley-snb]')) return;

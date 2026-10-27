@@ -398,9 +398,20 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.7";
+  const APP_VERSION = "5.9";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.9", date: "October 2026", items: [
+      ["Settings overhaul: modes, customization, Tester menu", "Settings is now one screen with search and clear sections: Appearance, Reading, Modes, Home & navigation, Widgets, Notifications & device, Study, Audio, Data & backup, Privacy and About. Every setting you had is still there."],
+      ["Modes", "One tap to change the whole app: Focus, Night (warm and dim, can turn on by itself at sunset or a set time), Simple, Study, Prayer, Low data and Accessibility. Each mode can be customized, and turning it off puts everything back."],
+      ["Make it yours", "Themes including True black and System, calm accent colours, five fonts, text size, line spacing, text width, margins, verse number style, verse-per-line layout, compact cards, corner style and animations, with a live preview. Reorder or hide bottom-bar tabs and Today cards."],
+      ["A cleaner Books menu and top bar", "Books sits in the top-left corner and verse search in the top-right. The Books menu has one search, Old and New Testament tabs, your bookmarks as chips, and a chapter view for each book. Compare, fullscreen and read aloud moved into the More menu."],
+      ["Widgets and the Tester menu", "Two new home-screen widgets, Time with God and Streak & plan, plus an Add widgets card on Today. Tap the version in About 7 times to unlock the Tester menu with experimental designs and a UI playground."]
+    ] },
+    { v: "5.8", date: "October 2026", items: [
+      ["Device settings: widgets, quiet hours, Time with God mode", "A new Device section in Settings. Add a Verse of the Day widget or a Bibley Quick widget (continue reading, streak, Today, Notes) to your home screen. Set quiet hours so Bibley's notifications stay silent at night, pause them all, or get the verse of the day as a daily notification."],
+      ["Time with God", "Do not disturb my relationship with God: a calm full-screen mode with today's verse and a prayer timer (10, 20, 30 or 60 minutes, or your own), with an optional gentle chime at the end. In the Android app it can turn on your phone's Do Not Disturb for the session and switch it back off when it ends. Start it from Today, Settings, the widget or a Quick Settings tile."]
+    ] },
     { v: "5.7", date: "October 2026", items: [
       ["Study Notebook", "Notes is now a full study notebook. Make notebooks with a colour, write notes with bold, italics, headings, bullets and checklists, pin and tag them, and start from a template: SOAP, Sermon notes, Character study, Word study or Prayer journal. Verse references like John 3:16 turn into links that open the reader."],
       ["Everything in one place", "Your highlights and bookmarks are in the notebook too, with search, sorting (recent, title, book order) and filters. Share or copy a note or a whole notebook. Tap a verse and choose Notebook to start a note on it. All your earlier notes are here, untouched."]

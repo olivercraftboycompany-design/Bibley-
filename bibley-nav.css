@@ -1,0 +1,86 @@
+/* bibley-nav.css - Bibley 5.9 top bar, More menu, Search screen and Books drawer. Flat, hairline, line icons. */
+/* ---------- top bar ---------- */
+html.bn-on body #bookmarkBtn, html.bn-on body #compareBtn, html.bn-on body #fullscreenBtn { display: none !important; }
+html.bn-on body #openNavBtn { --ui-ic: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 6.5C10.4 5 8 4.5 4 4.5v14c4 0 6.4.5 8 2 1.6-1.5 4-2 8-2v-14c-4 0-6.4.5-8 2z'/><path d='M12 6.5v14'/></svg>"); }
+html.bn-on body #headerTitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bn-hb { width: 36px; height: 40px; border: 0; padding: 0; border-radius: 12px; background: transparent; color: var(--gold); display: inline-grid; place-items: center; flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bn-hb:active { background: var(--ui-press); }
+.bn-hb .ui-ic { width: 21px; height: 21px; }
+html.bn-on body #versionSelect { margin-right: 2px; }
+.bn-menu { position: fixed; top: 52px; right: 8px; z-index: 70; min-width: 232px; background: var(--bg-panel); border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 14px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.bn-menu button { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: transparent; color: var(--ink); font: 15px 'Fraunces', Georgia, serif; text-align: left; padding: 11px 10px; border-radius: 10px; cursor: pointer; }
+.bn-menu button:active { background: var(--ui-press); }
+.bn-menu button .ui-ic { color: var(--gold); flex: none; }
+.bn-menu button.on .ui-ic { fill: var(--gold); fill-opacity: .25; }
+html.theme-sepia .bn-menu, html.theme-light .bn-menu { box-shadow: 0 10px 30px rgba(60,40,10,.18); }
+
+/* ---------- Search screen ---------- */
+.bn-search { position: fixed; inset: 0; z-index: 59; background: var(--bg); color: var(--ink); display: none; flex-direction: column; }
+.bn-search.open { display: flex; }
+.bn-sh { flex: none; height: 60px; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 6px; border-bottom: 1px solid var(--ui-hair, var(--border)); background: var(--bg-header); }
+.bn-sbox { flex: 1; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 12px; background: var(--ui-surface); color: var(--ink-faint); }
+.bn-sbox .ui-ic { flex: none; width: 18px; height: 18px; }
+html body .bn-sbox #scriptureSearch { flex: 1; min-width: 0; width: auto; height: 40px; border: 0 !important; background: transparent !important; padding: 0 !important; margin: 0; color: var(--ink); font-size: 16px; box-shadow: none !important; outline: none; }
+.bn-sbody { flex: 1; overflow-y: auto; padding: 12px 14px 30px; }
+.bn-shint { color: var(--ink-dim); font-size: 14px; line-height: 1.5; margin: 4px 2px 12px; }
+html body .bn-sbody #ssScopeRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 12px; }
+html body .bn-sbody #ssScopeLabel { font-size: 13px; color: var(--ink-dim); }
+html body .bn-sbody #ssWholeBibleBtn { border-radius: 10px; padding: 7px 11px; font-size: 12.5px; }
+html body .bn-sbody #scriptureSearchResults { max-height: none; padding: 0; overflow: visible; }
+html body .bn-sbody #scriptureSearchResults .ss-item { background: var(--ui-surface); border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+
+/* ---------- Books drawer ---------- */
+.bn-gone { display: none !important; }
+html.bn-on body #drawer .chapter-picker { display: none !important; }
+html.bn-on body #drawer { overflow: hidden; }
+html.bn-on body #drawer .lb-entry-wrap { display: none !important; }
+html.bn-on body .drawer-head { padding: 14px 10px 8px 18px; }
+html.bn-on body .drawer-head .title { font-size: 22px; }
+html.bn-on body .drawer-head .title small.bn-cur { font-family: 'Source Serif 4', Georgia, serif; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink-dim); opacity: 1; margin-top: 3px; }
+html.bn-on body #closeNavBtn { background: transparent !important; border: 0 !important; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--ink-dim); padding: 0; }
+html.bn-on body #closeNavBtn .ui-ic { width: 20px; height: 20px; }
+html.bn-on body #drawer .search-wrap { padding: 4px 16px 8px; }
+html.bn-on body #drawer .search-wrap:has(#installDrawerBtn[hidden]) { display: none; }
+html.bn-on body #bookSearch { height: 42px; }
+/* bookmarks as a chip row */
+html.bn-on body #bookmarkList { display: none; border: 0; padding: 2px 16px 8px; max-height: none; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; flex-shrink: 0; }
+html.bn-on body #bookmarkList::-webkit-scrollbar { display: none; }
+html.bn-on body #bookmarkList.has-items { display: block; }
+html.bn-on body #bookmarkList h4 { display: block; margin: 2px 0 6px; font-size: 10.5px; letter-spacing: .18em; }
+html.bn-on body #bookmarkList .bm-item { display: inline-flex; align-items: center; gap: 2px; margin: 0 6px 0 0; padding: 0 2px 0 11px; height: 32px; border-radius: 999px; background: var(--ui-surface); border: 1px solid var(--ui-hair, var(--panel-border)); vertical-align: top; }
+html.bn-on body #bookmarkList .bm-item span { font-size: 13px; }
+html.bn-on body #bookmarkList .bm-item button { width: 28px; height: 28px; font-size: 0; position: relative; border-radius: 50%; color: var(--ink-faint); }
+html.bn-on body #bookmarkList .bm-item button::before { content: ""; position: absolute; inset: 0; margin: auto; width: 13px; height: 13px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'><path d='M6 6l12 12M18 6L6 18'/></svg>") center/contain no-repeat;
+  mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'><path d='M6 6l12 12M18 6L6 18'/></svg>") center/contain no-repeat; }
+html.bn-on body #bookmarkList .bm-item:nth-of-type(n+9) { display: none; }
+.bn-books { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.bn-tabs { flex: none; display: flex; gap: 4px; margin: 4px 16px 6px; padding: 3px; border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 12px; }
+.bn-tabs button { flex: 1 1 auto; border: 0; background: transparent; color: var(--ink-dim); font: 13px 'Fraunces', Georgia, serif; padding: 8px 6px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; }
+.bn-tabs button.on { background: var(--gold); color: var(--bg); }
+.bn-tabs .bn-lost { flex: 0 0 auto; padding: 8px 9px; }
+.bn-tabs .bn-lost .ui-ic { width: 15px; height: 15px; }
+.bn-books.searching .bn-tabs { opacity: .55; }
+.bn-list { flex: 1; overflow-y: auto; padding: 0 10px 24px; -webkit-overflow-scrolling: touch; }
+.bn-sec { font-family: 'Fraunces', Georgia, serif; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin: 14px 8px 4px; }
+.bn-book { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 0; background: transparent; color: var(--ink); font: 16px 'Source Serif 4', Georgia, serif; padding: 10px 10px; border-radius: 10px; cursor: pointer; text-align: left; }
+.bn-book:active { background: var(--ui-press); }
+.bn-book span { display: inline-flex; align-items: center; gap: 8px; }
+.bn-book small { color: var(--ink-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bn-book.on { background: var(--ui-press); color: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }
+html.theme-light .bn-book.on, html.theme-sepia .bn-book.on { color: var(--gold); }
+.bn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); display: inline-block; }
+.bn-empty { padding: 26px 10px; text-align: center; color: var(--ink-dim); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.bn-chap { position: absolute; inset: 0; background: var(--bg-header); display: flex; flex-direction: column; z-index: 2; }
+.bn-chap[hidden] { display: none; }
+.bn-ch-h { flex: none; display: flex; align-items: center; gap: 6px; padding: 14px 12px 12px 6px; border-bottom: 1px solid var(--ui-hair, var(--border)); }
+.bn-ch-h b { display: block; font: 500 21px 'Fraunces', Georgia, serif; color: var(--ink); }
+.bn-ch-h small { display: block; color: var(--ink-dim); font-size: 13px; margin-top: 2px; }
+.bn-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 14px 16px 24px; align-content: start; }
+.bn-ch { position: relative; aspect-ratio: 1.15; border: 1px solid var(--ui-hair, var(--panel-border)); background: var(--ui-surface); color: var(--ink); border-radius: 12px; font: 15px 'Fraunces', Georgia, serif; cursor: pointer; }
+.bn-ch:active { background: var(--ui-press); }
+.bn-ch.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.bn-ch.bm::after { content: ""; position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+.bn-ch.on.bm::after { background: var(--bg); }
+/* never let the verse selection bar sit on top of the open drawer */
+html.bn-drawer-open body .fx-selbar { display: none !important; }
