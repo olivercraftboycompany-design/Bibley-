@@ -4,7 +4,8 @@
    the phone's own Do Not Disturb for the session).
    Native parts live in the Android app (window.BibleyDeviceNative). On the website those controls are shown
    disabled with "Available in the Android app"; the Time with God timer itself works everywhere.
-   New storage only: localStorage "bibley_device_v1" (choices) and "bibley_focus_v1" (the running session).
+   New storage only: localStorage "bibley_device_v1" (choices), "bibley_focus_v1" (the running session) and
+   "bibley_push_v1" (daily verse push on the website).
    Nothing older is read-modified-written. ASCII only in this file (symbols are written as escapes). */
 (() => {
   "use strict";
@@ -42,6 +43,78 @@
   const BE_STILL = { t: "Be still, and know that I am God.", r: "Psalm 46:10" };
   const APP_ONLY = '<span class="dv-apponly">' + IC.phone + "Available in the Android app</span>";
 
+  /* ---------------- daily verse push on the website (Home Screen app on iPhone, Chrome on Android) ---------------- */
+  const PUSH_API = "https://bibley-push.sites.tab.bot";
+  const PUSH_KEY = "BCHMTIZQJiXZFoXckXjYJzJFCqCnbM1EXEYbpon1pcf0VM-MjCX8zkrf7-o6mR29-AasFKBRO6w4izZckO4NaPc";
+  const K_PUSH = "bibley_push_v1";
+  const WRAPPED = !!(NAT || window.AndroidApp);
+  const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch { return false; } };
+  function pushState() {
+    if (WRAPPED) return "app";
+    if (IOS && !standalone()) return "install";
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
+    if (Notification.permission === "denied") return "denied";
+    return "ok";
+  }
+  const PUSH_NOTE = { install: "Add Bibley to your Home Screen first", unsupported: "Not available in this browser", denied: "Notifications are blocked for Bibley in your browser settings", ok: "Today's verse once a day" };
+  const pushPrefs = () => Object.assign({ on: false, time: "07:00", synced: "" }, load(K_PUSH, {}));
+  const savePush = p => { try { localStorage.setItem(K_PUSH, JSON.stringify(p)); } catch {} };
+  const keyBytes = s => { const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+  const today = () => { const x = new Date(); return x.getFullYear() + "-" + pad(x.getMonth() + 1) + "-" + pad(x.getDate()); };
+  async function pushSend(sub, time) {
+    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC";
+    const r = await fetch(PUSH_API + "/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscription: sub.toJSON(), time, tz }) });
+    if (!r.ok) throw new Error("server");
+  }
+  async function pushOn(time) {
+    const perm = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (perm !== "granted") throw new Error(perm === "denied" ? "denied" : "dismissed");
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUSH_KEY) });
+    await pushSend(sub, time);
+  }
+  async function pushOff() {
+    try {
+      const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+      if (!sub) return;
+      try { await fetch(PUSH_API + "/unsubscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) }); } catch {}
+      await sub.unsubscribe();
+    } catch {}
+  }
+  async function pushSync() {
+    const p = pushPrefs();
+    if (!p.on || pushState() !== "ok" || Notification.permission !== "granted" || p.synced === today()) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUSH_KEY) });
+      await pushSend(sub, p.time); savePush(Object.assign(p, { synced: today() }));
+    } catch {}
+  }
+  function pushSection() {
+    const st = pushState(), p = pushPrefs(), on = p.on && st === "ok";
+    return row(IC.bell, "Daily verse", PUSH_NOTE[st], sw("webpush", on, st !== "ok")) +
+      '<div class="dv-times one' + (on ? "" : " off") + '" data-g="wp"><label>At<input type="time" class="fx-input" data-t="wpt" value="' + esc(p.time) + '"></label></div>';
+  }
+  async function pushToggle(inp, el) {
+    const t = el.querySelector('[data-t="wpt"]'), g = el.querySelector('[data-g="wp"]'), time = (t && t.value) || "07:00";
+    if (inp.checked) {
+      inp.disabled = true;
+      try { await pushOn(time); savePush({ on: true, time, synced: today() }); g.classList.remove("off"); toast("Daily verse at " + nice(fromHM(time))); }
+      catch (e) {
+        inp.checked = false; savePush(Object.assign(pushPrefs(), { on: false }));
+        toast(e.message === "denied" ? "Notifications are blocked for Bibley in your browser settings" : e.message === "dismissed" ? "Notifications were not allowed" : "Couldn't turn on the daily verse. Try again.");
+      }
+      inp.disabled = false;
+    } else { savePush({ on: false, time, synced: "" }); g.classList.add("off"); pushOff(); toast("Daily verse off"); }
+  }
+  async function pushTime(inp) {
+    const p = pushPrefs(), time = inp.value || "07:00";
+    savePush(Object.assign(p, { time }));
+    if (!p.on || Notification.permission !== "granted") return;
+    try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await pushSend(sub, time); savePush(Object.assign(pushPrefs(), { synced: today() })); toast("Daily verse at " + nice(fromHM(time))); } } catch { toast("Couldn't save the time. Try again."); }
+  }
+
   /* ---------------- verse of the day (reads the app's own daily cache, else fetches it) ---------------- */
   function votdRef() { try { return FX._test.votdRef(); } catch { return "John 3:16"; } }
   async function votd() {
@@ -74,7 +147,7 @@
 
   /* ---------------- Settings > Device (inline section) ---------------- */
   function summary() {
-    if (!NAT) return { w: "Verse of the Day, Quick actions", n: "Quiet hours and pause", f: "Do not disturb my relationship with God" };
+    if (!NAT) { const p = pushPrefs(); return { w: "Verse of the Day, Quick actions", n: !WRAPPED && p.on ? "Daily verse at " + nice(fromHM(p.time)) : "Daily verse, quiet hours and pause", f: "Do not disturb my relationship with God" }; }
     const s = nstate(); const f = s.focus || {};
     const n = s.paused ? "All paused" : s.quietOn ? "Quiet " + nice(s.quietStart) + " \u2013 " + nice(s.quietEnd) : "Quiet hours off";
     const wc = s.widgets ? (s.widgets.verse || 0) + (s.widgets.quick || 0) : 0;
@@ -111,11 +184,12 @@
         // Notifications
         '<section class="fx-card dv-card" id="dv-notif"><div class="fx-eyebrow dv-eb">' + IC.bellOff + "Notifications</div>" +
         (notifOff ? '<div class="dv-warn"><span>Notifications are turned off for Bibley in your phone settings.</span><button type="button" class="fx-btn small" data-a="nset">Open settings</button></div>' : "") +
+        (WRAPPED ? "" : pushSection()) +
         row(IC.bellOff, "Pause all Bibley notifications", "Nothing from Bibley until you turn this off", sw("paused", s.paused, !NAT)) +
         row(IC.moon, "Quiet hours", "Bibley notifications arrive silently, no sound or pop-up", sw("quietOn", s.quietOn, !NAT)) +
         '<div class="dv-times' + (s.quietOn ? "" : " off") + '" data-g="quiet"><label>From<input type="time" class="fx-input" data-t="qs" value="' + toHM(s.quietStart != null ? s.quietStart : 1320) + '"' + (NAT ? "" : " disabled") + '></label><label>To<input type="time" class="fx-input" data-t="qe" value="' + toHM(s.quietEnd != null ? s.quietEnd : 420) + '"' + (NAT ? "" : " disabled") + "></label></div>" +
-        row(IC.bell, "Daily verse notification", "Today's verse once a day, silent in quiet hours", sw("reminderOn", s.reminderOn, !NAT)) +
-        '<div class="dv-times one' + (s.reminderOn ? "" : " off") + '" data-g="rem"><label>At<input type="time" class="fx-input" data-t="rt" value="' + toHM(s.reminderTime != null ? s.reminderTime : 420) + '"' + (NAT ? "" : " disabled") + "></label></div>" +
+        (WRAPPED ? (row(IC.bell, "Daily verse notification", "Today's verse once a day, silent in quiet hours", sw("reminderOn", s.reminderOn, !NAT)) +
+        '<div class="dv-times one' + (s.reminderOn ? "" : " off") + '" data-g="rem"><label>At<input type="time" class="fx-input" data-t="rt" value="' + toHM(s.reminderTime != null ? s.reminderTime : 420) + '"' + (NAT ? "" : " disabled") + "></label></div>") : "") +
         (NAT ? "" : '<p class="dv-hint">' + APP_ONLY + "</p>") +
         "</section>" +
         // Time with God
@@ -138,6 +212,7 @@
       el.querySelectorAll(".dv-sw input").forEach(inp => inp.onchange = () => {
         const k = inp.dataset.k, on = inp.checked;
         if (k === "dnd") { setDev("dnd", on); return; }
+        if (k === "webpush") { pushToggle(inp, el); return; }
         if (!NAT) return;
         try {
           if (k === "paused") { NAT.setPaused(on); toast(on ? "Bibley notifications paused" : "Bibley notifications back on"); }
@@ -149,6 +224,7 @@
         } catch {}
       });
       el.querySelectorAll('input[type="time"]').forEach(inp => inp.onchange = () => {
+        if (inp.dataset.t === "wpt") { pushTime(inp); return; }
         if (!NAT) return;
         try {
           if (inp.dataset.t === "rt") NAT.setReminder(el.querySelector('[data-k="reminderOn"]').checked, fromHM(inp.value));
@@ -343,6 +419,16 @@
     if (document.visibilityState === "hidden") pushWidgetData();
     else { setTimeout(pullAction, 120); if (fv && fv.classList.contains("open")) render(); refreshSlots(); }
   });
+
+  function openFromLink() {
+    let ref = ""; try { ref = new URLSearchParams(location.search).get("verse") || ""; } catch {}
+    if (!ref) return;
+    try { const u = new URL(location.href); u.searchParams.delete("verse"); u.searchParams.delete("from"); history.replaceState(null, "", u.pathname + u.search + u.hash); } catch {}
+    setTimeout(() => openRef(ref), 500);
+  }
+  if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.type === "bibley-open-verse" && e.data.ref) openRef(e.data.ref); });
+  openFromLink();
+  setTimeout(pushSync, 3000);
 
   window.BibleyDevice = { mountSettings, renderToday, openFocus, deviceSheet, pullAction, refresh: refreshSlots, hasNative: !!NAT, _test: { session, stop, votd } };
   if (!NAT) document.documentElement.classList.add("dv-web");

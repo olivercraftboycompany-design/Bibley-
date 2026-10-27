@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.9";
+  const APP_VERSION = "5.9.1";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "5.9.1", date: "October 2026", items: [
+      ["Daily verse notifications on iPhone", "Add Bibley to your Home Screen, then turn on Daily verse in Settings, Notifications & device. Pick a time and the verse of the day arrives once a day. Tap it to open Bibley at that verse. Works in Chrome on Android too."]
+    ] },
     { v: "5.9", date: "October 2026", items: [
       ["Settings overhaul: modes, customization, Tester menu", "Settings is now one screen with search and clear sections: Appearance, Reading, Modes, Home & navigation, Widgets, Notifications & device, Study, Audio, Data & backup, Privacy and About. Every setting you had is still there."],
       ["Modes", "One tap to change the whole app: Focus, Night (warm and dim, can turn on by itself at sunset or a set time), Simple, Study, Prayer, Low data and Accessibility. Each mode can be customized, and turning it off puts everything back."],

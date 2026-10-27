@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "5.9";
+  const APP_VER = "1.9", WEB_VER = "5.9.1";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -603,7 +603,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Settings overhaul: modes, customization, Tester menu", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Daily verse notifications on iPhone", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

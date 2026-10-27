@@ -4,8 +4,9 @@
    - Bible chapters from the text APIs: cache-first + refresh in the background
      (stale-while-revalidate), kept across versions in their own cache, so every
      chapter you've opened works offline.
-   - AI requests (POST) are never touched. No push notifications in this build. */
-const VERSION = 'bibley-v15';
+   - AI requests (POST) are never touched.
+   - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
+const VERSION = 'bibley-v16';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
@@ -107,4 +108,25 @@ self.addEventListener('fetch', e => {
   if (!url.pathname.startsWith(new URL('./', self.location).pathname)) return;
   if (url.pathname.indexOf('/bibles/') >= 0) return;    // offline JSON Bibles: the page keeps them in IndexedDB itself
   e.respondWith(shell(e));
+});
+
+const PUSH_API = 'https://bibley-push.sites.tab.bot';
+self.addEventListener('push', e => {
+  let d = null;
+  try { d = e.data ? e.data.json() : null; } catch (err) { d = null; }
+  const show = m => self.registration.showNotification(m.title || 'Verse of the day', {
+    body: m.body || 'Open Bibley for today\'s verse.', icon: './icons/icon-192.png', tag: m.tag || 'bibley-votd',
+    data: { url: m.url || './', ref: m.ref || '' }
+  });
+  e.waitUntil(d && d.body ? show(d) : fetch(PUSH_API + '/today').then(r => r.json()).then(show).catch(() => show({})));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const data = e.notification.data || {};
+  const url = new URL(data.url || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const c = list.find(w => w.url.startsWith(self.registration.scope));
+    if (c) { if (data.ref) c.postMessage({ type: 'bibley-open-verse', ref: data.ref }); return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
 });
