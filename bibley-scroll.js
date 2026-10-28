@@ -259,7 +259,7 @@
     const k = ckey(it, mode);
     if (inflight[k]) { if (onText) inflight[k].subs.push(onText); return inflight[k].p; }
     const subs = onText ? [onText] : [];
-    const p = window.BibleyAI.stream(SYS, verseLine(it) + "\n\n" + MODES[mode].ask, { maxTokens: MODES[mode].max, onText: t => subs.forEach(f => f(t)) })
+    const p = window.BibleyAI.stream(SYS, verseLine(it) + "\n\n" + MODES[mode].ask, { mode: mode, maxTokens: MODES[mode].max, onText: t => subs.forEach(f => f(t)) })
       .then(t => { if (t && t.length > 40) cachePut(it, mode, t); return t; })
       .finally(() => { delete inflight[k]; });
     inflight[k] = { p, subs };
@@ -336,7 +336,7 @@
       const hist = chat.msgs.slice(0, -1).slice(-6);
       const sys = SYS + " The user is reading " + verseLine(it) + " Answer their question about it in under 120 words.";
       try {
-        const t = await window.BibleyAI.stream(sys, hist, { maxTokens: 700, onText: t => { a.content = t; if (list.isConnected) { list.lastElementChild.innerHTML = fmtPlain(t); } } });
+        const t = await window.BibleyAI.stream(sys, hist, { mode: "ask", maxTokens: 700, onText: t => { a.content = t; if (list.isConnected) { list.lastElementChild.innerHTML = fmtPlain(t); } } });
         a.content = t; if (list.isConnected) draw();
       } catch (er) { a.content = errMsg(er); if (list.isConnected) draw(); }
     };

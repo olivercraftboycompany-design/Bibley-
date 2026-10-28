@@ -1,6 +1,12 @@
 /* bibley-ai.js - Bibley's AI engine (v4, 2026-10-14; streaming added in v6, 2026-10-27).
    One job: get a COMPLETE, honest answer from a free AI provider, or fail clearly.
 
+   v6.1 (2026-10-27): "Groq" comes first everywhere. It is Oliver's own Groq account
+   (openai/gpt-oss-120b), reached through his private proxy https://bibley-ai.sites.tab.bot,
+   which holds the key server-side (no key in this file) and limits requests per visitor and
+   per day. If the proxy errors, times out or says it is at its limit, the free services
+   below take over automatically.
+
    Provider chain, tried in order (each with its own timeout and retries):
      1. "PollinationsKey"  gen.pollinations.ai with Oliver's publishable pk_ key.
         Found 2026-10-14: the key itself is valid, but no models are granted to it
@@ -28,6 +34,7 @@
 (function () {
   "use strict";
   var KEY = "pk_wLLzLQrHReXH2Gqc";
+  var PROXY = "https://bibley-ai.sites.tab.bot/";
   var LS_PAUSE = "bibley_ai_pause_v1", LS_LAST = "bibley_ai_last_v1", SS_KEYPAUSE = "bibley_ai_keypause";
   var lastKeylessAt = 0;
 
@@ -71,6 +78,18 @@
 
   /* ---------------- providers ---------------- */
   var PROVIDERS = [
+    {
+      name: "Groq", timeout: 25000, attempts: 1,
+      call: async function (msgs, maxTokens) {
+        var r = await post(PROXY, { "Content-Type": "application/json" },
+          { messages: msgs, mode: "text", stream: false, max_tokens: Math.min(1200, maxTokens * 2 + 200) }, this.timeout);
+        if (r.status === 429) { var ra = Number(r.data && r.data.error && r.data.error.retry_after) || 60; pause(this.name, Math.min(Math.max(ra, 10), 300) * 1000); throw err("api-429", { noRetry: true }); }
+        if (!r.ok) throw err("api-" + r.status, { noRetry: true });
+        var c = choice(r.data), content = c && c.message && c.message.content;
+        if (!content) throw err("empty-response");
+        return { text: content, finish: c.finish_reason, model: (r.data && r.data.model) || "groq" };
+      }
+    },
     {
       name: "PollinationsKey", timeout: 30000, attempts: 1,
       call: async function (msgs, maxTokens, seed) {
@@ -244,7 +263,7 @@
 
   /* ---------------- streaming (v6) ----------------
      stream(system, user, { maxTokens, onText, signal }) returns the full text and calls
-     onText(textSoFar) as words arrive. Order: LLM7 (streams, about 2-3 s to the first word),
+     onText(textSoFar) as words arrive. Order: Groq via Oliver's proxy (streams, well under 1 s to the first word), LLM7 (streams, about 2-3 s to the first word),
      then keyless Pollinations (streams, but allows one request every ~20 s per visitor),
      then the non-streaming generate() above. Reasoning tokens are skipped; only the answer shows. */
   async function readSSE(res, onDelta, signal) {
@@ -267,11 +286,12 @@
     return finish;
   }
   var STREAMERS = [
+    { name: "Groq", url: PROXY, body: function (msgs, max, mode) { return { messages: msgs, mode: mode || "chat", max_tokens: Math.min(1200, max + 300) }; } },
     { name: "LLM7", url: "https://api.llm7.io/v1/chat/completions", body: function (msgs, max) { return { model: "gpt-oss:20b", messages: msgs, stream: true, temperature: 0.4, max_tokens: max }; } },
     { name: "Pollinations", url: "https://text.pollinations.ai/openai", body: function (msgs) { return { model: "openai-fast", messages: msgs, stream: true, seed: Math.floor(Math.random() * 1e9) }; }, gap: true }
   ];
   function tidy(t) {
-    return stripScripts(String(t || "").replace(/\bYahweh\b/g, "the Lord").replace(/\bYHWH\b/g, "the Lord").replace(/\*+/g, "").replace(/__/g, "").replace(/\u202f/g, " "));
+    return stripScripts(String(t || "").replace(/\bYahweh\b/g, "the Lord").replace(/\bYHWH\b/g, "the Lord").replace(/\*+/g, "").replace(/__/g, "").replace(/[\u202f\u00a0]/g, " ").replace(/[\u2010\u2011]/g, "-"));
   }
   var queue = Promise.resolve();
   function stream(system, user, opts) {
@@ -292,7 +312,7 @@
       var kill = setTimeout(function () { ctl.abort(); }, 9000);
       if (opts.signal) opts.signal.addEventListener("abort", function () { ctl.abort(); });
       try {
-        var res = await fetch(S.url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(S.body(msgs, max)), signal: ctl.signal, cache: "no-store" });
+        var res = await fetch(S.url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(S.body(msgs, max, opts.mode)), signal: ctl.signal, cache: "no-store" });
         if (S.gap) lastKeylessAt = now();
         if (res.status === 429 || res.status === 402) {
           var ra = 60; try { var ej = await res.json(); ra = Number(ej && ej.error && ej.error.retry_after) || 60; } catch (e) {}
@@ -314,6 +334,7 @@
       } catch (e) {
         clearTimeout(kill); lastErr = e;
         if (opts.signal && opts.signal.aborted) throw err("aborted");
+        if (S.name === "Groq" && !raw && pausedUntil("Groq") < now()) pause("Groq", 60000); // proxy down: use the backups for a minute
         if (raw && tidy(raw).length > 60) { api.last = { provider: S.name, model: "stream", partial: true, at: new Date().toISOString(), ms: now() - started, firstWordMs: first }; return tidy(raw); }
         if (typeof navigator !== "undefined" && navigator.onLine === false) throw err("offline");
       }

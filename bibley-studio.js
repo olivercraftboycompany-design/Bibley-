@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.0";
+  const APP_VERSION = "6.1";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.1", date: "October 2026", items: [
+      ["Faster answers", "Explain, Simple, Ask, Related, Prayer, Words and the other study tools now run on a much faster AI, so answers start appearing almost right away. If it is ever busy, Bibley switches to the backup automatically."]
+    ] },
     { v: "6.0", date: "October 2026", items: [
       ["Scroll", "Swipe through verses one at a time, starting with today's Daily Wisdom. Like, bookmark, share or copy any verse, and double tap to like. Open it from the top bar or the More menu."],
       ["Verse study helper", "Explain, Simple, Ask, Related, Prayer and Words for any verse, from Scroll or by selecting a verse and tapping Explain. Answers appear as they are written and open instantly the next time."]
