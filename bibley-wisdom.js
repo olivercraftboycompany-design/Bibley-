@@ -137,7 +137,7 @@
     });
   }
 
-  window.BibleyWisdom = { render, pastSheet, _test: { pick, streak, count: DATA.length, dayStr, addDays } };
+  window.BibleyWisdom = { render, pastSheet, data: DATA, today: () => pick(dayStr()), _test: { pick, streak, count: DATA.length, dayStr, addDays } };
   // The Today screen may have opened before this file finished loading: fill its empty slot now.
   document.querySelectorAll(".fx-wis-slot").forEach(render);
 })();

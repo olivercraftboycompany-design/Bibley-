@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "5.9.1";
+  const APP_VER = "1.9", WEB_VER = "6.0";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -64,7 +64,7 @@
 
   /* ---------- state ---------- */
   const DEF = { themeMode: "", accent: "gold", face: "", width: "normal", margin: "m", vnum: "sup", layout: "paragraph",
-    labels: true, dock: ["today", "mb", "plans", "notes", "aa"], dockHidden: [], density: "comfortable", radius: "soft", motion: "on",
+    labels: true, dock: ["today", "scroll", "mb", "plans", "notes", "aa"], dockHidden: [], density: "comfortable", radius: "soft", motion: "on",
     today: ["votd", "widgets", "wisdom", "continue", "focus", "plan", "links", "memory"], todayHidden: [], tts: 0.95,
     mode: "", modeBackup: null, modeOpts: {}, night: { on: false, type: "time", start: "21:30", end: "06:30" }, widgetCardHidden: false };
   const S = () => { const s = Object.assign({}, DEF, load(K_SET, {})); s.night = Object.assign({}, DEF.night, s.night || {}); s.modeOpts = s.modeOpts || {}; return s; };
@@ -133,10 +133,10 @@
   if (mq && mq.addEventListener) mq.addEventListener("change", () => { syncSystemTheme(); });
 
   /* ---------- bottom bar ---------- */
-  const DOCK_NAMES = { today: "Today", mb: "My Bible", plans: "Plans", notes: "Notes", aa: "Settings" };
+  const DOCK_NAMES = { today: "Today", scroll: "Scroll", mb: "My Bible", plans: "Plans", notes: "Notes", aa: "Settings" };
   function applyDock(s) {
     const dock = document.querySelector(".fx-dock"); if (!dock) return;
-    const order = (s.dock || DEF.dock).filter(k => DOCK_NAMES[k]); Object.keys(DOCK_NAMES).forEach(k => { if (!order.includes(k)) order.push(k); });
+    const order = (s.dock || DEF.dock).filter(k => DOCK_NAMES[k]); Object.keys(DOCK_NAMES).forEach(k => { if (!order.includes(k)) { if (k === "scroll") order.splice(Math.min(1, order.length), 0, k); else order.push(k); } });
     let hidden = s.dockHidden || [];
     if (s.mode === "kids" && modeOpts("kids").simple) hidden = hidden.concat(["plans"]);
     order.forEach(k => { const b = dock.querySelector('[data-a="' + k + '"]'); if (b) { dock.appendChild(b); b.hidden = k !== "aa" && hidden.includes(k); b.classList.toggle("bs-off", b.hidden); } });
@@ -506,7 +506,7 @@
   }
   PAGES.layout = { title: "Home & navigation", render(el) {
     const s = S();
-    const dock = s.dock.filter(k => DOCK_NAMES[k]); Object.keys(DOCK_NAMES).forEach(k => { if (!dock.includes(k)) dock.push(k); });
+    const dock = s.dock.filter(k => DOCK_NAMES[k]); Object.keys(DOCK_NAMES).forEach(k => { if (!dock.includes(k)) { if (k === "scroll") dock.splice(Math.min(1, dock.length), 0, k); else dock.push(k); } });
     const today = s.today.filter(k => TODAY_NAMES[k]); Object.keys(TODAY_NAMES).forEach(k => { if (!today.includes(k)) today.push(k); });
     if (!NAT) today.splice(0, today.length, ...today.filter(k => k !== "widgets"));
     el.innerHTML = '<div class="bs-dockpv" data-anchor="dock">' + dock.filter(k => k === "aa" || !s.dockHidden.includes(k)).map(k => "<span>" + esc(DOCK_NAMES[k]) + "</span>").join("") + "</div>" +

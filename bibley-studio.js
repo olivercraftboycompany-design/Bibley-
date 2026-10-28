@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "5.9.1";
+  const APP_VERSION = "6.0";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.0", date: "October 2026", items: [
+      ["Scroll", "Swipe through verses one at a time, starting with today's Daily Wisdom. Like, bookmark, share or copy any verse, and double tap to like. Open it from the top bar or the More menu."],
+      ["Verse study helper", "Explain, Simple, Ask, Related, Prayer and Words for any verse, from Scroll or by selecting a verse and tapping Explain. Answers appear as they are written and open instantly the next time."]
+    ] },
     { v: "5.9.1", date: "October 2026", items: [
       ["Daily verse notifications on iPhone", "Add Bibley to your Home Screen, then turn on Daily verse in Settings, Notifications & device. Pick a time and the verse of the day arrives once a day. Tap it to open Bibley at that verse. Works in Chrome on Android too."]
     ] },

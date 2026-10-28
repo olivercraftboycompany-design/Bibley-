@@ -1,4 +1,4 @@
-/* bibley-ai.js - Bibley's AI engine (v4, 2026-10-14).
+/* bibley-ai.js - Bibley's AI engine (v4, 2026-10-14; streaming added in v6, 2026-10-27).
    One job: get a COMPLETE, honest answer from a free AI provider, or fail clearly.
 
    Provider chain, tried in order (each with its own timeout and retries):
@@ -241,6 +241,89 @@
     throw lastErr || err("malformed-response");
   }
 
-  var api = { generate: generate, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), last: readJSON(localStorage, LS_LAST, null), version: 4 };
+
+  /* ---------------- streaming (v6) ----------------
+     stream(system, user, { maxTokens, onText, signal }) returns the full text and calls
+     onText(textSoFar) as words arrive. Order: LLM7 (streams, about 2-3 s to the first word),
+     then keyless Pollinations (streams, but allows one request every ~20 s per visitor),
+     then the non-streaming generate() above. Reasoning tokens are skipped; only the answer shows. */
+  async function readSSE(res, onDelta, signal) {
+    var reader = res.body.getReader(), dec = new TextDecoder(), buf = "", done = false, finish = null;
+    while (!done) {
+      if (signal && signal.aborted) { try { reader.cancel(); } catch (e) {} throw err("aborted"); }
+      var r = await reader.read(); if (r.done) break;
+      buf += dec.decode(r.value, { stream: true });
+      var lines = buf.split("\n"); buf = lines.pop();
+      for (var i = 0; i < lines.length; i++) {
+        var ln = lines[i].trim(); if (ln.indexOf("data:") !== 0) continue;
+        var d = ln.slice(5).trim(); if (d === "[DONE]") { done = true; break; }
+        var j = null; try { j = JSON.parse(d); } catch (e) { continue; }
+        if (j && j.error) throw err("api-stream-error");
+        var c = j && j.choices && j.choices[0]; if (!c) continue;
+        if (c.finish_reason) finish = c.finish_reason;
+        var t = c.delta && c.delta.content; if (t) onDelta(t);
+      }
+    }
+    return finish;
+  }
+  var STREAMERS = [
+    { name: "LLM7", url: "https://api.llm7.io/v1/chat/completions", body: function (msgs, max) { return { model: "gpt-oss:20b", messages: msgs, stream: true, temperature: 0.4, max_tokens: max }; } },
+    { name: "Pollinations", url: "https://text.pollinations.ai/openai", body: function (msgs) { return { model: "openai-fast", messages: msgs, stream: true, seed: Math.floor(Math.random() * 1e9) }; }, gap: true }
+  ];
+  function tidy(t) {
+    return stripScripts(String(t || "").replace(/\bYahweh\b/g, "the Lord").replace(/\bYHWH\b/g, "the Lord").replace(/\*+/g, "").replace(/__/g, "").replace(/\u202f/g, " "));
+  }
+  var queue = Promise.resolve();
+  function stream(system, user, opts) {
+    var run = queue.then(function () { return streamNow(system, user, opts); });
+    queue = run.catch(function () {});
+    return run;
+  }
+  async function streamNow(system, user, opts) {
+    opts = opts || {};
+    if (typeof navigator !== "undefined" && navigator.onLine === false) throw err("offline");
+    var msgs = Array.isArray(user) ? [{ role: "system", content: system }].concat(user) : [{ role: "system", content: system }, { role: "user", content: user }];
+    var max = opts.maxTokens || 900, started = now(), lastErr = null;
+    for (var p = 0; p < STREAMERS.length; p++) {
+      var S = STREAMERS[p];
+      if (pausedUntil(S.name) > now()) continue;
+      if (S.gap && now() - lastKeylessAt < 20000) await sleep(20000 - (now() - lastKeylessAt));
+      var ctl = new AbortController(), raw = "", first = 0;
+      var kill = setTimeout(function () { ctl.abort(); }, 9000);
+      if (opts.signal) opts.signal.addEventListener("abort", function () { ctl.abort(); });
+      try {
+        var res = await fetch(S.url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(S.body(msgs, max)), signal: ctl.signal, cache: "no-store" });
+        if (S.gap) lastKeylessAt = now();
+        if (res.status === 429 || res.status === 402) {
+          var ra = 60; try { var ej = await res.json(); ra = Number(ej && ej.error && ej.error.retry_after) || 60; } catch (e) {}
+          pause(S.name, Math.min(Math.max(ra, 10), S.gap ? 25 : 300) * 1000); throw err("api-429");
+        }
+        if (!res.ok || !res.body) throw err("api-" + res.status);
+        var finish = await readSSE(res, function (t) {
+          if (!first) { first = now() - started; clearTimeout(kill); kill = setTimeout(function () { ctl.abort(); }, 40000); }
+          raw += t; if (opts.onText) { try { opts.onText(tidy(raw)); } catch (e) {} }
+        }, ctl.signal);
+        clearTimeout(kill);
+        var out = tidy(raw);
+        if (out.length < 20) throw err("empty-response");
+        if (isProviderNotice(out)) { pause(S.name, 600000); throw err("api-429"); }
+        api.last = { provider: S.name, model: "stream", at: new Date().toISOString(), ms: now() - started, firstWordMs: first, finish: finish };
+        writeJSON(localStorage, LS_LAST, api.last);
+        try { console.info("[Bibley AI] streamed by " + S.name + ", first word " + first + " ms, done " + (now() - started) + " ms"); } catch (e) {}
+        return out;
+      } catch (e) {
+        clearTimeout(kill); lastErr = e;
+        if (opts.signal && opts.signal.aborted) throw err("aborted");
+        if (raw && tidy(raw).length > 60) { api.last = { provider: S.name, model: "stream", partial: true, at: new Date().toISOString(), ms: now() - started, firstWordMs: first }; return tidy(raw); }
+        if (typeof navigator !== "undefined" && navigator.onLine === false) throw err("offline");
+      }
+    }
+    var lastUser = Array.isArray(user) ? user.map(function (m) { return m.role + ": " + m.content; }).join("\n") : user;
+    var text = await generate(system, lastUser, Math.min(max, 600), { labels: [] });
+    if (opts.onText) { try { opts.onText(tidy(text)); } catch (e) {} }
+    return tidy(text);
+  }
+
+  var api = { generate: generate, stream: stream, tidy: tidy, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), last: readJSON(localStorage, LS_LAST, null), version: 4 };
   window.BibleyAI = api;
 })();

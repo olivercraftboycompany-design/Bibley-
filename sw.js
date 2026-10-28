@@ -6,14 +6,14 @@
      chapter you've opened works offline.
    - AI requests (POST) are never touched.
    - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
-const VERSION = 'bibley-v16';
+const VERSION = 'bibley-v17';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
 const TEXT_LIMIT = 1500;                    // chapters kept (oldest trimmed)
 
 const SHELL = [
-  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-notes.js', './bibley-notes.css', './bibley-studynb.js', './bibley-studynb.css', './bibley-device.js', './bibley-device.css', './bibley-settings.js', './bibley-settings.css', './bibley-nav.js', './bibley-nav.css', './bibley-ui16.css', './bibley-ai.js', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './bibley-study.js', './bibley-wisdom.js', './bibley-wisdom.css', './manifest.json',
+  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-notes.js', './bibley-notes.css', './bibley-studynb.js', './bibley-studynb.css', './bibley-device.js', './bibley-device.css', './bibley-settings.js', './bibley-settings.css', './bibley-nav.js', './bibley-nav.css', './bibley-ui16.css', './bibley-ai.js', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './bibley-study.js', './bibley-wisdom.js', './bibley-wisdom.css', './bibley-scroll.js', './bibley-scroll.css', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-192.png', './icons/maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
