@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.1";
+  const APP_VERSION = "6.2";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.2", date: "October 2026", items: [
+      ["Call Bibley", "Talk to Bibley out loud. Open the Study Assistant and tap Call, ask your question, and Bibley answers with its voice, then listens again, back and forth until you hang up. Captions show both sides. Tap the screen while Bibley talks to cut in. In the Android app this needs Bibley 2.2 or newer."]
+    ] },
     { v: "6.1", date: "October 2026", items: [
       ["Faster answers", "Explain, Simple, Ask, Related, Prayer, Words and the other study tools now run on a much faster AI, so answers start appearing almost right away. If it is ever busy, Bibley switches to the backup automatically."]
     ] },
