@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.2";
+  const APP_VERSION = "6.3";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.3", date: "October 2026", items: [
+      ["Voice control on calls", "While you're on a call, just say what you want: \"open Psalm 23\", \"bookmark verse 1\", \"read this chapter\", \"explain verse 4\", \"highlight verse 3 in blue\", \"add a note\", \"search shepherd\", \"dark mode\", \"bigger text\", \"set my reminder to 7\", \"open settings\", \"switch to KJV\" or \"go back\". Bibley does it and tells you what it did. Removing a bookmark, highlight or note asks you to say yes first."],
+      ["Minimize the call", "Tap the arrow at the top of the call to shrink it to a small bar so you can see the page. The call keeps going, with the timer, mute and hang up on the bar. Tap the bar to open the call again. It shrinks on its own when Bibley changes the page for you."]
+    ] },
     { v: "6.2", date: "October 2026", items: [
       ["Call Bibley", "Talk to Bibley out loud. Open the Study Assistant and tap Call, ask your question, and Bibley answers with its voice, then listens again, back and forth until you hang up. Captions show both sides. Tap the screen while Bibley talks to cut in. In the Android app this needs Bibley 2.2 or newer."]
     ] },

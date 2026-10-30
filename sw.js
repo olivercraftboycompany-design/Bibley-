@@ -6,7 +6,7 @@
      chapter you've opened works offline.
    - AI requests (POST) are never touched.
    - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
-const VERSION = 'bibley-v19';
+const VERSION = 'bibley-v20';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';

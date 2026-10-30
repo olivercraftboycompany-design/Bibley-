@@ -430,7 +430,28 @@
   openFromLink();
   setTimeout(pushSync, 3000);
 
-  window.BibleyDevice = { mountSettings, renderToday, openFocus, deviceSheet, pullAction, refresh: refreshSlots, hasNative: !!NAT, _test: { session, stop, votd } };
+  /* v6.3: daily verse time by voice (Call Bibley). Same storage and calls as the Notifications settings.
+     Returns { ok, on, time, note } so the caller can say what really happened. */
+  async function setReminderTime(hm) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(hm || "")); if (!m || +m[1] > 23 || +m[2] > 59) return { ok: false, note: "bad_time" };
+    const time = pad(+m[1]) + ":" + m[2], mins = fromHM(time);
+    if (NAT) {
+      try { NAT.setReminder(true, mins); try { if (window.AndroidApp && AndroidApp.notifPermission && AndroidApp.notifPermission() !== "granted") AndroidApp.requestNotifPermission(); } catch {} return { ok: true, on: true, time, nice: nice(mins) }; }
+      catch { return { ok: false, note: "native_error" }; }
+    }
+    if (WRAPPED) return { ok: false, note: "app_update" };
+    const p = pushPrefs(); savePush(Object.assign(p, { time }));
+    const st = pushState();
+    if (st !== "ok") return { ok: true, on: false, time, nice: nice(mins), note: st };
+    try {
+      if (p.on && Notification.permission === "granted") { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await pushSend(sub, time); else await pushOn(time); }
+      else await pushOn(time);
+      savePush({ on: true, time, synced: today() });
+      return { ok: true, on: true, time, nice: nice(mins) };
+    } catch (e) { return { ok: true, on: false, time, nice: nice(mins), note: e && e.message === "denied" ? "denied" : "not_allowed" }; }
+  }
+  const reminderInfo = () => { if (NAT) { const s = nstate(); return { on: !!s.reminderOn, time: s.reminderTime != null ? pad(Math.floor(s.reminderTime / 60)) + ":" + pad(s.reminderTime % 60) : "07:00" }; } const p = pushPrefs(); return { on: !!p.on, time: p.time }; };
+  window.BibleyDevice = { setReminderTime, reminderInfo, mountSettings, renderToday, openFocus, deviceSheet, pullAction, refresh: refreshSlots, hasNative: !!NAT, _test: { session, stop, votd } };
   if (!NAT) document.documentElement.classList.add("dv-web");
   refreshSlots();
   setTimeout(() => { pushWidgetData(); pullAction(); }, 900);

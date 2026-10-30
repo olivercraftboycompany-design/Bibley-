@@ -750,6 +750,8 @@
     jumpToVerse: (b, c, v, verses) => jumpTo(b, c, v, verses),
     clearSelection: () => clearSel(),
     redecorate: () => decorateAll(),
+    // v6.3: used by Call Bibley voice control (bibley-call.js); same keys and functions as the verse menu
+    voice: { notes: () => notes(), vbms: () => vbms(), toggleVbm: v => { const on = toggleVbm(v); decorateAll(); C.refreshLists(); return on; }, setNote: (v, t) => { setNote(v, t); decorateAll(); C.refreshLists(); }, setHighlight: (v, c) => { setHighlight(v, c); C.rerender && C.rerender(); C.refreshLists(); }, colors: COLORS.slice(), vKey: (b, c, v) => vKey(b, c, v), refOf: (b, c, v) => refOf(b, c, v), prefs: () => prefs(), setPref: (k, v) => setPref(k, v), closeSheet: () => closeSheet(), sheetOpen: () => !!sheetView },
     selection: () => selTarget(),
     onChapter,
     open: { today: todaySheet, myBible, plans: plansSheet, settings: settingsSheet, share: shareSheet },

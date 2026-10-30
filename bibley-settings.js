@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.2";
+  const APP_VER = "1.9", WEB_VER = "6.3";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -686,6 +686,15 @@
   setTimeout(pushPlanToWidgets, 1500);
   document.addEventListener("visibilitychange", () => { if (document.hidden) pushPlanToWidgets(); else nightTick(); });
 
-  window.BibleySettings = { open, close, afterPrefs, apply: applyAll, setMode, ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
+  // v6.3: theme by voice (Call Bibley), same steps as the Appearance buttons
+  function setTheme(t) {
+    if (S().mode === "night" || S().mode === "prayer") setMode("");
+    if (t === "black") { setS({ themeMode: "black" }); FX.prefs.set("theme", "dark"); }
+    else if (t === "system") { setS({ themeMode: "system" }); syncSystemTheme(); }
+    else { setS({ themeMode: "" }); FX.prefs.set("theme", t); }
+    applyAll();
+  }
+  const isOpen = () => !!(root && root.classList.contains("open"));
+  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
   logp("info", "ready");
 })();
