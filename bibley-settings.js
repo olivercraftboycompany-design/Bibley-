@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.3";
+  const APP_VER = "1.9", WEB_VER = "6.4";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -56,6 +56,10 @@
     access: sv('<circle cx="12" cy="4.8" r="1.8"/><path d="M5 8.5l7 1.5 7-1.5M12 10v4.5M12 14.5L9 21M12 14.5l3 6.5"/>'),
     sun: sv('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>'),
     flame: sv('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'),
+    chat: sv('<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8.5L6 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 10h8M8 13.2h5"/>'),
+    mem: sv('<path d="M12 4.5a7.5 7.5 0 1 0 7.5 7.5"/><path d="M12 8v4.2l2.8 1.7"/><path d="M16.5 4.8l3 .3-.3 3"/>'),
+    callic: sv('<path d="M6.6 4.5h2.6l1.3 3.6-1.8 1.2a10 10 0 0 0 5.9 5.9l1.2-1.8 3.6 1.3v2.6a1.8 1.8 0 0 1-1.9 1.8C10.8 18.6 5.4 13.2 4.8 6.4a1.8 1.8 0 0 1 1.8-1.9z"/>'),
+    trash: sv('<path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7"/>'),
     shield: sv('<path d="M12 3.5l7 3v5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5v-5z"/>'),
     star: sv('<path d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.3L12 16l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6z"/>'),
     refresh: sv('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/>'),
@@ -372,6 +376,7 @@
     ["Study AI depth", "ai depth simple deep explain", "study", "depth"], ["Study Notebook", "notes notebook", "study", "nb"], ["Memory verses", "memorize memory", "study", "mem"],
     ["Reading plans", "plans streak", "study", "plans"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
+    ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
   const PG_NAMES = { appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
@@ -392,6 +397,8 @@
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
+      group("Bibley AI", row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
+        row({ ic: IC.mem, t: "What Bibley remembers", s: memSub(), go: "memory" })) +
       group("Your data", row({ ic: IC.data, t: "Data & backup", s: "Export or import everything", go: "data" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       group("", row({ ic: IC.info, t: "About Bibley", s: "Version " + APP_VER + " \u00b7 What's new", go: "about" }) +
@@ -589,9 +596,74 @@
     wire(el, { act: a => { if (a === "export") FX.backup.exportFile(); if (a === "import") file.click(); } });
   } };
 
+
+  /* ---------- 6.4: Chat history and What Bibley remembers (bibley-memory.js) ---------- */
+  const M = () => window.BibleyMemory;
+  const CDB = () => window.BibleyCore && window.BibleyCore.chatDB;
+  function memSub() { const m = M(); const n = m ? m.lines().length : 0; return n ? n + (n === 1 ? " thing" : " things") + " about you" : "Nothing yet"; }
+  function when(ts) { const d = new Date(ts), now = new Date(); const t = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); if (d.toDateString() === now.toDateString()) return "Today, " + t; const y = new Date(now - 864e5); if (d.toDateString() === y.toDateString()) return "Yesterday, " + t; return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + t; }
+  let viewId = null;
+  PAGES.history = { title: "Chat history", render(el) {
+    el.innerHTML = '<p class="bs-note">Your typed chats and calls with Bibley. They stay on this phone. Bibley keeps the newest ' + (M() ? M().CAP : 200) + ".</p>" + '<div class="bs-hist"><div class="bs-card"><div class="bs-row bs-static"><span class="bs-t">Loading\u2026</span></div></div></div>';
+    const D = CDB(); if (!D) { el.querySelector(".bs-hist").innerHTML = group("", '<div class="bs-row bs-static"><span class="bs-t">Chat history isn\'t available here.</span></div>'); return; }
+    D.listConversations().then(async all => {
+      const rows = [];
+      for (const c of all) {
+        const msgs = await D.getMessages(c.id);
+        if (!msgs.length) continue;
+        const last = msgs[msgs.length - 1];
+        const snip = String(last.text || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 70);
+        rows.push('<div class="bs-row bs-hrow" data-id="' + esc(c.id) + '"><button type="button" class="bs-hopen" data-open="' + esc(c.id) + '"><span class="bs-ic">' + (c.kind === "call" ? IC.callic : IC.chat) + '</span><span class="bs-t">' + esc(c.title || "Chat") + "<small>" + esc(when(c.updatedAt)) + " \u00b7 " + esc(snip) + '</small></span></button><button type="button" class="bs-hdel" data-del="' + esc(c.id) + '" aria-label="Delete chat">' + IC.trash + "</button></div>");
+      }
+      const box = el.querySelector(".bs-hist"); if (!box) return;
+      box.innerHTML = rows.length ? '<div class="bs-group"><div class="bs-card">' + rows.join("") + "</div></div>" : group("", '<div class="bs-row bs-static"><span class="bs-t">No chats yet<small>Ask the Study Assistant something or tap Call.</small></span></div>');
+      box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { viewId = b.dataset.open; nav("chatview"); });
+      box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+        if (!confirm("Delete this chat? This can't be undone.")) return;
+        await D.deleteConversation(b.dataset.del);
+        if (window.BibleyCore.resetChats) await window.BibleyCore.resetChats();
+        rerender();
+      });
+    });
+  } };
+  PAGES.chatview = { title: "Chat", render(el) {
+    const D = CDB(); if (!D || !viewId) { el.innerHTML = ""; return; }
+    el.innerHTML = '<div class="bs-chat"></div>';
+    Promise.all([D.getConversation(viewId), D.getMessages(viewId)]).then(([c, msgs]) => {
+      const box = el.querySelector(".bs-chat"); if (!box || !c) return;
+      root.querySelector(".bs-title").textContent = c.title || "Chat";
+      box.innerHTML = '<p class="bs-note">' + (c.kind === "call" ? "Call" : "Chat") + " \u00b7 " + esc(when(c.createdAt)) + "</p>" +
+        (c.summary ? '<div class="bs-cmsg ai"><small>Earlier in this chat</small>' + esc(c.summary) + "</div>" : "") +
+        msgs.map(m => '<div class="bs-cmsg ' + (m.role === "user" ? "me" : "ai") + '">' + esc(String(m.text || "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim()) + "</div>").join("") +
+        '<button type="button" class="fx-btn primary block" data-act="cont">' + IC.chat + (c.kind === "call" ? "Continue in chat" : "Open in Study Assistant") + "</button>" +
+        '<button type="button" class="fx-btn danger block" data-act="del">' + IC.trash + "Delete this chat</button>";
+      wire(box, { act: async a => {
+        if (a === "cont") { const id = viewId; close(() => window.BibleyCore.openConvo(id)); }
+        if (a === "del") { if (!confirm("Delete this chat? This can't be undone.")) return; await D.deleteConversation(viewId); if (window.BibleyCore.resetChats) await window.BibleyCore.resetChats(); history.back(); }
+      } });
+    });
+  } };
+  PAGES.memory = { title: "What Bibley remembers", render(el) {
+    const m = M(); const l = m ? m.lines() : [];
+    el.innerHTML = '<p class="bs-note">Bibley remembers a few things from your chats and calls so it can pick up where you left off. It\'s kept on this phone, ' + (m ? m.MAX_LINES : 15) + " lines at most, and sent with your questions to the AI.</p>" +
+      (l.length ? group("", l.map((x, i) => '<div class="bs-row bs-static bs-mline"><span class="bs-t">' + esc(x) + '</span><button type="button" class="bs-hdel" data-rm="' + i + '" aria-label="Forget this">' + IC.close + "</button></div>").join(""))
+        : group("", '<div class="bs-row bs-static"><span class="bs-t">Nothing yet<small>Chat or call with Bibley and it will remember things like your name and favourite verses.</small></span></div>')) +
+      '<div class="bs-gl">Edit</div><textarea class="fx-input bs-memedit" rows="7" aria-label="What Bibley remembers, one per line" placeholder="One thing per line, like: Name is Sam">' + esc(l.join("\n")) + "</textarea>" +
+      '<button type="button" class="fx-btn primary block" data-act="save">Save</button>' +
+      '<button type="button" class="fx-btn danger block" data-act="clear"' + (l.length ? "" : " disabled") + ">" + IC.trash + "Clear memory</button>" +
+      '<p class="bs-note">On a call you can also say \u201cforget that\u201d or \u201cforget everything\u201d. Bibley asks you to say yes first.</p>';
+    el.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const cur = m.lines(); cur.splice(Number(b.dataset.rm), 1); m.set(cur.join("\n")); rerender(); });
+    wire(el, { act: a => {
+      if (!m) return;
+      if (a === "save") { m.set(el.querySelector(".bs-memedit").value); rerender(); toast("Saved"); }
+      if (a === "clear") { if (confirm("Clear everything Bibley remembers about you? Your chat history stays.")) { m.clear(); rerender(); toast("Memory cleared"); } }
+    } });
+  } };
+
   PAGES.privacy = { title: "Privacy", render(el) {
     el.innerHTML = '<div class="bs-card bs-prose"><p><b>On this phone.</b> Your highlights, notes, notebook, plans, streak and settings are stored only on this device. Bibley has no account and no tracking.</p>' +
       "<p><b>Study AI.</b> When you ask the Study AI something, your question and the verses around it are sent to the AI service to write the answer.</p>" +
+      "<p><b>Chats and memory.</b> Your chats, calls and what Bibley remembers about you are saved only on this phone. The last few turns and the short memory are sent with each question so Bibley can remember. You can delete them in Settings anytime.</p>" +
       "<p><b>Bibles.</b> Some translations load from the internet the first time you open them, then work offline.</p>" +
       "<p><b>Your ESV key</b> (if you added one) is kept on this phone and only sent to api.esv.org.</p></div>" +
       group("", row({ ic: IC.data, t: "Data & backup", s: "Export everything as a file", go: "data" }));
@@ -603,7 +675,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Daily verse notifications on iPhone", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Bibley remembers your chats", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

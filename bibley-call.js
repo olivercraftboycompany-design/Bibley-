@@ -106,7 +106,7 @@
   /* ---------------- call lifecycle ---------------- */
   function open() {
     if (S) return;
-    S = { el: build(), started: Date.now(), history: [], muted: false, state: "idle", gen: 0, turnId: 0 };
+    S = { el: build(), started: Date.now(), history: [], log: [], muted: false, state: "idle", gen: 0, turnId: 0 };
     S.timer = setInterval(function () { var t = $("bcTimer"); if (t && S) t.textContent = fmt(Date.now() - S.started); var bt = $("bcBarTimer"); if (bt && S) bt.textContent = fmt(Date.now() - S.started); }, 500);
     S.onOff = function () { if (S) { showMsg("You're offline. The call picks back up when you're connected."); stopListening(); setState("paused", "Offline"); } };
     S.onOn = function () { if (S) { showMsg(""); if (!S.speaking) listen(); } };
@@ -132,6 +132,8 @@
     setTimeout(function () { if (s.el.parentNode) s.el.parentNode.removeChild(s.el); }, 220);
     var bar = document.getElementById("bcBar"); if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
     document.documentElement.classList.remove("bc-mini-on");
+    // v6.4: keep the call (captions of both sides) in Chat history and fold it into Bibley's memory
+    if (!s.noSave && s.log.length && window.BibleyMemory) window.BibleyMemory.noteCall(s.log, s.started);
   }
   async function startMic() {
     if (!S) return;
@@ -289,6 +291,8 @@
       if (NO.test(text) || text.split(/\s+/).length <= 3) { reply_(text, "Okay, I left it as it is.", gen); return; }
       pre = "Okay, I left that alone. ";
     }
+    var fg = FORGET.exec(text); // v6.4: "forget that" / "forget everything" (needs a spoken yes)
+    if (fg && window.BibleyMemory) { await finishTurn(text, [{ a: "forget", what: /^(everything|all)/i.test(fg[1]) ? "all" : "that", about: (fg[2] || "").replace(/[.!?]+$/, "").trim() }], "", gen, false); return; }
     var raw;
     try {
       raw = await answer(text);
@@ -310,6 +314,8 @@
   function reply_(userText, spokenText, gen, histText) {
     if (!S || gen !== S.gen) return;
     S.history.push({ role: "user", content: userText }, { role: "assistant", content: histText || spokenText });
+    var ts = Date.now(); S.log.push({ role: "user", text: userText, ts: ts }, { role: "ai", text: spokenText, ts: ts + 1 });
+    if (S.log.length > 200) S.log = S.log.slice(-200);
     if (S.history.length > 12) S.history = S.history.slice(-12);
     cap("bib", spokenText);
     S.busy = false;
@@ -372,7 +378,7 @@
       .replace(/\bYahweh\b/g, "the Lord").replace(/\s+/g, " ").trim();
   }
   async function answer(text) {
-    var sys = SYSTEM + "\n\n" + VC.prompt();
+    var sys = SYSTEM + (window.BibleyMemory ? window.BibleyMemory.block() : "") + "\n\n" + VC.prompt();
     var hist = S.history.slice(-10), total = sys.length + text.length;
     while (hist.length && total + hist.reduce(function (n, m) { return n + m.content.length; }, 0) > 8000) hist = hist.slice(2);
     var msgs = [{ role: "system", content: sys }].concat(hist).concat([{ role: "user", content: text }]);
@@ -550,6 +556,7 @@
 
   /* ---------------- voice control: the app's real actions ---------------- */
   var YES = /^\s*(yes|yeah|yep|yup|ya|sure|ok|okay|do it|go ahead|confirm|please do|correct|right|delete it|remove it)\b/i;
+  var FORGET = /^\W*(?:(?:okay|ok|hey|bibley|please|can you|could you|and)[\s,]+)*forget\s+(everything|all of it|all|that|about|this)\b[\s,]*(.*)$/i;
   var NO = /^\s*(no|nope|nah|cancel|don't|do not|stop|never ?mind|keep it|leave it)\b/i;
   // find "ACT" then the JSON after it (array or object), matching brackets outside strings
   function parseActs(raw) {
@@ -646,6 +653,26 @@
     async function run(a, confirmed) {
       var t, o, vb;
       var kind = String(a.a || "").toLowerCase();
+      if (kind === "forget") { // v6.4: memory; always a spoken yes first
+        var all = String(a.what || "").toLowerCase() === "all";
+        if (!window.BibleyMemory) return { say: "I can't do that here.", stop: true };
+        if (!confirmed) {
+          S.pending = { a: "forget", what: all ? "all" : "that", about: a.about || "" };
+          return { say: all ? "Do you want me to forget everything? That clears what I remember about you and deletes your saved chats and calls. Say yes or no." : "Do you want me to forget that? Say yes or no.", stop: true };
+        }
+        if (all) { await window.BibleyMemory.forgetAll(); S.history = []; S.log = []; S.noSave = true; return { say: "Done. I've forgotten everything, and this call won't be saved." }; }
+        var about = String(a.about || "").trim(), prev = null;
+        for (var i = S.log.length - 1; i >= 0; i--) if (S.log[i].role === "user" && !FORGET.test(S.log[i].text) && !YES.test(S.log[i].text)) { prev = i; break; }
+        if (!about && prev != null) about = S.log[prev].text;
+        if (a.about) {
+          var ws = (about.toLowerCase().match(/[a-z0-9]{4,}/g) || []);
+          S.log = S.log.filter(function (m) { var low = m.text.toLowerCase(); return !(m.role === "user" && ws.some(function (w) { return low.indexOf(w) >= 0; })); });
+        } else if (prev != null) { S.log.splice(prev, 2); }
+        // the yes/no exchange about forgetting is not kept either
+        S.log = S.log.filter(function (m) { return !FORGET.test(m.text); });
+        window.BibleyMemory.forget(about);
+        return { say: "Okay, I've forgotten that." };
+      }
       if (DESTRUCTIVE[kind] && !confirmed) {
         t = target(a, true); if (t.err) return { say: t.err, stop: true };
         o = await verseObj(t); if (!o) return { say: "I couldn't find " + refName(t.b, t.c, t.v) + ".", stop: true };
@@ -826,6 +853,7 @@
         '{"a":"screen","s":"settings"} s is settings, appearance, reading, modes, notifications, audio, data, today, mybible, plans, notes, scroll, search, books, chat, marks, outline, summary, reader\n' +
         '{"a":"translation","code":"kjv"}\n' +
         '{"a":"back"} {"a":"home"} {"a":"hangup"}\n' +
+        '{"a":"forget","what":"that","about":"my name"} or {"a":"forget","what":"all"} when they ask you to forget something or everything you remember (the app asks them to confirm)\n' +
         "bookmark, highlight, note, study, unbookmark, unhighlight and delete_note may also take book and ch; without them they mean the open chapter, and without v they mean the selected verse. " +
         "Use the full book name (Psalms, 1 Corinthians, Song of Songs). Example: user says open Psalm 23 and bookmark verse 1 -> ACT [{\"a\":\"open\",\"book\":\"Psalms\",\"ch\":23},{\"a\":\"bookmark\",\"v\":1}]. " +
         "If they ask for something the app cannot do, say so kindly. For questions about the Bible, just answer, no ACT line.\n" + st;

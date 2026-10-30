@@ -462,10 +462,10 @@
       const t = await tx([STORE_CONVOS], "readonly");
       return reqToPromise(t.objectStore(STORE_CONVOS).get(id));
     },
-    async createConversation(title){
+    async createConversation(title, extra){
       const id = "c_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
       const now = Date.now();
-      const convo = { id, title: title || "New conversation", summary: "", createdAt: now, updatedAt: now };
+      const convo = Object.assign({ id, title: title || "New conversation", summary: "", createdAt: now, updatedAt: now }, extra||{});
       const t = await tx([STORE_CONVOS], "readwrite");
       await reqToPromise(t.objectStore(STORE_CONVOS).add(convo));
       return convo;
@@ -510,8 +510,8 @@
       const all = await reqToPromise(idx.getAll(IDBKeyRange.only(convoId)));
       return all.sort((a,b)=> a.ts - b.ts);
     },
-    async addMessage(convoId, role, text, sources){
-      const msg = { convoId, role, text, sources: sources||null, ts: Date.now() };
+    async addMessage(convoId, role, text, sources, ts){
+      const msg = { convoId, role, text, sources: sources||null, ts: ts || Date.now() };
       const t = await tx([STORE_MESSAGES], "readwrite");
       const id = await reqToPromise(t.objectStore(STORE_MESSAGES).add(msg));
       await ChatDB.touchConversation(convoId);
@@ -1263,6 +1263,8 @@
     if(currentTab==="chat") renderChat();
   }
   async function switchConversation(id, rerender=true){
+    // v6.4: leaving a chat counts as the chat ending: fold it into Bibley's memory
+    if(activeConvoId && activeConvoId!==id && window.BibleyMemory) window.BibleyMemory.noteChat(activeConvoId);
     const convo = conversations.find(c=> c.id===id) || await ChatDB.getConversation(id);
     if(!convo) return;
     activeConvoId = convo.id;
@@ -1272,6 +1274,10 @@
     if(rerender && currentTab==="chat") renderChat();
   }
   initChat();
+  // v6.4: a chat also ends when the app goes to the background or sits idle for 3 minutes
+  let memIdle=0;
+  function memSoon(){ clearTimeout(memIdle); memIdle=setTimeout(()=>{ if(window.BibleyMemory && activeConvoId) window.BibleyMemory.noteChat(activeConvoId); }, 180000); }
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && window.BibleyMemory && activeConvoId){ clearTimeout(memIdle); window.BibleyMemory.noteChat(activeConvoId); } });
 
   let verseSummaryReq=0, chapterSummaryReq=0;
 
@@ -2522,6 +2528,18 @@ Ground every point in the actual chapter text provided. Be specific and concrete
   }
   aiChatForm.addEventListener("submit", async e=>{
     e.preventDefault(); const q=aiChatInput.value.trim(); if(!q) return;
+    // v6.4: "forget everything" / "forget that ..." asks first, then clears Bibley's memory
+    const fm=q.match(/^\s*(?:please\s+)?forget\s+(everything|all of it|all|that|about|this)\b\s*(.*)$/i);
+    if(fm && window.BibleyMemory){
+      aiChatInput.value="";
+      if(/^(everything|all)/i.test(fm[1])){
+        if(confirm("Forget everything? This clears what Bibley remembers about you and deletes all saved chats and calls.")){ await window.BibleyMemory.forgetAll(); addMsg("ai", "Done. I've forgotten everything.", null, false); }
+      } else {
+        const what=fm[2].trim() || (chatHistory.filter(m=> m.role==="user").slice(-1)[0]||{}).text || "";
+        if(confirm("Forget that? Bibley removes it from what it remembers about you.")){ const n=window.BibleyMemory.forget(what); addMsg("ai", n ? "Okay, I've forgotten that." : "Okay. I didn't have that saved in what I remember, so nothing to remove.", null, false); }
+      }
+      return;
+    }
     addMsg("user", q, null); aiChatInput.value="";
     runChatQuestion(q);
   });
@@ -2536,6 +2554,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
       const ans=await answerWithScripture(q);
       clearInterval(tick); thinkingDiv.remove();
       addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text), ans.sources);
+      memSoon();
     } catch(err){
       clearInterval(tick); thinkingDiv.remove();
       console.warn(err);
@@ -2566,9 +2585,15 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     // Include the rolling summary of older conversation (if any) plus recent
     // turns verbatim, so the assistant has real continuity across a long
     // conversation instead of only ever seeing the last few messages.
-    const recentHistory = chatHistory.slice(-14).map(m=> `${m.role==="user"?"User":"Assistant"}: ${stripHtml(m.text)}`).join("\n");
+    if(window.BibleyMemory) await window.BibleyMemory.ready(9000);
+    const recentHistory = chatHistory.slice(-11, -1).map(m=> `${m.role==="user"?"User":"Assistant"}: ${stripHtml(m.text).slice(0,700)}`).join("\n");
     const memoryBlock = chatSummary ? `\nWhat you remember about this ongoing conversation with the user:\n${chatSummary}\n` : "";
-    const user=`Currently reading \u2014 ${book[1]} ${p.chapter}:\n${currentText || "(not loaded yet)"}${memoryBlock}${recentHistory ? `\nRecent conversation:\n${recentHistory}\n` : ""}\nQuestion: ${question}${CHAT_REMINDER}`;
+    const userMem = window.BibleyMemory ? window.BibleyMemory.block() : "";
+    // v6.4: keep the whole request under the AI proxy's size limit (the open chapter's text gives way first)
+    const mk = (ct, rh)=> `Currently reading \u2014 ${book[1]} ${p.chapter}:\n${ct || "(not loaded yet)"}${userMem ? userMem+"\n" : ""}${memoryBlock}${rh ? `\nRecent conversation:\n${rh}\n` : ""}\nQuestion: ${question}${CHAT_REMINDER}`;
+    let rh = recentHistory, room = 8100 - BIBLICAL_GUARDRAILS.length - 90 - system.length - mk("", rh).length;
+    while(room < 800 && rh.length > 400){ rh = rh.slice(Math.floor(rh.length/3)); rh = rh.slice(rh.indexOf("\n")+1); room = 8100 - BIBLICAL_GUARDRAILS.length - 90 - system.length - mk("", rh).length; }
+    const user = mk(currentText.slice(0, Math.max(0, room)), rh);
     const text = guardAnswer(await generateWithAI(system, user, 500));
     const sources = await findRelatedVerses(question, currentVerses, book, p.chapter, p.version);
     return {text: text.trim(), sources};
@@ -2655,6 +2680,11 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     refreshLists: ()=>{ renderBookmarkList(); renderChapterGrid(); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); },
     studyVerse: (v)=>{ selectedVerse={bookName:v.bookName, chapter:v.chapter, verseNum:v.verseNum, text:v.text, bookIdx:v.bookIdx, key:v.key, color:v.color||null}; openAi("verse"); },
     closeDrawer: ()=> closeDrawer(), closeAi: ()=> closeAi(),
+    // 6.4 chat memory bridge (bibley-memory.js, Settings > Chat history)
+    chatDB: ChatDB, activeConvo: ()=> activeConvoId,
+    refreshConvos: async ()=>{ conversations = await ChatDB.listConversations(); if(currentTab==="chat") renderChat(); },
+    openConvo: async (id)=>{ conversations = await ChatDB.listConversations(); await switchConversation(id, false); openAi("chat"); },
+    resetChats: async ()=>{ conversations = await ChatDB.listConversations(); if(!conversations.length){ conversations=[await ChatDB.createConversation("Study Chat")]; } if(!conversations.some(c=> c.id===activeConvoId)){ activeConvoId=null; await switchConversation(conversations[0].id, false); } if(currentTab==="chat") renderChat(); },
     // 5.4 study bridge (bibley-study.js)
     ai: { generate: (sys, user, max)=> generateWithAI(sys, user, max), format: (t)=> formatAiAnswer(t), verify: (el)=> verifyRefs(el), guard: (t)=> guardAnswer(t), errorMessage: (e)=> aiErrorMessage(e), systemPrompt: ()=> scholarSystemPrompt(), skeleton: (w)=> skeletonHtml(w) },
     parseRef: (r)=> parseRef(r), findBookIndex: (n)=> findBookIndex(n), escapeHtml: (t)=> escapeHtml(t),
@@ -2686,6 +2716,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
 <script src="pwa.js" defer></script>
 <script src="bibley-features.js" defer></script>
 <script src="bibley-study.js" defer></script>
+<script src="bibley-memory.js" defer></script>
 <script src="bibley-call.js" defer></script>
 </body>
 </html>

@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.3";
+  const APP_VERSION = "6.4";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.4", date: "October 2026", items: [
+      ["Bibley remembers you", "Your chats and calls are saved on this phone, and Bibley remembers a few things you tell it, like your name, favourite verses and what you're studying. Next time you chat or call, it picks up where you left off."],
+      ["Chat history", "Settings > Chat history shows your past chats and calls. Open one to read it or keep going, or delete it."],
+      ["What Bibley remembers", "Settings > What Bibley remembers shows everything it remembers about you. Edit it, remove a line, or clear it. On a call, say \"forget that\" or \"forget everything\" and Bibley asks you to say yes first."]
+    ] },
     { v: "6.3", date: "October 2026", items: [
       ["Voice control on calls", "While you're on a call, just say what you want: \"open Psalm 23\", \"bookmark verse 1\", \"read this chapter\", \"explain verse 4\", \"highlight verse 3 in blue\", \"add a note\", \"search shepherd\", \"dark mode\", \"bigger text\", \"set my reminder to 7\", \"open settings\", \"switch to KJV\" or \"go back\". Bibley does it and tells you what it did. Removing a bookmark, highlight or note asks you to say yes first."],
       ["Minimize the call", "Tap the arrow at the top of the call to shrink it to a small bar so you can see the page. The call keeps going, with the timer, mute and hang up on the bar. Tap the bar to open the call again. It shrinks on its own when Bibley changes the page for you."]
