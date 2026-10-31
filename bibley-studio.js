@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.4";
+  const APP_VERSION = "6.5";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.5", date: "October 2026", items: [
+      ["Section headings", "Chapters are now split into sections, with a heading above each one, like \"The Lord Is My Shepherd\" in Psalm 23 or \"Jesus and Nicodemus\" in John 3. They show in every Bible version."],
+      ["Section context", "Tap a heading to see a short note on what's happening in that section, who's speaking and the background. Once a note has loaded, it opens instantly next time."],
+      ["Turn them off", "Settings > Reading has a switch for section headings and another for section context."]
+    ] },
     { v: "6.4", date: "October 2026", items: [
       ["Bibley remembers you", "Your chats and calls are saved on this phone, and Bibley remembers a few things you tell it, like your name, favourite verses and what you're studying. Next time you chat or call, it picks up where you left off."],
       ["Chat history", "Settings > Chat history shows your past chats and calls. Open one to read it or keep going, or delete it."],

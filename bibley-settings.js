@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.4";
+  const APP_VER = "1.9", WEB_VER = "6.5";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -365,6 +365,7 @@
     ["Card density", "compact comfortable density", "appearance", "density"], ["Corner roundness", "corners round radius square", "appearance", "radius"],
     ["Animations", "motion animation reduce", "appearance", "motion"], ["Reset appearance", "reset default", "appearance", "reset"],
     ["Verse numbers", "verse number style superscript inline hidden", "reading", "vnum"], ["Paragraph or verse per line", "layout paragraph lines", "reading", "layout"],
+    ["Section headings", "sections headings titles chapter split", "reading", "sections"], ["Section context", "section context background notes headings", "reading", "sectionctx"],
     ["Bible version", "translation version kjv web esv", "reading", "version"], ["ESV key", "esv api key crossway", "reading", "esv"],
     ["Modes", "modes presets", "modes", ""], ["Focus mode", "focus distraction", "modes", "m-focus"], ["Night mode", "night dark warm dim", "modes", "m-night"],
     ["Simple mode", "kids simple child", "modes", "m-kids"], ["Study mode", "study cross references notes", "modes", "m-study"], ["Prayer mode", "prayer pray", "modes", "m-prayer"],
@@ -390,7 +391,7 @@
     el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search settings" aria-label="Search settings"></div><div class="bs-results" hidden></div><div class="bs-groups">' +
       (s.mode ? '<div class="bs-banner">' + (MODES.find(m => m.id === s.mode) || {}).ic + "<span>" + esc(modeName()) + '</span><button type="button" class="fx-btn small" data-act="modeoff">Turn off</button></div>' : "") +
       group("Look & feel", row({ ic: IC.palette, t: "Appearance", s: th + " \u00b7 " + p.size + "px \u00b7 " + ((FACES.find(f => f[0] === s.face) || (p.font === "sans" ? FACES[3] : FACES[0]))[1]), go: "appearance" }) +
-        row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, Bible version", go: "reading" }) +
+        row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
         row({ ic: IC.layout, t: "Home & navigation", s: "Bottom bar, Today cards", go: "layout" })) +
       group("Device", (NAT ? row({ ic: IC.grid, t: "Widgets", s: "Add widgets to your home screen", go: "widgets" }) : "") +
@@ -460,12 +461,16 @@
     el.innerHTML = '<div class="bs-preview"><div class="bs-pv-card"><p class="bs-pv-t"><sup>16</sup> For God so loved the world, that he gave his only born Son, that whoever believes in him should not perish, but have eternal life. <sup>17</sup> For God didn\'t send his Son into the world to judge the world.</p></div></div>' +
       field("Verse numbers", seg("vnum", s.vnum, [["sup", "Small"], ["inline", "Inline"], ["hidden", "Hidden"]]), "vnum") +
       field("Layout", seg("layout", s.layout, [["paragraph", "Paragraph"], ["verse", "Verse per line"]]), "layout") +
+      (window.BibleySections ? (() => { const sp = window.BibleySections.prefs(); return group("Sections", swRow("secHead", "Section headings", "", sp.head, "sections") + (sp.head ? swRow("secCtx", "Section context", "", sp.ctx, "sectionctx") : "")); })() : "") +
       field("Bible version", '<select class="fx-input bs-select" data-anchor="version">' + (vs ? vs.innerHTML : "") + "</select>", "version") +
       group("", row({ ic: IC.lock, t: "ESV API key", s: esv ? "Saved on this phone. Tap to change" : "Needed only to read the ESV", act: "esv", anchor: "esv" }) +
         row({ ic: IC.book, t: "Classic reading sheet", s: "The quick size, font and theme sheet", act: "classic" })) +
       '<p class="bs-note">Red letters are not offered: the Bible texts Bibley uses do not mark the words of Jesus.</p>';
     const sel = el.querySelector(".bs-select"); if (vs && sel) { sel.value = vs.value; sel.onchange = () => { vs.value = sel.value; vs.dispatchEvent(new Event("change", { bubbles: true })); toast("Bible version: " + sel.options[sel.selectedIndex].text); }; }
-    wire(el, { seg: (k, v) => setS({ [k]: v }), act: a => {
+    wire(el, { seg: (k, v) => setS({ [k]: v }), sw: (k, on) => {
+      if (k === "secHead" && window.BibleySections) { window.BibleySections.setPrefs({ head: on }); rerender(); }
+      if (k === "secCtx" && window.BibleySections) window.BibleySections.setPrefs({ ctx: on });
+    }, act: a => {
       if (a === "esv") { const cur = (() => { try { return localStorage.getItem("bible_esv_api_key_v1") || ""; } catch { return ""; } })(); const k = prompt("Paste your free ESV API key from api.esv.org. It is stored only on this phone.", cur); if (k != null && k.trim()) { try { localStorage.setItem("bible_esv_api_key_v1", k.trim()); } catch {} toast("ESV key saved"); rerender(); } }
       if (a === "classic") { close(() => FX.readingSheet(), 120); }
     } });

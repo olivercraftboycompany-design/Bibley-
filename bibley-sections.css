@@ -1,0 +1,18 @@
+/* bibley-sections.css - Bibley 6.5 section headings and section context */
+body .verses-text .bx-sec { display: block; margin: 1.15em 0 .35em; line-height: 1.35; cursor: default; }
+body .verses-text .bx-sec.bx-sec-first { margin-top: 0; }
+body .verses-text .bx-sec-h { display: flex; align-items: center; gap: 6px; width: 100%; padding: 0; margin: 0; border: 0; background: none; text-align: left; color: var(--ink); font: inherit; -webkit-tap-highlight-color: transparent; }
+body .verses-text button.bx-sec-h { cursor: pointer; }
+body .verses-text .bx-sec-h b { font-family: 'Fraunces', serif; font-weight: 600; font-size: .9em; letter-spacing: .005em; }
+body .verses-text .bx-sec-chev { flex: none; color: var(--ink-faint); transition: transform .18s; margin-top: 1px; }
+body .verses-text .bx-sec.open .bx-sec-chev { transform: rotate(180deg); color: var(--gold); }
+body .verses-text .bx-sec-sub { font-size: .74em; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+body .verses-text .bx-sec-note { margin: 7px 0 2px; padding: 1px 0 1px 11px; border-left: 2px solid #c9a86766; }
+body .verses-text .bx-sec-txt { margin: 0; font-size: .8em; line-height: 1.55; color: var(--ink-dim); }
+body .verses-text .bx-sec-err { margin: 0; font-size: .78em; color: var(--ink-faint); }
+body .verses-text .bx-sec-retry { border: 0; background: none; padding: 0 0 0 4px; color: var(--gold); font: inherit; cursor: pointer; }
+body .verses-text .bx-sec-load { padding: 3px 0; }
+body .verses-text .bx-sec-load i { display: block; height: 9px; border-radius: 5px; margin: 4px 0 7px; background: linear-gradient(90deg, #c9a8671a, #c9a86738, #c9a8671a); background-size: 200% 100%; animation: bxSecPulse 1.3s linear infinite; }
+body .verses-text .bx-sec-load i:last-child { width: 62%; }
+@keyframes bxSecPulse { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { body .verses-text .bx-sec-load i { animation: none; } }
