@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.5";
+  const APP_VER = "1.9", WEB_VER = "6.6";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -394,7 +394,7 @@
         row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
         row({ ic: IC.layout, t: "Home & navigation", s: "Bottom bar, Today cards", go: "layout" })) +
-      group("Device", (NAT ? row({ ic: IC.grid, t: "Widgets", s: "Add widgets to your home screen", go: "widgets" }) : "") +
+      group("Device", (window.BibleyFocusUI ? (() => { const f = window.BibleyFocusUI.get(); return swRow("focus", "Focus mode", "", f.on, "focus", window.BibleyFocusUI.icon) + (f.needsAccess ? '<div class="bs-bf-ask"><span>' + esc(window.BibleyFocusUI.ask) + '</span><button type="button" class="fx-btn small primary" data-act="focusallow">Allow</button></div>' : ""); })() : "") + (NAT ? row({ ic: IC.grid, t: "Widgets", s: "Add widgets to your home screen", go: "widgets" }) : "") +
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
@@ -415,7 +415,9 @@
       res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = hits[+b.dataset.i]; nav(h[2], h[3]); });
       res.hidden = false; grp.hidden = true;
     };
-    wire(el, { act: a => { if (a === "modeoff") { setMode(""); rerender(); } } });
+    wire(el, { act: a => { if (a === "modeoff") { setMode(""); rerender(); } if (a === "focusallow" && window.BibleyFocusUI) window.BibleyFocusUI.requestAccess(); },
+      sw: (k, v) => { if (k === "focus" && window.BibleyFocusUI) { window.BibleyFocusUI.set(v, { quiet: true }); rerender(); } } });
+    if (window.BibleyFocusUI) { const un = window.BibleyFocusUI.subscribe(f => { if (!el.isConnected) { un(); return; } const i = el.querySelector('[data-sw="focus"]'); if (!i || i.checked !== f.on || !!el.querySelector(".bs-bf-ask") !== f.needsAccess) rerender(); }); }
   } };
 
   PAGES.appearance = { title: "Appearance", render(el) {

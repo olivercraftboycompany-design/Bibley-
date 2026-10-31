@@ -1,0 +1,10 @@
+/* bibley-focus.css - Bibley 6.6: Focus mode access line (app 2.3 only). */
+.bf-ask { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); z-index: 90; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px; background: var(--bg-panel); color: var(--ink); border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); font: 14px/1.35 'Fraunces', Georgia, serif; }
+.bf-ask .ui-ic { color: var(--gold); flex: none; }
+.bf-ask span { flex: 1; min-width: 0; }
+.bf-ask .fx-btn { flex: none; padding: 7px 12px; }
+.bf-x { flex: none; border: 0; background: transparent; color: var(--ink-dim); padding: 6px; border-radius: 8px; cursor: pointer; display: flex; }
+html.theme-sepia .bf-ask, html.theme-light .bf-ask { box-shadow: 0 10px 30px rgba(60,40,10,.18); }
+.bs-bf-ask { display: flex; align-items: center; gap: 10px; padding: 10px 14px 12px; font-size: 13.5px; color: var(--ink-dim); line-height: 1.4; }
+.bs-bf-ask span { flex: 1; min-width: 0; }
+.bs-bf-ask .fx-btn { flex: none; padding: 7px 12px; }

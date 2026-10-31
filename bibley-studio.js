@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.5";
+  const APP_VERSION = "6.6";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.6", date: "October 2026", items: [
+      ["Focus mode", "Turn on Focus mode and your phone goes into Do Not Disturb and Bibley goes full screen. Leave Bibley and Do Not Disturb turns back off. Find it in Settings or the More menu in the reader. Needs the Bibley app 2.3."]
+    ] },
     { v: "6.5", date: "October 2026", items: [
       ["Section headings", "Chapters are now split into sections, with a heading above each one, like \"The Lord Is My Shepherd\" in Psalm 23 or \"Jesus and Nicodemus\" in John 3. They show in every Bible version."],
       ["Section context", "Tap a heading to see a short note on what's happening in that section, who's speaking and the background. Once a note has loaded, it opens instantly next time."],

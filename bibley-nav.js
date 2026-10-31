@@ -45,7 +45,7 @@
     const bm = $("bookmarkBtn"), cmp = $("compareBtn"), fs = $("fullscreenBtn");
     const marked = bm && bm.classList.contains("active"), comparing = cmp && cmp.classList.contains("active"), full = fs && fs.classList.contains("active");
     return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
-      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full], ["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]];
+      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]);
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; document.removeEventListener("pointerdown", outside, true); } }
   function outside(e) { if (menu && !menu.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) closeMenu(); }
@@ -59,6 +59,7 @@
       if (k === "bm") { const x = $("bookmarkBtn"); if (x) x.click(); }
       if (k === "cmp") { const x = $("compareBtn"); if (x) x.click(); }
       if (k === "fs") { const x = $("fullscreenBtn"); if (x) x.click(); }
+      if (k === "focus" && window.BibleyFocusUI) window.BibleyFocusUI.set(!window.BibleyFocusUI.get().on);
       if (k === "tts") { const x = document.querySelector('.tts-btn[data-pane="a"]'); if (x) x.click(); }
       if (k === "today") FX.open.today();
       if (k === "set") FX.open.settings();
