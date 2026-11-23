@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.7";
+  const APP_VERSION = "6.8";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.8", date: "November 2026", items: [
+      ["Accounts & Cloud Sync", "Make a free Bibley account in Settings > Account & Cloud Sync and your highlights, notes, bookmarks, Study Notebook, reading plans, streak and settings sync across your phone, tablet and computer. Signing in never wipes what's already on your device: both sides are merged."],
+      ["Safe in the cloud", "Your study data is saved in Bibley's own database, so a new phone gets it all back the moment you sign in. Works offline too: changes sync as soon as you're back online."]
+    ] },
     { v: "6.7", date: "November 2026", items: [
       ["On-Device AI: Bibley 2.1", "Bibley's own AI can now run right on your device, even offline. Turn it on in Settings > AI Engine. It finds the real King James verses for your question, quotes them word for word and explains them in plain words. One-time download of about 335-395 MB. Cloud AI stays the default."]
     ] },

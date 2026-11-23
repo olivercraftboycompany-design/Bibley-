@@ -267,3 +267,12 @@ html body .fx-dock button.bs-off, html body .fx-sheet-body > .bs-off { display: 
 .ai-prog { height: 6px; margin: 0 14px 10px; border-radius: 3px; background: var(--panel-border); overflow: hidden; }
 .ai-prog i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .3s; }
 .ai-btns { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 14px 14px; }
+
+/* v6.8 Account & Cloud Sync */
+.bs-acct-form { display: flex; flex-direction: column; gap: 12px; margin: 14px 4px 10px; }
+.bs-acct-pw { margin: 4px 14px 14px; }
+.bs-acct-l { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-dim); }
+.bs-acct-l i { font-style: normal; opacity: .7; }
+.bs-acct-err { margin: 0; font-size: 13px; color: #e2867a; }
+.bs-acb.on { color: var(--ink-dim); }
+.bs-root .fx-seg.bs-seg[data-seg="acctab"] { margin: 0 4px; }

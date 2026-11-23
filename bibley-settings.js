@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.7";
+  const APP_VER = "1.9", WEB_VER = "6.8";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -64,7 +64,9 @@
     shield: sv('<path d="M12 3.5l7 3v5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5v-5z"/>'),
     star: sv('<path d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.3L12 16l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6z"/>'),
     refresh: sv('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/>'),
-    plus: sv('<path d="M12 5v14M5 12h14"/>')
+    plus: sv('<path d="M12 5v14M5 12h14"/>'),
+    user: sv('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c.9-3.6 3.7-5.6 7.2-5.6s6.3 2 7.2 5.6"/>'),
+    sync: sv('<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.5 1.5 4 4 0 0 1-.5 7.5z"/><path d="M10 13.5l2-2 2 2M12 11.5v5"/>')
   };
 
   /* ---------- state ---------- */
@@ -360,6 +362,9 @@
 
   /* ---------- search index: every setting, where it lives ---------- */
   const INDEX = [
+    ["Account & Cloud Sync", "account cloud sync database sql sqlite login log in sign in signin sign up signup register create account username backup restore devices new phone password", "account", "acct"],
+    ["Sync now", "sync now cloud backup database refresh", "account", "acct"], ["Auto-sync", "auto sync automatic cloud", "account", "acct"],
+    ["Change password", "change password account login", "account", "acct"], ["Sign out", "sign out log out logout account", "account", "acct"], ["Delete account", "delete account remove cloud data database privacy", "account", "acct"],
     ["Theme", "dark light sepia black system colour color", "appearance", "theme"], ["Accent colour", "accent color gold sage blue rose lavender", "appearance", "accent"],
     ["Font", "font family typeface serif sans", "appearance", "font"], ["Text size", "font size bigger smaller large", "appearance", "size"],
     ["Line spacing", "line height spacing", "appearance", "lh"], ["Text width", "width column measure", "appearance", "width"], ["Margins", "margin padding edges", "appearance", "margin"],
@@ -382,7 +387,7 @@
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -392,6 +397,7 @@
     const th = (THEMES.find(t => t[0] === currentTheme()) || THEMES[0])[1];
     el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search settings" aria-label="Search settings"></div><div class="bs-results" hidden></div><div class="bs-groups">' +
       (s.mode ? '<div class="bs-banner">' + (MODES.find(m => m.id === s.mode) || {}).ic + "<span>" + esc(modeName()) + '</span><button type="button" class="fx-btn small" data-act="modeoff">Turn off</button></div>' : "") +
+      group("Account", row({ ic: IC.user, t: "Account & Cloud Sync", s: acctSub(), go: "account", right: acctBadge() + IC.chev })) +
       group("Look & feel", row({ ic: IC.palette, t: "Appearance", s: th + " \u00b7 " + p.size + "px \u00b7 " + ((FACES.find(f => f[0] === s.face) || (p.font === "sans" ? FACES[3] : FACES[0]))[1]), go: "appearance" }) +
         row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
@@ -419,6 +425,7 @@
     };
     wire(el, { act: a => { if (a === "modeoff") { setMode(""); rerender(); } if (a === "focusallow" && window.BibleyFocusUI) window.BibleyFocusUI.requestAccess(); },
       sw: (k, v) => { if (k === "focus" && window.BibleyFocusUI) { window.BibleyFocusUI.set(v, { quiet: true }); rerender(); } } });
+    if (window.BibleySync) { const unS = window.BibleySync.on(() => { if (!el.isConnected) { unS(); return; } const r = el.querySelector('[data-go="account"]'); if (r) { const sm = r.querySelector("small"); if (sm) sm.textContent = acctSub(); const b = r.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); } }); }
     if (window.BibleyFocusUI) { const un = window.BibleyFocusUI.subscribe(f => { if (!el.isConnected) { un(); return; } const i = el.querySelector('[data-sw="focus"]'); if (!i || i.checked !== f.on || !!el.querySelector(".bs-bf-ask") !== f.needsAccess) rerender(); }); }
   } };
 
@@ -593,6 +600,88 @@
     return rows.sort((a, b) => b[1] - a[1]);
   }
   const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
+  /* ---------- v6.8: Account & Cloud Sync (bibley-sync.js, the site's SQLite database) ---------- */
+  let acctTab = "in", acctPw = false, acctBusy = false;
+  const ago = t => { if (!t) return "never"; const d = Math.round((Date.now() - t) / 1000); if (d < 45) return "just now"; if (d < 3600) return Math.round(d / 60) + " min ago"; if (d < 86400) return Math.round(d / 3600) + " h ago"; return new Date(t).toLocaleDateString(); };
+  const syncWord = s => s.state === "syncing" ? "Syncing\u2026" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in";
+  function acctSub() {
+    const B = window.BibleySync; if (!B) return "Loading\u2026";
+    const s = B.status();
+    return s.signedIn ? "Signed in as @" + s.user.username + " \u00b7 " + syncWord(s) : "Not signed in \u00b7 Sync notes & highlights across devices";
+  }
+  function acctBadge() {
+    const B = window.BibleySync, s = B ? B.status() : null;
+    return '<span class="bs-tag bs-acb' + (s && s.signedIn ? " on" : "") + '">' + (s && s.signedIn ? esc(syncWord(s)) : "Sign in") + "</span>";
+  }
+  PAGES.account = { title: "Account & Cloud Sync", render(el) {
+    const B = window.BibleySync;
+    if (!B) { el.innerHTML = '<p class="bs-note">Account & Cloud Sync is still loading.</p>'; return; }
+    const s = B.status();
+    if (!s.signedIn) {
+      const up = acctTab === "up";
+      el.innerHTML = '<p class="bs-lead" data-anchor="acct">Sign in to keep your highlights, notes, bookmarks, Study Notebook, reading plans and settings safe in the cloud, and get them back on any phone, tablet or computer.</p>' +
+        seg("acctab", acctTab, [["in", "Sign In"], ["up", "Create Account"]]) +
+        '<form class="bs-acct-form" autocomplete="on" novalidate>' +
+          '<label class="bs-acct-l">Username<input class="fx-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="e.g. oliver_reads" required></label>' +
+          '<label class="bs-acct-l">Password<input class="fx-input" name="password" type="password" autocomplete="' + (up ? "new-password" : "current-password") + '" maxlength="200" placeholder="' + (up ? "At least 6 characters" : "Your password") + '" required></label>' +
+          (up ? '<label class="bs-acct-l">Display name <i>(optional)</i><input class="fx-input" name="display_name" autocomplete="nickname" maxlength="40" placeholder="How your name shows"></label>' : "") +
+          '<p class="bs-acct-err" role="alert" hidden></p>' +
+          '<button type="submit" class="fx-btn primary block bs-acct-go">' + (up ? "Create Account" : "Sign In") + "</button>" +
+        "</form>" +
+        '<p class="bs-note">' + (up ? "Usernames are 3-24 letters, numbers, _ or -. " : "") + "Your notes and highlights already on this device stay safe: signing in merges them with your account, and from then on they sync automatically.</p>" +
+        (s.error ? '<p class="bs-note">' + esc(s.error) + "</p>" : "");
+      const f = el.querySelector("form"), err = el.querySelector(".bs-acct-err"), go = el.querySelector(".bs-acct-go");
+      f.onsubmit = e => {
+        e.preventDefault(); if (acctBusy) return;
+        const u = f.username.value.trim(), pw = f.password.value, dn = f.display_name ? f.display_name.value.trim() : "";
+        const bad = !/^[A-Za-z0-9_-]{3,24}$/.test(u) ? "Username must be 3-24 letters, numbers, _ or -" : pw.length < 6 ? "Password must be at least 6 characters" : "";
+        if (bad) { err.textContent = bad; err.hidden = false; return; }
+        acctBusy = true; go.disabled = true; go.textContent = up ? "Creating account\u2026" : "Signing in\u2026"; err.hidden = true;
+        (up ? B.register(u, pw, dn) : B.login(u, pw)).then(st2 => {
+          acctBusy = false; acctPw = false;
+          toast((up ? "Account created" : "Signed in") + " \u00b7 " + (st2.state === "ok" ? "Synced \u2713" : "will sync when online"));
+          if (el.isConnected) rerender();
+        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = up ? "Create Account" : "Sign In"; err.textContent = String(x && x.message || x); err.hidden = false; });
+      };
+      wire(el, { seg: (k, v) => { if (k === "acctab") { acctTab = v; rerender(); } } });
+      return;
+    }
+    const u = s.user;
+    el.innerHTML = group("", '<div class="bs-row bs-static" data-anchor="acct"><span class="bs-ic">' + IC.user + '</span><span class="bs-t">' + esc(u.display_name || u.username) + "<small>@" + esc(u.username) + "</small></span>" + acctBadge() + "</div>" +
+        '<div class="bs-row bs-static"><span class="bs-ic">' + IC.sync + '</span><span class="bs-t">Cloud Sync<small class="acct-st"></small></span></div>' +
+        '<div class="ai-btns"><button type="button" class="fx-btn small primary" data-act="syncnow">Sync Now</button></div>') +
+      group("", swRow("autosync", "Auto-sync", "Sync when Bibley opens and as you study", s.auto, "autosync")) +
+      group("Account", row({ ic: IC.lock, t: "Change Password", s: "Signs out your other devices", act: "pw" }) +
+        (acctPw ? '<form class="bs-acct-form bs-acct-pw" novalidate><label class="bs-acct-l">Current password<input class="fx-input" name="cur" type="password" autocomplete="current-password" maxlength="200"></label><label class="bs-acct-l">New password<input class="fx-input" name="nw" type="password" autocomplete="new-password" maxlength="200" placeholder="At least 6 characters"></label><p class="bs-acct-err" role="alert" hidden></p><button type="submit" class="fx-btn small primary">Save new password</button></form>' : "") +
+        row({ ic: IC.back, t: "Sign Out", s: "Your data stays on this device", act: "out" }) +
+        row({ ic: IC.trash, t: "Delete Account", s: "Removes your account and its cloud data", act: "del" })) +
+      '<p class="bs-note">Syncs your highlights, notes, bookmarks, Study Notebook, reading plans, streak, memory verses and settings. Chats stay on this device. Your password is stored only as a salted hash, never as plain text.</p>';
+    const stEl = el.querySelector(".acct-st");
+    const paint = x => { if (!stEl.isConnected) return; stEl.textContent = (x.state === "syncing" ? "Syncing\u2026" : x.state === "offline" ? "Offline \u00b7 will sync when you're back online" : x.state === "error" ? "Couldn't sync: " + x.error : (x.keys || 0) + " items synced \u00b7 last synced " + ago(x.lastSync)); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
+    paint(s);
+    const un = B.on(x => { if (!el.isConnected) { un(); return; } if (!x.signedIn) { rerender(); return; } paint(x); });
+    B.me().then(() => paint(B.status())).catch(() => {});
+    const pwf = el.querySelector(".bs-acct-pw");
+    if (pwf) pwf.onsubmit = e => {
+      e.preventDefault(); const er = pwf.querySelector(".bs-acct-err");
+      if (pwf.nw.value.length < 6) { er.textContent = "New password must be at least 6 characters"; er.hidden = false; return; }
+      B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = String(x && x.message || x); er.hidden = false; });
+    };
+    wire(el, {
+      sw: (k, v) => { if (k === "autosync") { B.setAuto(v); toast(v ? "Auto-sync is on" : "Auto-sync is off"); } },
+      act: a => {
+        if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast("Couldn't sync: " + String(x && x.message || x).slice(0, 80), 4000));
+        if (a === "pw") { acctPw = !acctPw; rerender(); }
+        if (a === "out" && confirm("Sign out of @" + u.username + "? Everything stays on this device.")) B.logout().then(() => { toast("Signed out"); rerender(); });
+        if (a === "del") {
+          if (!confirm("Delete the account @" + u.username + " and all of its cloud data? Your data on this device stays.")) return;
+          const pw = prompt("Type your password to delete @" + u.username + ":"); if (!pw) return;
+          B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast("Couldn't delete: " + String(x && x.message || x).slice(0, 80), 4000));
+        }
+      }
+    });
+  } };
+
   /* ---------- v6.7: AI Engine (Cloud AI or On-Device Bibley 2.1, bibley-local-ai.js) ---------- */
   PAGES.aiengine = { title: "AI Engine", render(el) {
     const L = window.BibleyLocalAI;
@@ -721,7 +810,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "On-Device AI: Bibley 2.1", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Accounts & Cloud Sync", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {
