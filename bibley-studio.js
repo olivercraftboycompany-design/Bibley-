@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.8";
+  const APP_VERSION = "6.9";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.9", date: "November 2026", items: [
+      ["Lost Books: 71 more texts", "71 more ancient writings in Lost Books (now 118 full texts): the Martyrdom of Polycarp, Epistle to Diognetus, Apostolic Constitutions, 2 Baruch, Psalms and Odes of Solomon, the Sibylline Oracles, Testament of Solomon, Pseudo-Matthew, the Acts of Thomas (with the Hymn of the Pearl), Andrew, Philip and more, the Pilate letters, Pistis Sophia, and public-domain translations of the Gospels of Thomas, Mary, Judas and Philip. Every one is a public domain translation, credited on its page."],
+      ["Lost to History guide", "A new reference shelf for 39 books that no longer survive: the books the Bible itself names (like the Book of Jasher and Paul's earlier letter to the Corinthians) and lost gospels known only from early church writers. Each is clearly badged, so nobody mistakes it for an ancient text."],
+      ["Find any book fast", "Search and shelf filters at the top of Lost Books, plus new shelves for Old Testament Pseudepigrapha, New Testament Apocrypha and Gnostic texts."]
+    ] },
     { v: "6.8", date: "November 2026", items: [
       ["Accounts & Cloud Sync", "Make a free Bibley account in Settings > Account & Cloud Sync and your highlights, notes, bookmarks, Study Notebook, reading plans, streak and settings sync across your phone, tablet and computer. Signing in never wipes what's already on your device: both sides are merged."],
       ["Safe in the cloud", "Your study data is saved in Bibley's own database, so a new phone gets it all back the moment you sign in. Works offline too: changes sync as soon as you're back online."]

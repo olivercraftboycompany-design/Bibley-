@@ -73,3 +73,23 @@ html.theme-light .lb-warn h2, html.theme-sepia .lb-warn h2 { color:#9a5a00 !impo
 html.theme-light .lb-warn .lb-verse, html.theme-sepia .lb-warn .lb-verse { color:#6b4410; }
 html.theme-light .lb-warn .lb-btn:not(.primary), html.theme-sepia .lb-warn .lb-btn:not(.primary) { color:#3a2410; border-color:#3a241055; }
 html.theme-light .lb-entry, html.theme-sepia .lb-entry { background:#fff4e2; } html.theme-light .lb-entry b, html.theme-sepia .lb-entry b { color:#9a5a00; }
+
+/* Bibley 6.9: shelf chips, search, "Lost to History" badge, verse sub-headings */
+.lb-count { margin:6px 0 2px; font-size:14px; color:var(--ink-dim, #b9b19f); }
+.lb-count b { color:var(--gold, #c9a867); }
+.lb-tools { position:sticky; top:-16px; z-index:2; background:var(--bg, #141b2e); padding:10px 0 8px; margin:0 0 6px; }
+.lb-search { width:100%; box-sizing:border-box; padding:11px 14px; border-radius:12px; border:1px solid var(--panel-border, #2a3658); background:var(--bg-panel, #111a2f); color:var(--ink, #e8e1d0); font-size:16px; font-family:inherit; }
+.lb-search:focus { outline:none; border-color:var(--gold, #c9a867); }
+.lb-chips { display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:9px 0 2px; scrollbar-width:none; }
+.lb-chips::-webkit-scrollbar { display:none; }
+.lb-chips button { flex-shrink:0; border:1px solid var(--panel-border, #2a3658); background:var(--bg-panel, #111a2f); color:var(--ink, #e8e1d0); border-radius:999px; padding:6px 12px; font-size:13px; font-family:'Fraunces', Georgia, serif; cursor:pointer; white-space:nowrap; }
+.lb-chips button small { opacity:.65; margin-left:3px; }
+.lb-chips button.on { background:var(--gold, #c9a867); color:#141b2e; border-color:var(--gold, #c9a867); }
+.lb-group h3 small { font-size:12px; opacity:.6; font-weight:normal; margin-left:4px; }
+.lb-lostbadge { display:inline-block; font-family:system-ui, -apple-system, sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#ffd9a8; background:#7a3d12; border:1px solid #b8662a; border-radius:6px; padding:2px 7px; margin-right:7px; vertical-align:middle; }
+.lb-bitem.lost { border-style:dashed; }
+.lb-lostcard { border:1px dashed #b8662a; }
+.lb-lostnote { font-size:14px; color:#ffd9a8; background:rgba(122,61,18,.25); border-radius:10px; padding:9px 11px; }
+.lb-vh { display:block; font-family:'Fraunces', Georgia, serif; font-size:.82em; color:var(--gold, #c9a867); margin:14px 0 4px; letter-spacing:.01em; }
+.lb-text .lb-vh:first-child { margin-top:0; }
+.lb-empty { color:var(--ink-dim, #b9b19f); }
