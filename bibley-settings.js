@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.6";
+  const APP_VER = "1.9", WEB_VER = "6.7";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -56,6 +56,7 @@
     access: sv('<circle cx="12" cy="4.8" r="1.8"/><path d="M5 8.5l7 1.5 7-1.5M12 10v4.5M12 14.5L9 21M12 14.5l3 6.5"/>'),
     sun: sv('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>'),
     flame: sv('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'),
+    chip: sv('<rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/>'),
     chat: sv('<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8.5L6 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 10h8M8 13.2h5"/>'),
     mem: sv('<path d="M12 4.5a7.5 7.5 0 1 0 7.5 7.5"/><path d="M12 8v4.2l2.8 1.7"/><path d="M16.5 4.8l3 .3-.3 3"/>'),
     callic: sv('<path d="M6.6 4.5h2.6l1.3 3.6-1.8 1.2a10 10 0 0 0 5.9 5.9l1.2-1.8 3.6 1.3v2.6a1.8 1.8 0 0 1-1.9 1.8C10.8 18.6 5.4 13.2 4.8 6.4a1.8 1.8 0 0 1 1.8-1.9z"/>'),
@@ -377,10 +378,11 @@
     ["Study AI depth", "ai depth simple deep explain", "study", "depth"], ["Study Notebook", "notes notebook", "study", "nb"], ["Memory verses", "memorize memory", "study", "mem"],
     ["Reading plans", "plans streak", "study", "plans"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
+    ["AI Engine", "ai engine bibley 2.1 on-device on device local ai offline ai webllm webgpu cpu wasm qwen model cloud ai switch", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aidl"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -398,7 +400,7 @@
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
-      group("Bibley AI", row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
+      group("Bibley AI", row({ ic: IC.chip, t: "AI Engine", s: (window.BibleyLocalAI && window.BibleyLocalAI.isLocal()) ? "On-Device AI (Bibley 2.1)" : "Cloud AI (Fast)", go: "aiengine" }) + row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
         row({ ic: IC.mem, t: "What Bibley remembers", s: memSub(), go: "memory" })) +
       group("Your data", row({ ic: IC.data, t: "Data & backup", s: "Export or import everything", go: "data" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
@@ -591,6 +593,43 @@
     return rows.sort((a, b) => b[1] - a[1]);
   }
   const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
+  /* ---------- v6.7: AI Engine (Cloud AI or On-Device Bibley 2.1, bibley-local-ai.js) ---------- */
+  PAGES.aiengine = { title: "AI Engine", render(el) {
+    const L = window.BibleyLocalAI;
+    if (!L) { el.innerHTML = '<p class="bs-note">The AI engine switcher is still loading.</p>'; return; }
+    const c = L.getConfig(), s0 = L.status(), local = c.mode === "local";
+    const be = (v, t, sub) => '<button type="button" class="bs-row bs-pick' + (c.backend === v ? " on" : "") + '" data-act="be-' + v + '"><span class="bs-t">' + esc(t) + "<small>" + esc(sub) + '</small></span><span class="bs-check">' + (c.backend === v ? "\u2713" : "") + "</span></button>";
+    el.innerHTML = field("AI engine", seg("mode", c.mode, [["cloud", "Cloud AI (Fast)"], ["local", "On-Device AI (Bibley 2.1)"]]), "aimode") +
+      (local ? group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
+        '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>' +
+        group("Bibley 2.1 model", '<div class="bs-row bs-static" data-anchor="aidl"><span class="bs-ic">' + IC.chip + '</span><span class="bs-t">Qwen3-0.6B + KJV verse search<small class="ai-st">Checking\u2026</small></span></div>' +
+          '<div class="ai-prog" hidden><i></i></div><div class="ai-btns"><button type="button" class="fx-btn small primary" data-act="dl">Download &amp; Load Model</button><button type="button" class="fx-btn small" data-act="clear">Clear Local Model Cache</button></div>') +
+        '<p class="bs-note">One-time download (~335 MB WebGPU / ~395 MB CPU), saved offline. CPU mode on phones is slower, and older iPhones can hit browser memory limits.</p>' +
+        '<p class="bs-note">Bibley 2.1 finds the real King James verses for your question, quotes them word for word and explains them in plain words, all on this device. It is used for Chatbot questions; everything else keeps using Cloud AI.</p>'
+      : '<p class="bs-note">Cloud AI answers instantly with Bibley\'s online AI. It needs an internet connection. Switch to On-Device AI to run Bibley 2.1 on this device, even offline.</p>');
+    const stEl = el.querySelector(".ai-st"), bar = el.querySelector(".ai-prog"), capEl = el.querySelector(".ai-caps");
+    const paint = s => {
+      if (!stEl || !el.isConnected) return;
+      if (s.state === "loading") { stEl.textContent = (s.text || "Downloading\u2026").slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
+      bar.hidden = true;
+      if (s.state === "ready") { stEl.textContent = "Loaded and ready (" + (s.backend === "webgpu" ? "WebGPU" : "CPU") + ")"; return; }
+      if (s.state === "error") { stEl.textContent = "Couldn't load: " + String(s.error || "").slice(0, 120); return; }
+      L.isCached().then(y => { if (el.isConnected && L.status().state === "idle") stEl.textContent = y ? "Ready offline" : "Not downloaded"; });
+    };
+    if (local) {
+      paint(s0);
+      const un = L.on(s => { if (!el.isConnected) { un(); return; } paint(s); });
+      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : ""); });
+    }
+    wire(el, {
+      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? "On-Device AI (Bibley 2.1) is on" : "Cloud AI is on"); rerender(); } },
+      act: a => {
+        if (a.indexOf("be-") === 0) { L.setConfig({ backend: a.slice(3) }); rerender(); return; }
+        if (a === "dl") L.loadModel().then(() => toast("Bibley 2.1 is ready on this device")).catch(e => toast("Couldn't load Bibley 2.1: " + String(e && e.message || e).slice(0, 80), 4000));
+        if (a === "clear" && confirm("Remove the Bibley 2.1 model from this device? You can download it again any time.")) L.clearCache().then(() => { toast("Local model removed"); rerender(); });
+      }
+    });
+  } };
   PAGES.data = { title: "Data & backup", render(el) {
     const total = storageRows().reduce((a, r) => a + r[1], 0);
     el.innerHTML = '<p class="bs-lead">Everything you save in Bibley lives on this phone. Save a backup file now and then, or use one to move to a new phone.</p>' +
@@ -682,7 +721,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Bibley remembers your chats", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "On-Device AI: Bibley 2.1", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

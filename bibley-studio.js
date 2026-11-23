@@ -398,9 +398,12 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.6";
+  const APP_VERSION = "6.7";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "6.7", date: "November 2026", items: [
+      ["On-Device AI: Bibley 2.1", "Bibley's own AI can now run right on your device, even offline. Turn it on in Settings > AI Engine. It finds the real King James verses for your question, quotes them word for word and explains them in plain words. One-time download of about 335-395 MB. Cloud AI stays the default."]
+    ] },
     { v: "6.6", date: "October 2026", items: [
       ["Focus mode", "Turn on Focus mode and your phone goes into Do Not Disturb and Bibley goes full screen. Leave Bibley and Do Not Disturb turns back off. Find it in Settings or the More menu in the reader. Needs the Bibley app 2.3."]
     ] },

@@ -294,7 +294,19 @@
     return stripScripts(String(t || "").replace(/\bYahweh\b/g, "the Lord").replace(/\bYHWH\b/g, "the Lord").replace(/\*+/g, "").replace(/__/g, "").replace(/[\u202f\u00a0]/g, " ").replace(/[\u2010\u2011]/g, "-"));
   }
   var queue = Promise.resolve();
+  // v6.7: chat questions ("ask" mode) go to On-Device AI (Bibley 2.1, bibley-local-ai.js) when it is
+  // switched on in Settings > AI Engine; if it can't run here, the cloud answers instead.
+  function localOn() { var L = window.BibleyLocalAI; return !!(L && L.isLocal()); }
+  async function streamLocal(system, user, opts) {
+    var q = Array.isArray(user) ? ((user.filter(function (m) { return m.role === "user"; }).pop() || {}).content || "") : String(user || "");
+    try {
+      var r = await window.BibleyLocalAI.generate(q, { onToken: function (t) { if (opts.onText) { try { opts.onText(tidy(t)); } catch (e) {} } } });
+      api.last = { provider: "Bibley 2.1", model: r.modelId || r.engine, at: new Date().toISOString(), local: true };
+      return tidy(r.text);
+    } catch (e) { try { console.warn("[Bibley AI] on-device AI failed, using Cloud AI", e); } catch (x) {} return streamNow(system, user, opts); }
+  }
   function stream(system, user, opts) {
+    if ((opts || {}).mode === "ask" && localOn()) return streamLocal(system, user, opts || {});
     var run = queue.then(function () { return streamNow(system, user, opts); });
     queue = run.catch(function () {});
     return run;
@@ -345,6 +357,6 @@
     return tidy(text);
   }
 
-  var api = { generate: generate, stream: stream, tidy: tidy, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), last: readJSON(localStorage, LS_LAST, null), version: 4 };
+  var api = { generate: generate, stream: stream, tidy: tidy, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), engine: function () { return localOn() ? "local" : "cloud"; }, last: readJSON(localStorage, LS_LAST, null), version: 4 };
   window.BibleyAI = api;
 })();
