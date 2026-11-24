@@ -1,10 +1,15 @@
-/* bibley-local-ai.js - Bibley 6.7 (2026-11-23): On-Device AI "Bibley 2.1".
+/* bibley-local-ai.js - Bibley 7.0 (2026-11-24): On-Device AI, two models sharing one KJV verse-lookup brain.
+   Model 1 "Bibley 2.1" = Qwen3 0.6B (fast & light). Model 2 "Bibley 2.2" = Gemma 3 1B Instruct (deeper study).
+   Verified 2026-11-24: WebLLM 0.2.89 prebuilt list carries Qwen3-0.6B-q4f16_1-MLC, Qwen3-0.6B-q4f32_1-MLC and
+   gemma3-1b-it-q4f16_1-MLC (lib gemma3-1b-it-q4f16_1_cs512-webgpu.wasm, needs WebGPU shader-f16; without it Gemma runs on CPU);
+   Hugging Face carries onnx-community/Qwen3-0.6B-ONNX-OPT and onnx-community/gemma-3-1b-it-ONNX (model_q4.onnx + data, Gemma3ForCausalLM).
+   Was: Bibley 6.7 (2026-11-23): On-Device AI "Bibley 2.1".
    A port of Oliver's Bibley 2.1 brain (github.com/olivercraftboycompany-design/bibley-ai, server.py)
    that runs in the browser: KJV reference lookup, keyword (BM25) + topical verse search, the
    exact-quote SYSTEM / INSTRUCTIONS prompt, an honest off-topic gate and quote repair, with
    Qwen3-0.6B running on this device through WebLLM (WebGPU) or Transformers.js (CPU / WASM).
    Nothing here downloads until On-Device AI is used: the engines and the model load on demand.
-   Stored: localStorage "bibley_ai_engine_v1" = { mode: "cloud" | "local", backend: "auto" | "webgpu" | "cpu" }.
+   Stored: localStorage "bibley_ai_engine_v1" = { mode: "cloud" | "local", backend: "auto" | "webgpu" | "cpu", modelId: "qwen3-0.6b" | "gemma3-1b" }.
    The KJV comes from /bibles/kjv.json.gz (or Bibley's offline copy in IndexedDB "bibley_bibles"). */
 (function () {
   "use strict";
@@ -14,6 +19,14 @@
   var MODEL_F16 = "Qwen3-0.6B-q4f16_1-MLC", MODEL_F32 = "Qwen3-0.6B-q4f32_1-MLC";
   var CPU_REPO = "onnx-community/Qwen3-0.6B-ONNX-OPT";
   var MAX_NEW = 420;
+  // The two on-device models. Both run through the same KJV lookup (reference parsing, BM25 + topics, exact-quote prompt, off-topic gate, quote repair).
+  var MODELS = [
+    { id: "qwen3-0.6b", name: "Bibley 2.1", family: "Qwen", model: "Qwen3 0.6B", params: "0.6B", tag: "Fast & Light", size: "~335 MB WebGPU / ~395 MB CPU",
+      desc: "Quick answers with real KJV quotes. Light enough for most phones.", webgpu: { f16: MODEL_F16, f32: MODEL_F32 }, cpu: CPU_REPO, dtype: "q4", thinking: true, cacheRe: /Qwen3-0\.6B/i },
+    { id: "gemma3-1b", name: "Bibley 2.2", family: "Gemma", model: "Gemma 3 1B Instruct", params: "1B", tag: "Deeper Study", size: "~600 MB WebGPU / ~880 MB CPU",
+      desc: "Google's Gemma 3: fuller, more careful explanations of the verses it finds. Best on newer devices.", webgpu: { f16: "gemma3-1b-it-q4f16_1-MLC", f32: null }, cpu: "onnx-community/gemma-3-1b-it-ONNX", dtype: "q4", noSystem: true, cacheRe: /gemma-?3-1b-it/i }
+  ];
+  function modelInfo(id) { id = id || getConfig().modelId; for (var i = 0; i < MODELS.length; i++) if (MODELS[i].id === id) return MODELS[i]; return MODELS[0]; }
 
   /* ---------------- books ---------------- */
   // name|abbreviations (lowercase, no spaces)
@@ -82,6 +95,7 @@
   }
   function verse(b, c, v) { var t = KJV && KJV.b[b] && KJV.b[b][c - 1] && KJV.b[b][c - 1][v - 1]; return t ? { ref: BOOKS[b].name + " " + c + ":" + v, text: clean(t), b: b, c: c, v: v } : null; }
 
+  async function passage(b, c, v1, v2) { await ensureKJV(); var out = []; v1 = Math.max(1, v1 | 0 || 1); v2 = Math.max(v1, v2 | 0 || v1); for (var v = v1; v <= v2 && v < v1 + 40; v++) { var x = verse(b, c, v); if (x) out.push(x); } return out; }
   // Verses the user named directly: "John 3:16-17", "Psalm 23:1", "ps 23", "1 Cor 13:4".
   function findByReference(q) {
     var out = [], m; REF_RE.lastIndex = 0;
@@ -127,7 +141,7 @@
     grief: ["grief grieving grieve loss lost died death mourning mourn sad sorrow funeral", "mourn comfort sorrow tears brokenhearted", "Matthew 5:4,Psalms 34:18,Revelation 21:4,2 Corinthians 1:3"],
     faith: ["faith believe believing trust doubt doubts doubting", "faith believe trust", "Hebrews 11:1,Hebrews 11:6,Proverbs 3:5,Mark 11:24"],
     love: ["love loving loved", "love charity", "1 Corinthians 13:4,John 3:16,1 John 4:8,Romans 8:38,John 15:13"],
-    salvation: ["saved salvation save heaven eternal born again die afterlife", "salvation saved believe everlasting", "John 3:16,Romans 10:9,Ephesians 2:8,Acts 4:12"],
+    salvation: ["saved salvation save eternal born again redeemed redemption", "salvation saved believe everlasting", "John 3:16,Romans 10:9,Ephesians 2:8,Acts 4:12"],
     strength: ["strength strong weak weakness tired weary exhausted", "strength strengthen weary power", "Isaiah 40:31,Philippians 4:13,2 Corinthians 12:9,Isaiah 41:10"],
     wisdom: ["wisdom wise decision decisions wisdom understanding", "wisdom understanding knowledge", "James 1:5,Proverbs 3:5,Proverbs 2:6,Proverbs 9:10"],
     marriage: ["marriage married marry husband wife spouse wedding divorce", "wife husband marriage cleave", "Genesis 2:24,Ephesians 5:25,Mark 10:9,Hebrews 13:4"],
@@ -135,7 +149,21 @@
     depression: ["depression depressed hopeless lonely alone despair down", "hope comfort brokenhearted heaviness", "Psalms 34:18,Psalms 42:11,Isaiah 41:10,Matthew 11:28"],
     anger: ["anger angry mad rage furious temper", "wrath anger angry", "Ephesians 4:26,James 1:19,Proverbs 15:1,Ephesians 4:31"],
     money: ["money rich wealth poor debt finances greed job", "money riches treasure mammon", "1 Timothy 6:10,Matthew 6:24,Hebrews 13:5,Matthew 6:19"],
-    guidance: ["guidance guide direction lost plan purpose future path", "direct paths lead way", "Proverbs 3:5,Proverbs 3:6,Psalms 32:8,Jeremiah 29:11,Psalms 119:105"]
+    guidance: ["guidance guide direction lost plan purpose future path", "direct paths lead way", "Proverbs 3:5,Proverbs 3:6,Psalms 32:8,Jeremiah 29:11,Psalms 119:105"],
+    // v7.0: more study topics
+    grace: ["grace gracious mercy merciful undeserved unearned favor favour", "grace mercy gift", "Ephesians 2:8,Ephesians 2:9,2 Corinthians 12:9,Titus 2:11,Hebrews 4:16"],
+    healing: ["heal healing healed sick sickness illness ill disease cancer hospital surgery pain", "heal healed sick health", "Jeremiah 17:14,James 5:15,Psalms 147:3,Isaiah 53:5,Exodus 15:26"],
+    courage: ["courage courageous brave bravery bold boldness confidence", "courage strong dismayed bold", "Joshua 1:9,Deuteronomy 31:6,Psalms 27:1,Psalms 31:24,2 Timothy 1:7"],
+    creation: ["creation create created creator world universe earth beginning evolution", "created heaven earth beginning made", "Genesis 1:1,Genesis 1:27,John 1:3,Colossians 1:16,Psalms 19:1,Hebrews 11:3"],
+    prophecy: ["prophecy prophecies prophet prophets prophesy foretold messiah fulfilled", "prophecy prophet fulfilled", "Isaiah 53:5,Isaiah 7:14,Micah 5:2,Isaiah 9:6,2 Peter 1:21"],
+    spirit: ["spirit holy ghost comforter pentecost", "spirit ghost comforter", "John 14:26,Acts 1:8,Galatians 5:22,Romans 8:26,Acts 2:4"],
+    heaven: ["heaven heavenly afterlife paradise die dying dead", "heaven mansions paradise", "John 14:2,Revelation 21:4,Philippians 3:20,2 Corinthians 5:8,1 Thessalonians 4:17"],
+    hope: ["hope hopeful hoping future", "hope expectation", "Romans 15:13,Jeremiah 29:11,Hebrews 6:19,Lamentations 3:22,Romans 5:5"],
+    joy: ["joy happy happiness rejoice glad", "joy rejoice glad", "Nehemiah 8:10,Psalms 16:11,Philippians 4:4,John 15:11,Psalms 30:5"],
+    patience: ["patience patient waiting wait", "patience wait patient", "Isaiah 40:31,James 1:4,Psalms 27:14,Romans 12:12,Galatians 6:9"],
+    thanks: ["thankful thanks thanksgiving gratitude grateful", "thanks thanksgiving give", "1 Thessalonians 5:18,Psalms 100:4,Colossians 3:17,Psalms 107:1"],
+    family: ["family children child kids parents parent mother father son daughter", "children father mother", "Proverbs 22:6,Ephesians 6:1,Ephesians 6:4,Exodus 20:12,Psalms 127:3"],
+    humility: ["humble humility pride proud arrogant ego", "humble pride lowly", "James 4:6,Proverbs 16:18,Philippians 2:3,Micah 6:8,1 Peter 5:6"]
   };
   var TOPIC_T = {}; Object.keys(TOPICS).forEach(function (k) { TOPICS[k][0].split(" ").forEach(function (w) { TOPIC_T[w] = k; }); });
   function refVerse(r) { var m = /^(.*) (\d+):(\d+)$/.exec(r), bi = m ? bookIdx("", m[1]) : -1; return bi < 0 ? null : verse(bi, +m[2], +m[3]); }
@@ -184,11 +212,13 @@
   var SYSTEM = "You are Bibley, a warm and honest Bible helper running right on this device. You answer questions about the Bible using the real King James verses provided. You always quote the verses word for word before explaining them, and you explain them in plain words. You are gentle: you never condemn the person asking.";
   var INSTRUCTIONS = "Write your answer like this:\n1. Quote the 2 or 3 most important verses, each on its own line, in exactly this shape: the reference copied letter for letter from the list above, then a colon, then the exact words inside quote marks. Never change a single word or a single letter of a quote or of a reference.\n2. Then write 'In plain words:' and explain in 2 or 3 simple sentences what these verses say about the question, gently and honestly. Only claim what these verses actually say - do not add big claims they do not make. If the verses do not really answer the question, say so honestly instead of pretending they do.";
   function userPrompt(q, picked) { return "Question: " + q + "\n\nReal King James Bible verses found for this question:\n" + picked.map(function (v) { return v.ref + ": " + v.text; }).join("\n") + "\n\n" + INSTRUCTIONS; }
-  function buildMessages(q, picked) {
-    var msgs = [{ role: "system", content: SYSTEM }], p = refVerse("Philippians 4:6"), m = refVerse("Matthew 6:34");
+  // Gemma has no system role: its profile folds SYSTEM into the first user turn (same words, same example).
+  function buildMessages(q, picked, modelId) {
+    var mi = modelInfo(modelId), msgs = mi.noSystem ? [] : [{ role: "system", content: SYSTEM }], p = refVerse("Philippians 4:6"), m = refVerse("Matthew 6:34");
     if (p && m) msgs.push({ role: "user", content: userPrompt("what does the Bible say about worry?", [p, m]) },
       { role: "assistant", content: p.ref + ": \"" + p.text + "\"\n" + m.ref + ": \"" + m.text + "\"\n\nIn plain words: God does not want you to live worried. Instead of carrying every fear by yourself, bring each one to Him in prayer with thanks, and take life one day at a time. That is His way out of worry: pray, and trust Him daily." });
     msgs.push({ role: "user", content: userPrompt(q, picked) });
+    if (mi.noSystem) msgs[0] = { role: "user", content: SYSTEM + "\n\n" + msgs[0].content };
     return msgs;
   }
 
@@ -228,7 +258,7 @@
   /* ---------------- settings + device ---------------- */
   var subs = [];
   function emit() { var s = status(); subs.forEach(function (f) { try { f(s); } catch (e) {} }); pill(); }
-  function getConfig() { var c = {}; try { c = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {} return { mode: c.mode === "local" ? "local" : "cloud", backend: ["webgpu", "cpu"].indexOf(c.backend) >= 0 ? c.backend : "auto" }; }
+  function getConfig() { var c = {}; try { c = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {} return { mode: c.mode === "local" ? "local" : "cloud", backend: ["webgpu", "cpu"].indexOf(c.backend) >= 0 ? c.backend : "auto", modelId: MODELS.some(function (m) { return m.id === c.modelId; }) ? c.modelId : MODELS[0].id }; }
   function setConfig(p) { var c = Object.assign(getConfig(), p || {}); try { localStorage.setItem(KEY, JSON.stringify(c)); } catch (e) {} c = getConfig(); emit(); return c; }
   var capsP = null;
   function detectCapabilities() {
@@ -246,35 +276,45 @@
   var st = { state: "idle", backend: "", percent: 0, text: "", modelId: "", error: "" };
   function status() { return Object.assign({}, st, { config: getConfig() }); }
   function set(p) { Object.assign(st, p); emit(); }
-  async function backendFor(cfg) { var c = await detectCapabilities(); if (cfg.backend === "webgpu") return "webgpu"; if (cfg.backend === "cpu") return "cpu"; return c.recommended; }
+  // Gemma 3 1B has only an f16 WebGPU build: on a GPU without shader-f16, Auto picks the CPU build instead.
+  async function backendFor(cfg, mi) { var c = await detectCapabilities(); mi = mi || modelInfo(cfg.modelId);
+    if (cfg.backend === "webgpu") return "webgpu"; if (cfg.backend === "cpu") return "cpu";
+    return c.webgpu && (c.f16 || mi.webgpu.f32) ? "webgpu" : "cpu"; }
 
   /* ---------------- engines ---------------- */
-  var eng = null, loadP = null;   // eng = { backend, modelId, gen(msgs, onDelta) }
-  function loadModel(onProgress) {
+  // One model in memory at a time: switching models (or backends) disposes the old engine first so phone RAM stays sane.
+  var eng = null, loadP = null;   // eng = { key, backend, model, modelId, gen(msgs, onDelta) }
+  function loadModel(onProgress, modelId) {
+    if (onProgress && typeof onProgress === "object") { modelId = onProgress.modelId; onProgress = onProgress.onProgress; }
+    var mi = modelInfo(modelId);
     var prog = function (p) { set({ percent: p.percent, text: p.text, state: "loading" }); if (onProgress) try { onProgress(p); } catch (e) {} };
     return (async function () {
-      var be = await backendFor(getConfig());
-      if (eng && eng.backend === be) return eng;
-      if (loadP && loadP.be === be) return loadP;
+      var be = await backendFor(getConfig(), mi), key = mi.id + "|" + be;
+      if (eng && eng.key === key) return eng;
+      if (loadP && loadP.key === key) return loadP;
+      if (loadP) { try { await loadP; } catch (e) {} }
+      if (eng && eng.key === key) return eng;
       if (eng) await unload();
-      var p = (be === "webgpu" ? loadWebLLM(prog) : loadCPU(prog)).then(function (e) { eng = e; loadP = null; set({ state: "ready", backend: be, modelId: e.modelId, percent: 100, text: "Bibley 2.1 is ready", error: "" }); return e; },
-        function (e) { loadP = null; set({ state: "error", error: String(e && e.message || e), text: "Couldn't load Bibley 2.1" }); throw e; });
-      p.be = be; loadP = p; set({ state: "loading", backend: be, percent: 0, text: "Starting...", error: "" });
+      var p = (be === "webgpu" ? loadWebLLM(prog, mi) : loadCPU(prog, mi)).then(function (e) { e.key = key; e.model = mi.id; eng = e; loadP = null; set({ state: "ready", backend: be, model: mi.id, modelId: e.modelId, percent: 100, text: mi.name + " is ready", error: "" }); return e; },
+        function (e) { loadP = null; set({ state: "error", model: mi.id, error: String(e && e.message || e), text: "Couldn't load " + mi.name }); throw e; });
+      p.key = key; loadP = p; set({ state: "loading", backend: be, model: mi.id, percent: 0, text: "Starting...", error: "" });
       return p;
     })();
   }
-  async function loadWebLLM(prog) {
+  async function loadWebLLM(prog, mi) {
     var c = await detectCapabilities(); if (!c.webgpu) throw new Error("WebGPU is not available in this browser");
-    var id = c.f16 ? MODEL_F16 : MODEL_F32;
+    var id = c.f16 ? mi.webgpu.f16 : mi.webgpu.f32;
+    if (!id) throw new Error(mi.model + " needs WebGPU with shader-f16 here. Choose Auto or CPU in Settings > AI Engine");
     prog({ percent: 0, stage: "engine", text: "Loading WebLLM..." });
     var W = await import(WEBLLM_URL);
     var e = await W.CreateMLCEngine(id, { initProgressCallback: function (r) { prog({ percent: Math.round((r.progress || 0) * 100), stage: /fetch|download|loading model from cache/i.test(r.text || "") ? "download" : "load", text: r.text || "" }); } });
     return { backend: "webgpu", modelId: id, raw: e, gen: async function (msgs, onDelta) {
-      var s = await e.chat.completions.create({ messages: msgs, stream: true, temperature: 0.1, max_tokens: MAX_NEW, extra_body: { enable_thinking: false } });
+      var req = { messages: msgs, stream: true, temperature: 0.1, max_tokens: MAX_NEW }; if (mi.thinking) req.extra_body = { enable_thinking: false };
+      var s = await e.chat.completions.create(req);
       for await (var ch of s) { var d = ch.choices && ch.choices[0] && ch.choices[0].delta && ch.choices[0].delta.content; if (d) onDelta(d); }
     }, unload: function () { return e.unload(); } };
   }
-  async function loadCPU(prog) {
+  async function loadCPU(prog, mi) {
     prog({ percent: 0, stage: "engine", text: "Loading the CPU engine..." });
     var T = await import(TJS_URL);
     T.env.allowLocalModels = false; T.env.useBrowserCache = true;
@@ -283,68 +323,133 @@
       if (!x || !x.file) return;
       if (x.status === "progress" || x.status === "done") { var f = files[x.file] || (files[x.file] = { l: 0, t: 0 }); if (x.total) f.t = x.total; f.l = x.status === "done" ? f.t : (x.loaded || 0); }
       var l = 0, t = 0; for (var k in files) { l += files[k].l; t += files[k].t; }
-      if (t) prog({ percent: Math.min(99, Math.round(l / t * 100)), stage: "download", text: "Downloading Bibley 2.1 model... " + Math.round(l / 1048576) + " of " + Math.round(t / 1048576) + " MB" });
+      if (t) prog({ percent: Math.min(99, Math.round(l / t * 100)), stage: "download", text: "Downloading " + mi.name + " (" + mi.model + ")... " + Math.round(l / 1048576) + " of " + Math.round(t / 1048576) + " MB" });
     };
-    var tok = await T.AutoTokenizer.from_pretrained(CPU_REPO, { progress_callback: cb });
-    var model = await T.AutoModelForCausalLM.from_pretrained(CPU_REPO, { dtype: "q4", device: "wasm", progress_callback: cb });
-    return { backend: "cpu", modelId: CPU_REPO + " (q4)", raw: model, tokenizer: tok, gen: async function (msgs, onDelta) {
-      var inp = tok.apply_chat_template(msgs, { add_generation_prompt: true, return_dict: true, enable_thinking: false });
+    var tok = await T.AutoTokenizer.from_pretrained(mi.cpu, { progress_callback: cb });
+    var model = await T.AutoModelForCausalLM.from_pretrained(mi.cpu, { dtype: mi.dtype, device: "wasm", progress_callback: cb });
+    return { backend: "cpu", modelId: mi.cpu + " (" + mi.dtype + ")", raw: model, tokenizer: tok, gen: async function (msgs, onDelta) {
+      var o = { add_generation_prompt: true, return_dict: true }; if (mi.thinking) o.enable_thinking = false;
+      var inp = tok.apply_chat_template(msgs, o);
       var streamer = new T.TextStreamer(tok, { skip_prompt: true, skip_special_tokens: true, callback_function: function (t) { if (t) onDelta(t); } });
       await model.generate(Object.assign({}, inp, { max_new_tokens: MAX_NEW, do_sample: false, repetition_penalty: 1.1, streamer: streamer }));
     }, unload: function () { return model.dispose && model.dispose(); } };
   }
-  async function unload() { var e = eng; eng = null; if (e && e.unload) { try { await e.unload(); } catch (x) {} } set({ state: "idle", modelId: "", percent: 0, text: "" }); }
-  async function clearCache() {
-    await unload(); var n = 0;
-    if (window.caches) for (var k of await caches.keys()) if (/^webllm|^tvmjs|^transformers-cache/.test(k)) { await caches.delete(k); n++; }
-    set({ state: "idle", text: "Local model removed from this device" });
+  async function unload() { var e = eng; eng = null; if (e && e.unload) { try { await e.unload(); } catch (x) {} } set({ state: "idle", model: "", modelId: "", percent: 0, text: "" }); }
+  // clearCache(modelId) removes one model's files; clearCache() removes every on-device model.
+  async function clearCache(modelId) {
+    var mi = modelId ? modelInfo(modelId) : null;
+    if (!mi || (eng && eng.model === mi.id)) await unload(); var n = 0;
+    if (window.caches) for (var k of await caches.keys()) {
+      if (!/^webllm|^tvmjs|^transformers-cache/.test(k)) continue;
+      if (!mi) { await caches.delete(k); n++; continue; }
+      var c = await caches.open(k), rs = await c.keys();
+      for (var r of rs) if (mi.cacheRe.test(r.url)) { await c.delete(r); n++; }
+    }
+    set({ state: "idle", text: (mi ? mi.name : "Local models") + " removed from this device" });
     return n;
   }
-  async function isCached() {
+  async function isCached(modelId) {
+    var mi = modelInfo(modelId);
     try { if (!window.caches) return false; var ks = await caches.keys();
       for (var k of ks) { if (!/^webllm\/model|^transformers-cache/.test(k)) continue; var c = await caches.open(k), r = await c.keys();
-        if (r.some(function (q) { return /Qwen3-0\.6B/i.test(q.url) && /params_shard|\.onnx/.test(q.url); })) return true; }
+        if (r.some(function (q) { return mi.cacheRe.test(q.url) && /params_shard|\.onnx/.test(q.url); })) return true; }
     } catch (e) {} return false;
   }
 
   /* ---------------- ask ---------------- */
-  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}) }) -> { text, sources, offTopic, engine }
-  async function generate(question, opts) {
-    opts = opts || {}; var prog = opts.onProgress || function () {};
-    if (!KJV) prog({ percent: 0, stage: "bible", text: "Opening the King James Bible..." });
+  // Retrieval only (no model): what both models are grounded on for a question.
+  async function retrieve(question, modelId) {
     await ensureKJV();
     var direct = findByReference(question).slice(0, 6), skip = {}; direct.forEach(function (v) { skip[v.ref] = 1; });
-    var ranked = searchKJV(question, { k: 5, skip: skip });
-    if (isOffTopic(direct, ranked)) return { text: offTopicReply(ranked), sources: ranked.slice(0, 1), offTopic: true, engine: "none" };
-    var picked = direct.concat(ranked).slice(0, 8);
-    var e = await loadModel(prog), raw = "";
-    await e.gen(buildMessages(question, picked), function (d) { raw += d; if (opts.onToken) try { opts.onToken(stripThink(raw)); } catch (x) {} });
-    var text = repairQuotes(stripThink(raw).trim(), picked);
+    var ranked = searchKJV(question, { k: 5, skip: skip }), off = isOffTopic(direct, ranked), picked = direct.concat(ranked).slice(0, 8);
+    return { direct: direct, ranked: ranked, topics: ranked.topics, offTopic: off, picked: picked, messages: off ? null : buildMessages(question, picked, modelId), model: modelInfo(modelId).id };
+  }
+  // The verses an answer actually quotes (after repair), else the top retrieved ones: for "Referenced Verses" chips.
+  function citedVerses(text, picked) {
+    var out = [], seen = {};
+    String(text || "").split("\n").forEach(function (l) { var m = LINE_RE.exec(l); if (!m) return; var v = findByReference(m[1])[0]; if (v && !seen[v.ref]) { seen[v.ref] = 1; out.push(v); } });
+    if (!out.length) (picked || []).slice(0, 3).forEach(function (v) { var x = findByReference(v.ref)[0]; if (x && !seen[x.ref]) { seen[x.ref] = 1; out.push(x); } });
+    return out.map(function (v) { return { ref: v.ref, text: v.text, b: v.b, c: v.c, v: v.v }; });
+  }
+  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}), modelId }) -> { text, sources, refs, offTopic, engine, model }
+  async function generate(question, opts) {
+    opts = opts || {}; var prog = opts.onProgress || function () {}, mi = modelInfo(opts.modelId);
+    if (!KJV) prog({ percent: 0, stage: "bible", text: "Opening the King James Bible..." });
+    var R = await retrieve(question, mi.id);
+    if (R.offTopic) return { text: offTopicReply(R.ranked), sources: R.ranked.slice(0, 1), refs: citedVerses("", R.ranked.slice(0, 1)), offTopic: true, engine: "none", model: mi.id, modelName: mi.name };
+    var e = await loadModel(prog, mi.id), raw = "";
+    await e.gen(R.messages, function (d) { raw += d; if (opts.onToken) try { opts.onToken(stripThink(raw)); } catch (x) {} });
+    var text = repairQuotes(stripThink(raw).trim(), R.picked);
     if (!text) throw new Error("empty-local-answer");
-    return { text: text, sources: picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), offTopic: false, engine: e.backend, modelId: e.modelId };
+    return { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
   }
 
-  /* ---------------- header pill in the AI panel ---------------- */
+  /* ---------------- Referenced Verses chips (tap = open the verse in the reader) ---------------- */
+  function escH(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function chipsHtml(refs) {
+    refs = (refs || []).filter(function (r) { return r && r.b != null; }); if (!refs.length) return "";
+    return '<div class="lai-refs"><span>Referenced Verses</span>' + refs.slice(0, 8).map(function (r) { return '<button type="button" class="lai-chip" data-b="' + r.b + '" data-c="' + r.c + '" data-v="' + r.v + '" title="' + escH(r.text || "") + '">' + escH(r.ref.replace(/^Psalms /, "Psalm ")) + "</button>"; }).join("") + "</div>";
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest && e.target.closest(".lai-chip"); if (!b) return; e.preventDefault();
+    var FX = window.BibleyFX; if (FX && FX.jumpToVerse) FX.jumpToVerse(+b.dataset.b, +b.dataset.c, +b.dataset.v || null);
+  });
+
+  /* ---------------- quick switcher in the AI panel (Cloud AI / Model 1 / Model 2) ---------------- */
+  function label(cfg) { cfg = cfg || getConfig(); if (cfg.mode !== "local") return "Cloud AI"; var mi = modelInfo(cfg.modelId); return mi.name + " \u00b7 " + mi.family + " " + mi.params; }
   function pill() {
     var b = document.getElementById("aiEnginePill"); if (!b) return;
-    var local = getConfig().mode === "local";
-    b.textContent = local ? "Bibley 2.1 \u00b7 On-Device" : "Cloud AI";
+    var cfg = getConfig(), local = cfg.mode === "local";
+    b.textContent = label(cfg) + " \u25be";
     b.classList.toggle("local", local); b.classList.toggle("loading", local && st.state === "loading");
-    b.title = local ? (st.state === "loading" ? st.text : "On-device AI. Tap to change") : "Tap to change the AI engine";
+    b.title = local ? (st.state === "loading" ? st.text : "On-device AI. Tap to switch") : "Tap to switch the AI engine";
+    b.setAttribute("aria-haspopup", "menu");
+  }
+  function closeMenu() { var m = document.getElementById("laiMenu"); if (m) m.remove(); document.removeEventListener("click", outside, true); }
+  function outside(e) { var m = document.getElementById("laiMenu"); if (m && !m.contains(e.target) && e.target.id !== "aiEnginePill") closeMenu(); }
+  function choose(v) {
+    if (v === "settings") { closeMenu(); if (window.BibleySettings) window.BibleySettings.open("aiengine"); return; }
+    var c = v === "cloud" ? setConfig({ mode: "cloud" }) : setConfig({ mode: "local", modelId: v }); closeMenu();
+    var t = window.BibleyFX && window.BibleyFX.ui && window.BibleyFX.ui.toast; if (t) t(c.mode === "local" ? label(c) + " is on. It downloads once, the first time you ask." : "Cloud AI is on");
+    if (c.mode === "local" && eng && eng.model !== c.modelId) unload();
+  }
+  function openMenu(b) {
+    if (document.getElementById("laiMenu")) { closeMenu(); return; }
+    var cfg = getConfig(), r = b.getBoundingClientRect(), m = document.createElement("div");
+    m.id = "laiMenu"; m.className = "lai-menu"; m.setAttribute("role", "menu");
+    var opt = function (v, t, s, on, fam) { return '<button type="button" role="menuitemradio" aria-checked="' + on + '" class="lai-opt' + (on ? " on" : "") + '" data-v="' + v + '"><span class="lai-t">' + escH(t) + (fam ? ' <em class="lai-fam ' + fam.toLowerCase() + '">' + fam + "</em>" : "") + "<small>" + escH(s) + '</small></span><span class="lai-ck">' + (on ? "\u2713" : "") + "</span></button>"; };
+    m.innerHTML = opt("cloud", "Cloud AI", "Fast, needs internet", cfg.mode !== "local") +
+      MODELS.map(function (mi, i) { return opt(mi.id, "Model " + (i + 1) + ": " + mi.name + " \u00b7 " + mi.model, mi.tag + " \u00b7 " + mi.size.split(" / ")[0] + " \u00b7 KJV verse lookup", cfg.mode === "local" && cfg.modelId === mi.id, mi.family); }).join("") +
+      '<button type="button" class="lai-opt lai-set" data-v="settings"><span class="lai-t">AI Engine settings\u2026<small>Download, test, backend</small></span></button>';
+    document.body.appendChild(m);
+    var W = Math.min(330, innerWidth - 16); m.style.width = W + "px"; m.style.left = Math.max(8, Math.min(r.right - W, innerWidth - W - 8)) + "px"; m.style.top = (r.bottom + 6) + "px";
+    m.addEventListener("click", function (e) { var o = e.target.closest(".lai-opt"); if (o) { e.stopPropagation(); choose(o.dataset.v); } });
+    setTimeout(function () { document.addEventListener("click", outside, true); }, 0);
   }
   function mountPill() {
     var b = document.getElementById("aiEnginePill"); if (!b || b.dataset.wired) return pill(); b.dataset.wired = "1";
-    b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); if (window.BibleySettings) window.BibleySettings.open("aiengine"); });
+    b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openMenu(b); });
+    if (!document.getElementById("laiCss")) { var s = document.createElement("style"); s.id = "laiCss"; s.textContent =
+      ".lai-menu{position:fixed;z-index:90;background:var(--bg-panel,#0d1326);color:var(--ink,#eee);border:1px solid var(--panel-border,#c9a86744);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.45);padding:6px;box-sizing:border-box}" +
+      ".lai-opt{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:inherit;text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer;font:500 14px/1.3 system-ui,-apple-system,sans-serif}.lai-opt:hover,.lai-opt.on{background:#c9a8671f}" +
+      ".lai-t{flex:1;min-width:0}.lai-t small{display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}.lai-ck{color:var(--gold,#c9a867);font-weight:700}.lai-set{border-top:1px solid #c9a86726;border-radius:0 0 10px 10px;margin-top:4px}" +
+      ".lai-fam{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;vertical-align:1px}.lai-fam.qwen{background:#7fa3b833;color:#9cc3da}.lai-fam.gemma{background:#9c90b833;color:#c0b5e6}" +
+      ".lai-refs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.lai-refs span{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-right:2px}" +
+      ".lai-chip{border:1px solid var(--gold,#c9a867);background:#c9a86714;color:var(--gold,#c9a867);border-radius:999px;padding:5px 11px;font:600 12.5px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.lai-chip:hover{background:#c9a86733}";
+      document.head.appendChild(s); }
     pill();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountPill); else mountPill();
   window.addEventListener("storage", function (e) { if (e.key === KEY) emit(); });
 
-  var api = { version: "2.1", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
+  var api = { version: "7.0", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
+    MODELS: MODELS.map(function (m) { return { id: m.id, name: m.name, family: m.family, model: m.model, params: m.params, tag: m.tag, size: m.size, desc: m.desc, webgpu: [m.webgpu.f16, m.webgpu.f32].filter(Boolean), cpu: m.cpu, dtype: m.dtype }; }),
+    modelInfo: function (id) { var m = modelInfo(id); return api.MODELS.filter(function (x) { return x.id === m.id; })[0]; }, label: label,
     getConfig: getConfig, setConfig: setConfig, isLocal: function () { return getConfig().mode === "local"; }, detectCapabilities: detectCapabilities,
-    loadModel: loadModel, generate: generate, ask: generate, clearCache: clearCache, isCached: isCached, status: status, unload: unload,
+    loadModel: loadModel, generate: generate, ask: generate, retrieve: retrieve, clearCache: clearCache, isCached: isCached, status: status, unload: unload,
     on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
-    ensureKJV: ensureKJV, findByReference: findByReference, searchKJV: searchKJV, isOffTopic: isOffTopic, offTopicReply: offTopicReply,
-    buildMessages: buildMessages, repairQuotes: repairQuotes, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, lastRepair: null };
+    ensureKJV: ensureKJV, kjvReady: function () { return !!KJV; }, passage: passage, findByReference: findByReference, searchKJV: searchKJV, search: searchKJV, isOffTopic: isOffTopic, offTopicReply: offTopicReply,
+    buildMessages: buildMessages, buildPrompt: buildMessages, repairQuotes: repairQuotes, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
+    openSwitcher: function () { var b = document.getElementById("aiEnginePill"); if (b) openMenu(b); } };
   window.BibleyLocalAI = api;
 })();

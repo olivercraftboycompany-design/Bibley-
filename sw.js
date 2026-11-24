@@ -8,7 +8,7 @@
    - AI requests (POST) are never touched, and neither are the On-Device AI downloads
      (jsDelivr, Hugging Face, GitHub): other sites are only handled for Bible text and fonts.
    - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
-const VERSION = 'bibley-v26';
+const VERSION = 'bibley-v27';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';

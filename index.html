@@ -2562,15 +2562,15 @@ Ground every point in the actual chapter text provided. Be specific and concrete
       clearInterval(tick);
       try {
         const ans=await LAI.generate(q, {
-          onProgress: p=>{ const el=thinkingDiv.querySelector(".thinking-dots"); if(el) el.firstChild.textContent = p.stage==="bible" ? "Opening the King James Bible" : (p.stage==="download" ? "Downloading Bibley 2.1 model... "+(p.percent||0)+"%" : "Loading Bibley 2.1 ("+(p.percent||0)+"%)"); },
+          onProgress: p=>{ const el=thinkingDiv.querySelector(".thinking-dots"); const nm=(LAI.modelInfo?LAI.modelInfo().name:"Bibley 2.1"); if(el) el.firstChild.textContent = p.stage==="bible" ? "Opening the King James Bible" : (p.stage==="download" ? "Downloading "+nm+" model... "+(p.percent||0)+"%" : "Loading "+nm+" ("+(p.percent||0)+"%)"); },
           onToken: t=>{ if(t.trim()){ thinkingDiv.innerHTML=formatAiAnswer(t); aiContent.scrollTop=aiContent.scrollHeight; } }
         });
         thinkingDiv.remove();
-        addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text) + '<div class="ai-engine-note">Bibley 2.1 \u00b7 on this device</div>', ans.sources);
+        addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text) + (LAI.chipsHtml ? LAI.chipsHtml(ans.refs) : "") + '<div class="ai-engine-note">'+escapeHtml(LAI.label ? LAI.label() : "Bibley 2.1")+' \u00b7 on this device \u00b7 KJV verse lookup</div>', ans.sources);
         memSoon();
       } catch(err){
         thinkingDiv.remove(); console.warn("[Bibley 2.1]", err);
-        const d=addMsg("ai", "Bibley 2.1 couldn't run on this device"+(err && err.message ? " ("+escapeHtml(String(err.message).slice(0,140))+")" : "")+'.<br><button type="button" class="ai-action-btn chat-cloud" style="margin-top:8px">Switch to Cloud AI</button> <button type="button" class="ai-action-btn chat-retry" style="margin-top:8px">Try again</button>', null, false);
+        const d=addMsg("ai", (LAI.label ? escapeHtml(LAI.label()) : "Bibley 2.1")+" couldn't run on this device"+(err && err.message ? " ("+escapeHtml(String(err.message).slice(0,140))+")" : "")+'.<br><button type="button" class="ai-action-btn chat-cloud" style="margin-top:8px">Switch to Cloud AI</button> <button type="button" class="ai-action-btn chat-retry" style="margin-top:8px">Try again</button>', null, false);
         d.querySelector(".chat-cloud").addEventListener("click", ()=>{ LAI.setConfig({ mode:"cloud" }); d.remove(); runChatQuestion(q); });
         d.querySelector(".chat-retry").addEventListener("click", ()=>{ d.remove(); runChatQuestion(q); });
       } finally { aiChatInput.disabled=false; if(sendBtn) sendBtn.disabled=false; }

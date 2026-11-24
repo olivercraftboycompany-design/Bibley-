@@ -301,7 +301,7 @@
     var q = Array.isArray(user) ? ((user.filter(function (m) { return m.role === "user"; }).pop() || {}).content || "") : String(user || "");
     try {
       var r = await window.BibleyLocalAI.generate(q, { onToken: function (t) { if (opts.onText) { try { opts.onText(tidy(t)); } catch (e) {} } } });
-      api.last = { provider: "Bibley 2.1", model: r.modelId || r.engine, at: new Date().toISOString(), local: true };
+      api.last = { provider: r.modelName || "Bibley 2.1", model: r.modelId || r.engine, at: new Date().toISOString(), local: true };
       return tidy(r.text);
     } catch (e) { try { console.warn("[Bibley AI] on-device AI failed, using Cloud AI", e); } catch (x) {} return streamNow(system, user, opts); }
   }

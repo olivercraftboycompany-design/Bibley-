@@ -398,9 +398,15 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "6.9";
+  const APP_VERSION = "7.0";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.0", date: "November 2026", items: [
+      ["Full-page Study Notebook", "Notes now open as a full-page workspace: notebooks, pinned notes, highlights and tags in a sidebar on tablets and computers, and clean full-screen pages on your phone. Focus mode hides everything but your writing, with Clean, Warm Parchment or Lined paper."],
+      ["Insert any verse", "Tap Verse in the editor, type John 3:16, Psalm 23:1-3 or a word like peace, and the real King James text drops into your note. Tap any verse reference in a note to preview it, copy it or jump to the chapter."],
+      ["Richer study tools", "Headings, quotes, callout boxes, numbered lists, tappable checklists, dividers, undo and redo, Write / Split / Preview, word count and read time, autosave, voice dictation, 9 study templates (SOAP, Sermon Notes, Verse Breakdown, Chapter Summary, Devotional and more), and export to Markdown, text or PDF."],
+      ["Second on-device AI: Gemma", "Bibley 2.2 runs Google's Gemma 3 1B right on your device, alongside Bibley 2.1 (Qwen3 0.6B). Both look up real KJV verses for every answer and show tappable Referenced Verses. Switch between Cloud AI, Model 1 and Model 2 from the pill at the top of the AI panel."]
+    ] },
     { v: "6.9", date: "November 2026", items: [
       ["Lost Books: 71 more texts", "71 more ancient writings in Lost Books (now 118 full texts): the Martyrdom of Polycarp, Epistle to Diognetus, Apostolic Constitutions, 2 Baruch, Psalms and Odes of Solomon, the Sibylline Oracles, Testament of Solomon, Pseudo-Matthew, the Acts of Thomas (with the Hymn of the Pearl), Andrew, Philip and more, the Pilate letters, Pistis Sophia, and public-domain translations of the Gospels of Thomas, Mary, Judas and Philip. Every one is a public domain translation, credited on its page."],
       ["Lost to History guide", "A new reference shelf for 39 books that no longer survive: the books the Bible itself names (like the Book of Jasher and Paul's earlier letter to the Corinthians) and lost gospels known only from early church writers. Each is clearly badged, so nobody mistakes it for an ancient text."],

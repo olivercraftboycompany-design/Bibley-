@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "6.9";
+  const APP_VER = "1.9", WEB_VER = "7.0";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -383,7 +383,7 @@
     ["Study AI depth", "ai depth simple deep explain", "study", "depth"], ["Study Notebook", "notes notebook", "study", "nb"], ["Memory verses", "memorize memory", "study", "mem"],
     ["Reading plans", "plans streak", "study", "plans"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
-    ["AI Engine", "ai engine bibley 2.1 on-device on device local ai offline ai webllm webgpu cpu wasm qwen model cloud ai switch", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aidl"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
+    ["AI Engine", "ai engine bibley 2.1 2.2 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma model 1 model 2 second model cloud ai switch verse lookup", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
@@ -406,7 +406,7 @@
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
-      group("Bibley AI", row({ ic: IC.chip, t: "AI Engine", s: (window.BibleyLocalAI && window.BibleyLocalAI.isLocal()) ? "On-Device AI (Bibley 2.1)" : "Cloud AI (Fast)", go: "aiengine" }) + row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
+      group("Bibley AI", row({ ic: IC.chip, t: "AI Engine", s: (window.BibleyLocalAI && window.BibleyLocalAI.isLocal()) ? "On-Device AI \u00b7 " + (window.BibleyLocalAI.label ? window.BibleyLocalAI.label() : "Bibley 2.1") : "Cloud AI (Fast)", go: "aiengine" }) + row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
         row({ ic: IC.mem, t: "What Bibley remembers", s: memSub(), go: "memory" })) +
       group("Your data", row({ ic: IC.data, t: "Data & backup", s: "Export or import everything", go: "data" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
@@ -682,40 +682,59 @@
     });
   } };
 
-  /* ---------- v6.7: AI Engine (Cloud AI or On-Device Bibley 2.1, bibley-local-ai.js) ---------- */
+  /* ---------- v7.0: AI Engine (Cloud AI, or one of two on-device models sharing the KJV verse lookup, bibley-local-ai.js) ---------- */
   PAGES.aiengine = { title: "AI Engine", render(el) {
     const L = window.BibleyLocalAI;
     if (!L) { el.innerHTML = '<p class="bs-note">The AI engine switcher is still loading.</p>'; return; }
-    const c = L.getConfig(), s0 = L.status(), local = c.mode === "local";
+    const c = L.getConfig(), s0 = L.status(), local = c.mode === "local", MS = L.MODELS || [];
     const be = (v, t, sub) => '<button type="button" class="bs-row bs-pick' + (c.backend === v ? " on" : "") + '" data-act="be-' + v + '"><span class="bs-t">' + esc(t) + "<small>" + esc(sub) + '</small></span><span class="bs-check">' + (c.backend === v ? "\u2713" : "") + "</span></button>";
-    el.innerHTML = field("AI engine", seg("mode", c.mode, [["cloud", "Cloud AI (Fast)"], ["local", "On-Device AI (Bibley 2.1)"]]), "aimode") +
-      (local ? group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
+    const card = (m, i) => { const on = local && c.modelId === m.id;
+      return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">Model ' + (i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
+        '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " parameters \u00b7 " + esc(m.tag) + " \u00b7 " + esc(m.size) + "</div>" +
+        '<p class="ai-mdesc">' + esc(m.desc) + ' Full King James verse lookup built in.</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
+        '<div class="ai-mst">Checking\u2026</div><div class="ai-prog" hidden><i></i></div><div class="ai-btns">' +
+        (on ? "" : '<button type="button" class="fx-btn small primary" data-act="use-' + m.id + '">Use this model</button>') +
+        '<button type="button" class="fx-btn small' + (on ? " primary" : "") + '" data-act="dl-' + m.id + '">Download &amp; Load</button><button type="button" class="fx-btn small" data-act="test-' + m.id + '">Test</button><button type="button" class="fx-btn small" data-act="clear-' + m.id + '">Clear</button></div></div>'; };
+    el.innerHTML = field("AI engine", seg("mode", c.mode, [["cloud", "Cloud AI (Fast)"], ["local", "On-Device AI"]]), "aimode") +
+      (local ? '<div class="ai-models" data-anchor="aidl">' + MS.map(card).join("") + "</div>" +
+        '<p class="bs-note">Only one model is kept in memory: switching unloads the other first. Each downloads once and is saved offline. CPU mode on phones is slower, and older iPhones can hit browser memory limits with Model 2.</p>' +
+        group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
         '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>' +
-        group("Bibley 2.1 model", '<div class="bs-row bs-static" data-anchor="aidl"><span class="bs-ic">' + IC.chip + '</span><span class="bs-t">Qwen3-0.6B + KJV verse search<small class="ai-st">Checking\u2026</small></span></div>' +
-          '<div class="ai-prog" hidden><i></i></div><div class="ai-btns"><button type="button" class="fx-btn small primary" data-act="dl">Download &amp; Load Model</button><button type="button" class="fx-btn small" data-act="clear">Clear Local Model Cache</button></div>') +
-        '<p class="bs-note">One-time download (~335 MB WebGPU / ~395 MB CPU), saved offline. CPU mode on phones is slower, and older iPhones can hit browser memory limits.</p>' +
-        '<p class="bs-note">Bibley 2.1 finds the real King James verses for your question, quotes them word for word and explains them in plain words, all on this device. It is used for Chatbot questions; everything else keeps using Cloud AI.</p>'
-      : '<p class="bs-note">Cloud AI answers instantly with Bibley\'s online AI. It needs an internet connection. Switch to On-Device AI to run Bibley 2.1 on this device, even offline.</p>');
-    const stEl = el.querySelector(".ai-st"), bar = el.querySelector(".ai-prog"), capEl = el.querySelector(".ai-caps");
+        '<p class="bs-note">Both models find the real King James verses for your question (references like John 3:16, keyword and topic search across all 31,102 verses), quote them word for word, explain them in plain words and show tappable Referenced Verses, all on this device. Used for Chatbot questions; everything else keeps using Cloud AI. Switch any time from the pill at the top of the AI panel.</p>'
+      : '<p class="bs-note">Cloud AI answers instantly with Bibley\'s online AI. It needs an internet connection. Switch to On-Device AI to run Bibley 2.1 (Qwen3 0.6B) or Bibley 2.2 (Gemma 3 1B) on this device, even offline.</p>' +
+        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
+    const capEl = el.querySelector(".ai-caps");
     const paint = s => {
-      if (!stEl || !el.isConnected) return;
-      if (s.state === "loading") { stEl.textContent = (s.text || "Downloading\u2026").slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
-      bar.hidden = true;
-      if (s.state === "ready") { stEl.textContent = "Loaded and ready (" + (s.backend === "webgpu" ? "WebGPU" : "CPU") + ")"; return; }
-      if (s.state === "error") { stEl.textContent = "Couldn't load: " + String(s.error || "").slice(0, 120); return; }
-      L.isCached().then(y => { if (el.isConnected && L.status().state === "idle") stEl.textContent = y ? "Ready offline" : "Not downloaded"; });
+      if (!el.isConnected) return;
+      el.querySelectorAll(".ai-model").forEach(box => {
+        const id = box.dataset.model, stEl = box.querySelector(".ai-mst"), bar = box.querySelector(".ai-prog"), mine = s.model === id;
+        if (mine && s.state === "loading") { stEl.textContent = (s.text || "Downloading\u2026").slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
+        bar.hidden = true;
+        if (mine && s.state === "ready") { stEl.textContent = "\u2713 Loaded in memory and ready (" + (s.backend === "webgpu" ? "WebGPU" : "CPU") + ")"; return; }
+        if (mine && s.state === "error") { stEl.textContent = "Couldn't load: " + String(s.error || "").slice(0, 120); return; }
+        L.isCached(id).then(y => { if (el.isConnected && !(L.status().model === id && L.status().state !== "idle")) stEl.textContent = y ? "\u2713 Downloaded \u00b7 ready offline" : "Not downloaded yet"; });
+      });
     };
     if (local) {
       paint(s0);
       const un = L.on(s => { if (!el.isConnected) { un(); return; } paint(s); });
-      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : ""); });
+      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : "") + (k.webgpu && !k.f16 ? " \u00b7 Model 2 runs on CPU here (no shader-f16)" : ""); });
     }
+    const nm = id => (L.modelInfo(id) || {}).name || "the model";
     wire(el, {
-      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? "On-Device AI (Bibley 2.1) is on" : "Cloud AI is on"); rerender(); } },
+      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? L.label() + " is on" : "Cloud AI is on"); rerender(); } },
       act: a => {
         if (a.indexOf("be-") === 0) { L.setConfig({ backend: a.slice(3) }); rerender(); return; }
-        if (a === "dl") L.loadModel().then(() => toast("Bibley 2.1 is ready on this device")).catch(e => toast("Couldn't load Bibley 2.1: " + String(e && e.message || e).slice(0, 80), 4000));
-        if (a === "clear" && confirm("Remove the Bibley 2.1 model from this device? You can download it again any time.")) L.clearCache().then(() => { toast("Local model removed"); rerender(); });
+        const m = a.match(/^(use|dl|test|clear)-(.+)$/); if (!m) return; const [, op, id] = m;
+        if (op === "use") { L.setConfig({ mode: "local", modelId: id }); const s = L.status(); if (s.model && s.model !== id) L.unload(); toast(L.label() + " is on"); rerender(); return; }
+        if (op === "dl" || op === "test") {
+          if (L.getConfig().modelId !== id || !L.isLocal()) { L.setConfig({ mode: "local", modelId: id }); rerender(); }
+          const run = op === "dl" ? L.loadModel(null, id).then(() => toast(nm(id) + " is ready on this device"))
+            : L.generate("What does John 3:16 say?", { modelId: id }).then(r => toast(nm(id) + " test \u2713 " + r.text.replace(/\s+/g, " ").slice(0, 110) + "\u2026", 6000));
+          run.catch(e => toast("Couldn't load " + nm(id) + ": " + String(e && e.message || e).slice(0, 80), 4000));
+          return;
+        }
+        if (op === "clear" && confirm("Remove " + nm(id) + " from this device? You can download it again any time.")) L.clearCache(id).then(() => { toast(nm(id) + " removed"); rerender(); });
       }
     });
   } };

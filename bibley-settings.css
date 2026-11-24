@@ -276,3 +276,16 @@ html body .fx-dock button.bs-off, html body .fx-sheet-body > .bs-off { display: 
 .bs-acct-err { margin: 0; font-size: 13px; color: #e2867a; }
 .bs-acb.on { color: var(--ink-dim); }
 .bs-root .fx-seg.bs-seg[data-seg="acctab"] { margin: 0 4px; }
+
+/* v7.0: AI Engine model cards */
+.ai-models { display: grid; gap: 10px; margin: 6px 0 4px; }
+.ai-model { border: 1px solid var(--ui-hair, #c9a86726); border-radius: 14px; padding: 12px 14px; background: var(--ui-surface, #ffffff08); }
+.ai-model.on { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.ai-mh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .ai-mname { font-weight: 650; font-size: 15px; }
+.ai-fam { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; } .ai-fam.qwen { background: #7fa3b833; color: #9cc3da; } .ai-fam.gemma { background: #9c90b833; color: #c0b5e6; }
+html.theme-light .ai-fam.qwen, html.theme-sepia .ai-fam.qwen { color: #2f5f7a; } html.theme-light .ai-fam.gemma, html.theme-sepia .ai-fam.gemma { color: #5b4a8f; }
+.ai-use { margin-left: auto; font-size: 11.5px; color: var(--gold); font-weight: 700; }
+.ai-msub { font-size: 12.5px; color: var(--ink-dim); margin-top: 3px; } .ai-mdesc { font-size: 13.5px; margin: 6px 0; line-height: 1.45; }
+.ai-mid { font-size: 11px; color: var(--ink-faint); line-height: 1.6; word-break: break-all; } .ai-mid code { font-size: 10.5px; }
+.ai-mst { font-size: 12.5px; color: var(--ink-dim); margin: 8px 0 6px; }
+.ai-model .ai-btns { display: flex; flex-wrap: wrap; gap: 6px; }
