@@ -127,7 +127,7 @@ html body .fx-sheet-body { padding: 6px 18px calc(22px + env(safe-area-inset-bot
 
 /* cards */
 html body .fx-card { background: var(--ui-surface); border: 1px solid var(--ui-hair); border-radius: var(--ui-r); padding: 16px; margin-bottom: 12px; }
-html body .fx-card.gold { background: var(--ui-surface); border-color: #c9a86755; box-shadow: inset 3px 0 0 var(--gold); }
+html body .fx-card.gold { background: var(--ui-press, #c9a86714); border-color: #c9a86766; }
 html body .fx-eyebrow { font-size: 10.5px; letter-spacing: .18em; opacity: 1; color: var(--gold); display: flex; align-items: center; gap: 6px; }
 html body .fx-eyebrow .ui-ic { width: 14px; height: 14px; flex-shrink: 0; }
 html body .fx-votd-text { font-size: 19px; line-height: 1.62; margin: 12px 0 10px; }

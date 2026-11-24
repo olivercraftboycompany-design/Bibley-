@@ -179,7 +179,7 @@
         '<section class="fx-card dv-card" id="dv-widgets"><div class="fx-eyebrow dv-eb">' + IC.grid + 'Home-screen widgets</div>' +
         '<div class="dv-wgrid"><div class="dv-wcol">' + widgetMock("verse") + '<div class="dv-wname">Verse of the Day</div><button type="button" class="fx-btn small block" data-pin="verse"' + (NAT ? "" : " disabled") + ">Add to home screen</button></div>" +
         '<div class="dv-wcol">' + widgetMock("quick") + '<div class="dv-wname">Bibley Quick</div><button type="button" class="fx-btn small block" data-pin="quick"' + (NAT ? "" : " disabled") + ">Add to home screen</button></div></div>" +
-        (NAT ? '<p class="dv-hint">' + IC.info + "<span>" + (s.pinSupported ? "Your launcher will ask where to put it. " : "") + "You can also long-press an empty spot on your home screen, tap <b>Widgets</b>, find <b>Bibley</b> and drag one out. Both can be resized and follow your phone's light or dark mode.</span></p>" : '<p class="dv-hint">' + APP_ONLY + "</p>") +
+        (NAT ? "" : '<p class="dv-hint">' + APP_ONLY + "</p>") +
         "</section>" +
         // Notifications
         '<section class="fx-card dv-card" id="dv-notif"><div class="fx-eyebrow dv-eb">' + IC.bellOff + "Notifications</div>" +
@@ -195,7 +195,7 @@
         // Time with God
         '<section class="fx-card dv-card" id="dv-focus"><div class="fx-eyebrow dv-eb">' + IC.moon + "Time with God</div>" +
         '<div class="dv-ftitle">Do not disturb my relationship with God</div>' +
-        '<p class="fx-muted dv-p">A calm screen with today\'s verse and a prayer timer. Bibley stays quiet while it runs' + (NAT ? ", and your phone's Do Not Disturb can turn on for the session and switch back off when it ends." : ".") + "</p>" +
+        '<p class="fx-muted dv-p">Today\'s verse and a prayer timer, in a calm screen.</p>' +
         row(IC.phone, "Phone Do Not Disturb", NAT ? (s.dndAccess ? '<span class="dv-ok">' + IC.check + "Allowed</span>" : "Needs a one-time permission") : "Silences calls and other apps too", NAT ? (s.dndAccess ? sw("dnd", d.dnd, false) : '<button type="button" class="fx-btn small" data-a="grant">Allow</button>') : sw("dnd", false, true)) +
         (NAT ? "" : '<p class="dv-hint">' + APP_ONLY + "</p>") +
         '<button type="button" class="fx-btn primary block dv-start" data-a="focus">' + IC.moon + (session() ? "Return to Time with God" : "Start Time with God") + "</button>" +

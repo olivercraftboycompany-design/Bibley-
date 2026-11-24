@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.0";
+  const APP_VER = "1.9", WEB_VER = "7.1";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -50,6 +50,7 @@
     focus: sv('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/>'),
     sunset: sv('<path d="M3 18.5h18M6.5 18.5a5.5 5.5 0 0 1 11 0M12 4.5v3M4.9 9.9l1.8 1.8M19.1 9.9l-1.8 1.8"/>'),
     child: sv('<circle cx="12" cy="6" r="2.5"/><path d="M8 21v-6.5L6 11l3-1.5h6l3 1.5-2 3.5V21M12 14.5V21"/>'),
+    bulb: sv('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>'),
     study: sv('<path d="M3 8.5L12 4l9 4.5-9 4.5z"/><path d="M7 10.5v5c1.5 1.5 3 2 5 2s3.5-.5 5-2v-5M21 8.5v5.5"/>'),
     pray: sv('<path d="M12 3.5c-1 2-1.5 4-1.5 6.5L7 15.5 8.5 20h4l2.5-4.5V10c0-2.5-1-4.5-3-6.5z"/><path d="M12 3.5c1 2 1.5 4 1.5 6.5"/>'),
     cloud: sv('<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.5 1.5 4 4 0 0 1-.5 7.5z"/><path d="M4 4l16 16"/>'),
@@ -362,6 +363,7 @@
 
   /* ---------- search index: every setting, where it lives ---------- */
   const INDEX = [
+    ["Tips", "tips help guide guides how to features shortcuts faq tutorial learn search", "tips", ""],
     ["Account & Cloud Sync", "account cloud sync database sql sqlite login log in sign in signin sign up signup register create account username backup restore devices new phone password", "account", "acct"],
     ["Sync now", "sync now cloud backup database refresh", "account", "acct"], ["Auto-sync", "auto sync automatic cloud", "account", "acct"],
     ["Change password", "change password account login", "account", "acct"], ["Sign out", "sign out log out logout account", "account", "acct"], ["Delete account", "delete account remove cloud data database privacy", "account", "acct"],
@@ -387,7 +389,7 @@
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -398,6 +400,7 @@
     el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search settings" aria-label="Search settings"></div><div class="bs-results" hidden></div><div class="bs-groups">' +
       (s.mode ? '<div class="bs-banner">' + (MODES.find(m => m.id === s.mode) || {}).ic + "<span>" + esc(modeName()) + '</span><button type="button" class="fx-btn small" data-act="modeoff">Turn off</button></div>' : "") +
       group("Account", row({ ic: IC.user, t: "Account & Cloud Sync", s: acctSub(), go: "account", right: acctBadge() + IC.chev })) +
+      group("Help", row({ ic: IC.bulb, t: "Tips", s: "Search features, guides & shortcuts", go: "tips" })) +
       group("Look & feel", row({ ic: IC.palette, t: "Appearance", s: th + " \u00b7 " + p.size + "px \u00b7 " + ((FACES.find(f => f[0] === s.face) || (p.font === "sans" ? FACES[3] : FACES[0]))[1]), go: "appearance" }) +
         row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
@@ -419,8 +422,10 @@
       if (!q) { res.hidden = true; grp.hidden = false; return; }
       const idx = INDEX.filter(r => NAT || r[2] !== "widgets").concat(fl.unlocked ? [["Tester", "tester labs experimental flags playground debug", "tester", ""]] : []);
       const hits = idx.filter(([t, k]) => (t + " " + k).toLowerCase().includes(q));
-      res.innerHTML = hits.length ? '<div class="bs-card">' + hits.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(h[0]) + "<small>" + esc(PG_NAMES[h[2]]) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">No settings match \u201c' + esc(inp.value) + "\u201d</div>";
-      res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = hits[+b.dataset.i]; nav(h[2], h[3]); });
+      const tw = q.split(/\s+/), th = TIPS.filter(t => tw.every(w => (t[1] + " " + t[2] + " " + t[3]).toLowerCase().includes(w))).slice(0, 6);
+      const all = hits.concat(th.map(t => [t[1], "", "tips", "", t]));
+      res.innerHTML = all.length ? '<div class="bs-card">' + all.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(h[0]) + "<small>" + esc(h[4] ? "Tips" : PG_NAMES[h[2]]) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">No settings match \u201c' + esc(inp.value) + "\u201d</div>";
+      res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = all[+b.dataset.i]; if (h[4]) { tipQ = h[0]; tipCat = "all"; } nav(h[2], h[3]); });
       res.hidden = false; grp.hidden = true;
     };
     wire(el, { act: a => { if (a === "modeoff") { setMode(""); rerender(); } if (a === "focusallow" && window.BibleyFocusUI) window.BibleyFocusUI.requestAccess(); },
@@ -443,7 +448,6 @@
       field("Card density", seg("density", s.density, [["comfortable", "Comfortable"], ["compact", "Compact"]]), "density") +
       field("Corners", seg("radius", s.radius, [["square", "Square"], ["soft", "Soft"], ["round", "Round"]]), "radius") +
       field("Animations", seg("motion", s.motion, [["on", "On"], ["reduced", "Reduced"], ["off", "Off"]]), "motion") +
-      '<p class="bs-note">App icon style can\'t be changed yet: Android only allows that for apps built with several icons.</p>' +
       '<button type="button" class="fx-btn block bs-reset" data-act="reset" data-anchor="reset">' + IC.refresh + "Reset appearance</button>";
     el.querySelectorAll("[data-theme]").forEach(b => b.onclick = () => {
       const t = b.dataset.theme;
@@ -475,8 +479,7 @@
       (window.BibleySections ? (() => { const sp = window.BibleySections.prefs(); return group("Sections", swRow("secHead", "Section headings", "", sp.head, "sections") + (sp.head ? swRow("secCtx", "Section context", "", sp.ctx, "sectionctx") : "")); })() : "") +
       field("Bible version", '<select class="fx-input bs-select" data-anchor="version">' + (vs ? vs.innerHTML : "") + "</select>", "version") +
       group("", row({ ic: IC.lock, t: "ESV API key", s: esv ? "Saved on this phone. Tap to change" : "Needed only to read the ESV", act: "esv", anchor: "esv" }) +
-        row({ ic: IC.book, t: "Classic reading sheet", s: "The quick size, font and theme sheet", act: "classic" })) +
-      '<p class="bs-note">Red letters are not offered: the Bible texts Bibley uses do not mark the words of Jesus.</p>';
+        row({ ic: IC.book, t: "Classic reading sheet", s: "The quick size, font and theme sheet", act: "classic" }));
     const sel = el.querySelector(".bs-select"); if (vs && sel) { sel.value = vs.value; sel.onchange = () => { vs.value = sel.value; vs.dispatchEvent(new Event("change", { bubbles: true })); toast("Bible version: " + sel.options[sel.selectedIndex].text); }; }
     wire(el, { seg: (k, v) => setS({ [k]: v }), sw: (k, on) => {
       if (k === "secHead" && window.BibleySections) { window.BibleySections.setPrefs({ head: on }); rerender(); }
@@ -489,12 +492,11 @@
 
   PAGES.modes = { title: "Modes", render(el) {
     const s = S(), n = s.night;
-    el.innerHTML = '<p class="bs-lead">One tap changes the whole app. Turn a mode off and everything goes back the way it was.</p><div class="bs-modes">' +
+    el.innerHTML = '<div class="bs-modes">' +
       MODES.map(m => '<div class="bs-mode' + (s.mode === m.id ? " on" : "") + '" data-anchor="m-' + m.id + '"><button type="button" class="bs-mode-main" data-mode="' + m.id + '"><span class="bs-ic">' + m.ic + '</span><span class="bs-t">' + esc(m.name) + "<small>" + esc(m.sub) + "</small></span></button>" + sw("mode:" + m.id, s.mode === m.id) + '<button type="button" class="bs-mode-edit" data-edit="' + m.id + '" aria-label="Customize ' + esc(m.name) + '">Customize' + IC.chev + "</button></div>").join("") + "</div>" +
       group("Night mode schedule", swRow("sched", "Turn on Night mode automatically", n.on ? (n.type === "sunset" ? "At sunset, about " + fmtMin(sunsetMin(new Date())) + ", until " + fmtMin(toMin(n.end)) : "From " + fmtMin(toMin(n.start)) + " to " + fmtMin(toMin(n.end))) : "Off", n.on, "sched", IC.sunset) +
         '<div class="bs-sched' + (n.on ? "" : " off") + '">' + seg("stype", n.type, [["sunset", "At sunset"], ["time", "At a set time"]]) +
-        '<div class="bs-times">' + (n.type === "time" ? '<label>From<input type="time" class="fx-input" data-t="start" value="' + esc(n.start) + '"></label>' : "") + '<label>Until<input type="time" class="fx-input" data-t="end" value="' + esc(n.end) + '"></label></div>' +
-        '<p class="bs-note">Sunset is estimated from your time zone, so no location is needed.</p></div>', "sched");
+        '<div class="bs-times">' + (n.type === "time" ? '<label>From<input type="time" class="fx-input" data-t="start" value="' + esc(n.start) + '"></label>' : "") + '<label>Until<input type="time" class="fx-input" data-t="end" value="' + esc(n.end) + '"></label></div>' + "</div>", "sched");
     el.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { const id = b.dataset.mode; setMode(S().mode === id ? "" : id); rerender(); });
     el.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => nav("mode-" + b.dataset.edit));
     el.querySelectorAll('[data-t]').forEach(i => i.onchange = () => { const night = Object.assign({}, S().night, { [i.dataset.t]: i.value }); setS({ night }); nightTick(); });
@@ -558,17 +560,15 @@
 
   PAGES.widgets = { title: "Widgets", render(el) {
     const s = S();
-    el.innerHTML = '<p class="bs-lead">' + (NAT ? "Tap Add and your launcher asks where to put it. Widgets can be resized and follow your phone's light or dark look." : "Home-screen widgets are part of the Bibley Android app.") + "</p>" +
+    el.innerHTML = (NAT ? "" : '<p class="bs-note">Widgets come with the Bibley Android app.</p>') +
       '<div class="bs-wgrid">' + WIDGETS.map(w => '<div class="bs-wcell">' + widgetMock(w[0]) + "<b>" + esc(w[1]) + "</b><small>" + esc(w[2]) + '</small><button type="button" class="fx-btn small block" data-pin="' + w[0] + '"' + (NAT ? "" : " disabled") + ">" + IC.plus + "Add</button></div>").join("") + "</div>" +
-      '<p class="bs-note">If nothing appears: long-press an empty spot on your home screen, tap Widgets, find Bibley and drag one out.</p>' +
-      (NAT ? group("", swRow("card", "Show the widgets card on Today", "", !s.widgetCardHidden && !s.todayHidden.includes("widgets"))) : "");
+            (NAT ? group("", swRow("card", "Show the widgets card on Today", "", !s.widgetCardHidden && !s.todayHidden.includes("widgets"))) : "");
     el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => pinWidget(b.dataset.pin));
     wire(el, { sw: (k, on) => { if (k === "card") setS({ widgetCardHidden: !on, todayHidden: S().todayHidden.filter(x => x !== "widgets").concat(on ? [] : ["widgets"]) }); } });
   } };
 
   PAGES.device = { title: "Notifications & device", render(el) {
-    el.innerHTML = '<div class="dv-settings-slot bs-devslot"></div>' + (window.BibleyDevice ? "" : '<p class="bs-note">Device settings are still loading.</p>') +
-      (NAT ? '<p class="bs-note">Quiet hours, pausing and Time with God work exactly as in Bibley 1.8.</p>' : "");
+    el.innerHTML = '<div class="dv-settings-slot bs-devslot"></div>' + (window.BibleyDevice ? "" : '<p class="bs-note">Device settings are still loading.</p>');
     if (window.BibleyDevice) window.BibleyDevice.mountSettings(el.querySelector(".dv-settings-slot"));
   } };
 
@@ -589,8 +589,7 @@
 
   PAGES.audio = { title: "Audio", render(el) {
     const s = S();
-    el.innerHTML = field("Read aloud speed", seg("tts", s.tts, [[0.75, "Slow"], [0.95, "Normal"], [1.15, "Fast"], [1.35, "Faster"]]), "tts") +
-      '<p class="bs-note">Tap the speaker on a chapter to hear it read aloud. The voice comes from your phone\'s text-to-speech settings.</p>';
+    el.innerHTML = field("Read aloud speed", seg("tts", s.tts, [[0.75, "Slow"], [0.95, "Normal"], [1.15, "Fast"], [1.35, "Faster"]]), "tts");
     wire(el, { seg: (k, v) => setS({ tts: +v }) });
   } };
 
@@ -619,7 +618,7 @@
     const s = B.status();
     if (!s.signedIn) {
       const up = acctTab === "up";
-      el.innerHTML = '<p class="bs-lead" data-anchor="acct">Sign in to keep your highlights, notes, bookmarks, Study Notebook, reading plans and settings safe in the cloud, and get them back on any phone, tablet or computer.</p>' +
+      el.innerHTML = '<div data-anchor="acct"></div>' +
         seg("acctab", acctTab, [["in", "Sign In"], ["up", "Create Account"]]) +
         '<form class="bs-acct-form" autocomplete="on" novalidate>' +
           '<label class="bs-acct-l">Username<input class="fx-input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="e.g. oliver_reads" required></label>' +
@@ -628,7 +627,6 @@
           '<p class="bs-acct-err" role="alert" hidden></p>' +
           '<button type="submit" class="fx-btn primary block bs-acct-go">' + (up ? "Create Account" : "Sign In") + "</button>" +
         "</form>" +
-        '<p class="bs-note">' + (up ? "Usernames are 3-24 letters, numbers, _ or -. " : "") + "Your notes and highlights already on this device stay safe: signing in merges them with your account, and from then on they sync automatically.</p>" +
         (s.error ? '<p class="bs-note">' + esc(s.error) + "</p>" : "");
       const f = el.querySelector("form"), err = el.querySelector(".bs-acct-err"), go = el.querySelector(".bs-acct-go");
       f.onsubmit = e => {
@@ -654,8 +652,7 @@
       group("Account", row({ ic: IC.lock, t: "Change Password", s: "Signs out your other devices", act: "pw" }) +
         (acctPw ? '<form class="bs-acct-form bs-acct-pw" novalidate><label class="bs-acct-l">Current password<input class="fx-input" name="cur" type="password" autocomplete="current-password" maxlength="200"></label><label class="bs-acct-l">New password<input class="fx-input" name="nw" type="password" autocomplete="new-password" maxlength="200" placeholder="At least 6 characters"></label><p class="bs-acct-err" role="alert" hidden></p><button type="submit" class="fx-btn small primary">Save new password</button></form>' : "") +
         row({ ic: IC.back, t: "Sign Out", s: "Your data stays on this device", act: "out" }) +
-        row({ ic: IC.trash, t: "Delete Account", s: "Removes your account and its cloud data", act: "del" })) +
-      '<p class="bs-note">Syncs your highlights, notes, bookmarks, Study Notebook, reading plans, streak, memory verses and settings. Chats stay on this device. Your password is stored only as a salted hash, never as plain text.</p>';
+        row({ ic: IC.trash, t: "Delete Account", s: "Removes your account and its cloud data", act: "del" }));
     const stEl = el.querySelector(".acct-st");
     const paint = x => { if (!stEl.isConnected) return; stEl.textContent = (x.state === "syncing" ? "Syncing\u2026" : x.state === "offline" ? "Offline \u00b7 will sync when you're back online" : x.state === "error" ? "Couldn't sync: " + x.error : (x.keys || 0) + " items synced \u00b7 last synced " + ago(x.lastSync)); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
     paint(s);
@@ -697,11 +694,9 @@
         '<button type="button" class="fx-btn small' + (on ? " primary" : "") + '" data-act="dl-' + m.id + '">Download &amp; Load</button><button type="button" class="fx-btn small" data-act="test-' + m.id + '">Test</button><button type="button" class="fx-btn small" data-act="clear-' + m.id + '">Clear</button></div></div>'; };
     el.innerHTML = field("AI engine", seg("mode", c.mode, [["cloud", "Cloud AI (Fast)"], ["local", "On-Device AI"]]), "aimode") +
       (local ? '<div class="ai-models" data-anchor="aidl">' + MS.map(card).join("") + "</div>" +
-        '<p class="bs-note">Only one model is kept in memory: switching unloads the other first. Each downloads once and is saved offline. CPU mode on phones is slower, and older iPhones can hit browser memory limits with Model 2.</p>' +
         group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
-        '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>' +
-        '<p class="bs-note">Both models find the real King James verses for your question (references like John 3:16, keyword and topic search across all 31,102 verses), quote them word for word, explain them in plain words and show tappable Referenced Verses, all on this device. Used for Chatbot questions; everything else keeps using Cloud AI. Switch any time from the pill at the top of the AI panel.</p>'
-      : '<p class="bs-note">Cloud AI answers instantly with Bibley\'s online AI. It needs an internet connection. Switch to On-Device AI to run Bibley 2.1 (Qwen3 0.6B) or Bibley 2.2 (Gemma 3 1B) on this device, even offline.</p>' +
+        '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>'
+      : 
         group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
     const capEl = el.querySelector(".ai-caps");
     const paint = s => {
@@ -738,9 +733,69 @@
       }
     });
   } };
+
+  /* ---------- v7.1: Tips (searchable guide; replaces the long help text that sat at the bottom of pages) ---------- */
+  const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
+  // [category, title, text, extra search words, settings page to open]
+  const TIPS = [
+    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is fast and light. Bibley 2.2 (Google Gemma 3 1B, about 600-880 MB) gives fuller, more careful answers and is best on newer devices.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
+    ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI, Bibley 2.1 or Bibley 2.2 without opening Settings.", "switcher pill cloud local engine", ""],
+    ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed", "aiengine"],
+    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
+    ["ai", "Real KJV verse lookup", "Both models look up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
+    ["ai", "Referenced Verses chips", "Under an AI answer, tap a Referenced Verses chip to jump straight to that verse in the reader.", "chips references tap jump", ""],
+    ["ai", "Cloud AI", "Cloud AI answers instantly with Bibley's online AI and needs internet. In the chat, \u2713 marks a verse reference that was checked as real and \u26a0 one that doesn't exist.", "cloud online internet fast check verify", "aiengine"],
+    ["ai", "What Bibley remembers", "Bibley keeps a few short lines from your chats (like your name) to pick up where you left off. On a call, say \u201cforget that\u201d or \u201cforget everything\u201d. Edit it any time.", "memory remember forget call chat history", "memory"],
+    ["nb", "Full-page Study Notebook", "Tap Notes in the bottom bar or Notebook on any verse. On a phone, switch notebooks with the pills under the header; on a computer use the sidebar.", "notebook notes open full page pills sidebar", ""],
+    ["nb", "AI Grammar Fix", "In a note, tap Grammar to fix spelling, punctuation and grammar. Select text first to check just that part. Your voice, Markdown and quoted Bible verses are kept, and you review the changes before applying. Undo reverts them.", "grammar spelling punctuation ai fix correct proofread", ""],
+    ["nb", "Insert Verse", "Tap Verse and type a reference (John 3:16, Ps 23:1-3, Rom 8:28) or keywords to drop the real KJV text at your cursor.", "insert verse scripture reference kjv quote", ""],
+    ["nb", "Verse preview", "Any reference in a note (like John 3:16) becomes a link: tap it to read the verse, copy it or jump to the chapter.", "verse preview popover link reference tap", ""],
+    ["nb", "Write, Split and Preview", "Write to type, Preview to see formatting with tappable checklists. Split shows both side by side on wider screens.", "write split preview mode markdown", ""],
+    ["nb", "Formatting & checklists", "Use the toolbar for headings, bold, italic, quotes, callout boxes, lists and checklists (- [ ]). Tick boxes in Preview.", "format toolbar heading bold italic quote callout list checklist", ""],
+    ["nb", "9 study templates", "New note offers SOAP, Sermon Notes, Verse Breakdown, Prayer Journal, Character Study, Chapter Summary, Devotional, Word Study or blank.", "templates soap sermon prayer character chapter devotional word", ""],
+    ["nb", "Paper, focus & dictation", "From \u22ef pick Clean, Warm Parchment or Lined paper, turn on Focus mode for distraction-free writing, or dictate with your voice where the browser supports it.", "paper parchment lined focus mode dictation voice microphone", ""],
+    ["nb", "Export & print", "From \u22ef export a note or a whole notebook as Markdown or text, copy it, share it, or Print / Save as PDF.", "export markdown md txt pdf print share copy", ""],
+    ["nb", "Keyboard shortcuts", "Ctrl/\u2318+B bold, Ctrl/\u2318+I italic, Ctrl/\u2318+Z undo, Shift+Ctrl/\u2318+Z or Ctrl+Y redo, Esc closes popups and Focus mode. Enter continues lists.", "keyboard shortcuts ctrl cmd undo redo bold italic escape", ""],
+    ["read", "Tap any verse", "Tap a verse to highlight it, bookmark it, add a note, ask the AI or send it to the Notebook.", "verse tap highlight bookmark note ai", ""],
+    ["read", "Listen to a chapter", "Tap the speaker on a chapter to hear it read aloud. The voice comes from your device's text-to-speech; change the speed in Audio.", "audio listen read aloud tts speaker voice speed", "audio"],
+    ["read", "Reading plans & streaks", "Pick a plan, then tap \u201cMark chapter read\u201d at the end of a chapter. When every chapter for the day is read, the day checks itself off and your streak grows.", "plans streak mark read daily", "study"],
+    ["read", "Verse feed", "Scroll the verse feed for one verse at a time, like a stream. Like and save the ones that speak to you.", "scroll feed verses like", ""],
+    ["read", "Compare translations", "Open two panes on the same chapter to compare Bible versions side by side. Red letters aren't offered: the texts Bibley uses don't mark the words of Jesus.", "compare translations versions parallel kjv web esv red letter", "reading"],
+    ["lb", "157 Lost Books", "Lost Books holds 118 full public-domain texts (Apocrypha, Pseudepigrapha, Apostolic Fathers, New Testament Apocrypha, Gnostic texts) plus 39 Lost to History reference guides.", "lost books apocrypha enoch gnostic pseudepigrapha count", ""],
+    ["lb", "Lost to History entries", "Books with an orange Lost to History badge no longer survive: they are reference guides (where they're cited and what's known), not ancient text.", "lost to history reference badge cited", ""],
+    ["lb", "Find a book fast", "Use the shelf filters and search inside Lost Books to find any title, group or translator.", "shelf filter search lost books", ""],
+    ["lb", "Passkey lock", "Lost Books opens with a passkey you set, so only you can open it on this device.", "passkey lock password lost books", ""],
+    ["acct", "Sync across devices", "Sign in with a username and password to sync highlights, notes, bookmarks, the Study Notebook, plans, streaks, memory verses and settings across the web and the Android app. Chats stay on the device.", "account sync cloud sign in login android web devices", "account"],
+    ["acct", "Signing in is safe", "Notes already on your device are merged into your account, never wiped. Passwords are stored only as salted hashes. Usernames are 3-24 letters, numbers, _ or -.", "merge safe password hash username", "account"],
+    ["acct", "Backup files", "Data & backup exports everything to a file and imports it again, handy for moving to a new phone without an account.", "backup export import restore file json new phone", "data"],
+    ["look", "Themes, fonts & text", "Appearance has themes, accent colours, fonts, text size, spacing and corner roundness, with a live preview.", "theme dark light sepia font size accent appearance", "appearance"],
+    ["look", "Modes", "One tap changes the whole app (Focus, Night, Simple, Study, Prayer, Low data, Accessibility). Turn a mode off and everything goes back. Night can start at sunset, worked out from your time zone.", "modes night focus simple study prayer accessibility sunset schedule", "modes"],
+    ["look", "Offline Bibles", "Translations download the first time you open them and then work offline. On-device AI models work offline once downloaded too.", "offline download bible translations no internet", ""],
+    ["look", "Widgets", "In the Android app, add Verse of the Day or Bibley Quick from Settings, or long-press your home screen, tap Widgets and drag Bibley out.", "widgets home screen android", NAT ? "widgets" : ""],
+    ["look", "Time with God", "A calm screen with today's verse and a prayer timer. In the Android app your phone's Do Not Disturb can switch on for the session.", "time with god prayer timer do not disturb focus", "device"]
+  ];
+  let tipCat = "all", tipQ = "";
+  PAGES.tips = { title: "Tips", render(el) {
+    el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search tips and features" aria-label="Search tips" value="' + esc(tipQ) + '"><button type="button" class="bs-tclr" aria-label="Clear search"' + (tipQ ? "" : " hidden") + ">" + IC.close + '</button></div><div class="bs-tchips" role="tablist">' +
+      TIP_CATS.map(c => '<button type="button" class="bs-tchip' + (tipCat === c[0] ? " on" : "") + '" data-cat="' + c[0] + '">' + esc(c[1]) + "</button>").join("") + '</div><div class="bs-tcount" aria-live="polite"></div><div class="bs-tips"></div>';
+    const inp = el.querySelector("input"), clr = el.querySelector(".bs-tclr"), box = el.querySelector(".bs-tips"), cnt = el.querySelector(".bs-tcount");
+    const mark = (t, ws) => { let h = esc(t); ws.forEach(w => { if (w.length > 1) h = h.replace(new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?![^<]*>)", "gi"), "<mark>$1</mark>"); }); return h; };
+    const draw = () => {
+      const ws = tipQ.toLowerCase().split(/\s+/).filter(Boolean), cn = c => (TIP_CATS.find(x => x[0] === c) || [])[1];
+      const hits = TIPS.filter(t => (tipCat === "all" || t[0] === tipCat) && ws.every(w => (t[1] + " " + t[2] + " " + t[3] + " " + cn(t[0])).toLowerCase().includes(w)));
+      cnt.textContent = hits.length + (hits.length === 1 ? " tip" : " tips");
+      box.innerHTML = hits.length ? hits.map(t => '<article class="bs-tip"><div class="bs-tip-h"><b>' + mark(t[1], ws) + '</b><span class="bs-tip-c">' + esc(cn(t[0])) + "</span></div><p>" + mark(t[2], ws) + "</p>" + (t[4] ? '<button type="button" class="bs-tip-go" data-go="' + t[4] + '">Open ' + esc(PG_NAMES[t[4]] || PAGES[t[4]].title) + IC.chev + "</button>" : "") + "</article>").join("")
+        : '<div class="bs-empty">No tips match \u201c' + esc(tipQ) + "\u201d</div>";
+      box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => nav(b.dataset.go));
+    };
+    inp.oninput = () => { tipQ = inp.value; clr.hidden = !tipQ; draw(); };
+    clr.onclick = () => { tipQ = ""; inp.value = ""; clr.hidden = true; draw(); inp.focus(); };
+    el.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { tipCat = b.dataset.cat; el.querySelectorAll("[data-cat]").forEach(x => x.classList.toggle("on", x === b)); draw(); });
+    draw();
+  } };
   PAGES.data = { title: "Data & backup", render(el) {
     const total = storageRows().reduce((a, r) => a + r[1], 0);
-    el.innerHTML = '<p class="bs-lead">Everything you save in Bibley lives on this phone. Save a backup file now and then, or use one to move to a new phone.</p>' +
+    el.innerHTML = ''+
       group("", row({ ic: IC.data, t: "Export backup", s: "Highlights, notes, notebook, plans, settings", act: "export", anchor: "export" }) +
         row({ ic: IC.refresh, t: "Import backup", s: "Restore from a Bibley backup file", act: "import", anchor: "import" }) +
         '<div class="bs-row bs-static" data-anchor="usage"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Storage used<small>' + kb(total) + " on this phone</small></span></div>") +
@@ -758,7 +813,7 @@
   function when(ts) { const d = new Date(ts), now = new Date(); const t = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); if (d.toDateString() === now.toDateString()) return "Today, " + t; const y = new Date(now - 864e5); if (d.toDateString() === y.toDateString()) return "Yesterday, " + t; return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + t; }
   let viewId = null;
   PAGES.history = { title: "Chat history", render(el) {
-    el.innerHTML = '<p class="bs-note">Your typed chats and calls with Bibley. They stay on this phone. Bibley keeps the newest ' + (M() ? M().CAP : 200) + ".</p>" + '<div class="bs-hist"><div class="bs-card"><div class="bs-row bs-static"><span class="bs-t">Loading\u2026</span></div></div></div>';
+    el.innerHTML = '<div class="bs-hist"><div class="bs-card"><div class="bs-row bs-static"><span class="bs-t">Loading\u2026</span></div></div></div>';
     const D = CDB(); if (!D) { el.querySelector(".bs-hist").innerHTML = group("", '<div class="bs-row bs-static"><span class="bs-t">Chat history isn\'t available here.</span></div>'); return; }
     D.listConversations().then(async all => {
       const rows = [];
@@ -799,13 +854,12 @@
   } };
   PAGES.memory = { title: "What Bibley remembers", render(el) {
     const m = M(); const l = m ? m.lines() : [];
-    el.innerHTML = '<p class="bs-note">Bibley remembers a few things from your chats and calls so it can pick up where you left off. It\'s kept on this phone, ' + (m ? m.MAX_LINES : 15) + " lines at most, and sent with your questions to the AI.</p>" +
+    el.innerHTML = ''+
       (l.length ? group("", l.map((x, i) => '<div class="bs-row bs-static bs-mline"><span class="bs-t">' + esc(x) + '</span><button type="button" class="bs-hdel" data-rm="' + i + '" aria-label="Forget this">' + IC.close + "</button></div>").join(""))
         : group("", '<div class="bs-row bs-static"><span class="bs-t">Nothing yet<small>Chat or call with Bibley and it will remember things like your name and favourite verses.</small></span></div>')) +
       '<div class="bs-gl">Edit</div><textarea class="fx-input bs-memedit" rows="7" aria-label="What Bibley remembers, one per line" placeholder="One thing per line, like: Name is Sam">' + esc(l.join("\n")) + "</textarea>" +
       '<button type="button" class="fx-btn primary block" data-act="save">Save</button>' +
-      '<button type="button" class="fx-btn danger block" data-act="clear"' + (l.length ? "" : " disabled") + ">" + IC.trash + "Clear memory</button>" +
-      '<p class="bs-note">On a call you can also say \u201cforget that\u201d or \u201cforget everything\u201d. Bibley asks you to say yes first.</p>';
+      '<button type="button" class="fx-btn danger block" data-act="clear"' + (l.length ? "" : " disabled") + ">" + IC.trash + "Clear memory</button>";
     el.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const cur = m.lines(); cur.splice(Number(b.dataset.rm), 1); m.set(cur.join("\n")); rerender(); });
     wire(el, { act: a => {
       if (!m) return;
@@ -815,7 +869,7 @@
   } };
 
   PAGES.privacy = { title: "Privacy", render(el) {
-    el.innerHTML = '<div class="bs-card bs-prose"><p><b>On this phone.</b> Your highlights, notes, notebook, plans, streak and settings are stored only on this device. Bibley has no account and no tracking.</p>' +
+    el.innerHTML = '<div class="bs-card bs-prose"><p><b>On this phone.</b> Your highlights, notes, notebook, plans and settings are saved on this device. No tracking. If you sign in, they also sync to your Bibley account.</p>' +
       "<p><b>Study AI.</b> When you ask the Study AI something, your question and the verses around it are sent to the AI service to write the answer.</p>" +
       "<p><b>Chats and memory.</b> Your chats, calls and what Bibley remembers about you are saved only on this phone. The last few turns and the short memory are sent with each question so Bibley can remember. You can delete them in Settings anytime.</p>" +
       "<p><b>Bibles.</b> Some translations load from the internet the first time you open them, then work offline.</p>" +
@@ -829,7 +883,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Accounts & Cloud Sync", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Bibley 7.1: Tips, Grammar Fix, mobile Notebook", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

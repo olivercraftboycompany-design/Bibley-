@@ -21,7 +21,7 @@ html.bs-m-l body .reader-main { padding-left: 34px !important; padding-right: 34
 html.bs-vn-inline body .verses-text sup { vertical-align: baseline; font-size: .72em; margin-right: 6px; opacity: .85; }
 html.bs-vn-hidden body .verses-text sup { display: none; }
 html.bs-verse-lines body .verses-text span[data-key] { display: block; margin: 0 0 .45em; }
-html.bs-study-marks body .verses-text span.has-note, html.bs-study-marks body .verses-text span[class*="hl-"] { box-shadow: inset 3px 0 0 var(--gold); }
+html.bs-study-marks body .verses-text span.has-note, html.bs-study-marks body .verses-text span[class*="hl-"] { box-shadow: inset 0 -1px 0 var(--gold); }
 html.bs-study-marks body .verses-text sup { font-weight: 700; color: var(--gold); }
 
 /* ---------- density, corners, motion ---------- */
@@ -280,7 +280,7 @@ html body .fx-dock button.bs-off, html body .fx-sheet-body > .bs-off { display: 
 /* v7.0: AI Engine model cards */
 .ai-models { display: grid; gap: 10px; margin: 6px 0 4px; }
 .ai-model { border: 1px solid var(--ui-hair, #c9a86726); border-radius: 14px; padding: 12px 14px; background: var(--ui-surface, #ffffff08); }
-.ai-model.on { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.ai-model.on { border-color: var(--gold); background: var(--ui-press, #c9a8671a); }
 .ai-mh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .ai-mname { font-weight: 650; font-size: 15px; }
 .ai-fam { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; } .ai-fam.qwen { background: #7fa3b833; color: #9cc3da; } .ai-fam.gemma { background: #9c90b833; color: #c0b5e6; }
 html.theme-light .ai-fam.qwen, html.theme-sepia .ai-fam.qwen { color: #2f5f7a; } html.theme-light .ai-fam.gemma, html.theme-sepia .ai-fam.gemma { color: #5b4a8f; }
@@ -289,3 +289,23 @@ html.theme-light .ai-fam.qwen, html.theme-sepia .ai-fam.qwen { color: #2f5f7a; }
 .ai-mid { font-size: 11px; color: var(--ink-faint); line-height: 1.6; word-break: break-all; } .ai-mid code { font-size: 10.5px; }
 .ai-mst { font-size: 12.5px; color: var(--ink-dim); margin: 8px 0 6px; }
 .ai-model .ai-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* v7.1 Tips */
+.bs-root[data-page="tips"] .bs-search { margin-bottom: 10px; }
+.bs-search input::-webkit-search-cancel-button { display: none; }
+.bs-tclr { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--ui-press, #c9a8671f); color: var(--ink-dim); cursor: pointer; flex-shrink: 0; padding: 0; }
+.bs-tclr .ui-ic { width: 16px; height: 16px; } .bs-tclr[hidden] { display: none; }
+.bs-tchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px 8px; padding: 2px; }
+.bs-tchips::-webkit-scrollbar { display: none; }
+.bs-tchip { flex-shrink: 0; border: 1px solid var(--ui-hair, var(--panel-border)); background: transparent; color: var(--ink-dim); border-radius: 999px; padding: 8px 13px; font: 13px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; cursor: pointer; white-space: nowrap; }
+.bs-tchip.on { color: var(--ink); border-color: var(--gold); background: var(--ui-press, #c9a8671f); }
+.bs-tcount { font-size: 12px; color: var(--ink-faint); margin: 2px 4px 10px; }
+.bs-tips { display: grid; gap: 10px; padding-bottom: 20px; }
+.bs-tip { border: 1px solid var(--ui-hair, var(--panel-border)); border-radius: 14px; background: var(--ui-surface); padding: 12px 14px; }
+.bs-tip-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bs-tip-h b { font-size: 15.5px; color: var(--ink); }
+.bs-tip-c { flex-shrink: 0; font-size: 11px; color: var(--gold); border: 1px solid #c9a86744; border-radius: 999px; padding: 2px 8px; }
+.bs-tip p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-dim); }
+.bs-tip mark { background: #c9a86740; color: var(--ink); border-radius: 3px; padding: 0 1px; }
+.bs-tip-go { display: inline-flex; align-items: center; gap: 2px; margin-top: 8px; border: 0; background: none; color: var(--gold); font: 13px system-ui, -apple-system, sans-serif; padding: 4px 0; cursor: pointer; }
+.bs-tip-go .bs-chev { width: 15px; height: 15px; }

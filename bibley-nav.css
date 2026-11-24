@@ -67,7 +67,7 @@ html.bn-on body #bookmarkList .bm-item:nth-of-type(n+9) { display: none; }
 .bn-book:active { background: var(--ui-press); }
 .bn-book span { display: inline-flex; align-items: center; gap: 8px; }
 .bn-book small { color: var(--ink-faint); font-size: 13px; font-variant-numeric: tabular-nums; }
-.bn-book.on { background: var(--ui-press); color: var(--gold-soft); box-shadow: inset 3px 0 0 var(--gold); }
+.bn-book.on { background: var(--ui-press); color: var(--gold-soft); box-shadow: inset 0 0 0 1px #c9a86766; }
 html.theme-light .bn-book.on, html.theme-sepia .bn-book.on { color: var(--gold); }
 .bn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); display: inline-block; }
 .bn-empty { padding: 26px 10px; text-align: center; color: var(--ink-dim); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; }

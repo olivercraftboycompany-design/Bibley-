@@ -43,7 +43,7 @@ html.theme-sepia .nb-add-to select, html.theme-light .nb-add-to select { color: 
 .nb-empty-ico { color: var(--gold); display: inline-flex; padding: 10px; border-radius: 50%; border: 1px solid var(--border); }
 .nb-empty-ico svg { width: 22px; height: 22px; }
 .nb-card { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--bg-panel); border: 1px solid var(--panel-border);
-  border-left: 4px solid var(--gold); border-radius: 12px; padding: 11px 12px; margin-bottom: 9px; cursor: pointer; }
+  border-radius: 12px; padding: 11px 12px; margin-bottom: 9px; cursor: pointer; }
 .nb-card:last-child { margin-bottom: 0; }
 .nb-card:active { transform: scale(.99); }
 .nb-card.k-verse-note { border-left-color: #8fb3ff; }
@@ -54,7 +54,7 @@ html.theme-sepia .nb-add-to select, html.theme-light .nb-add-to select { color: 
 .nb-ver { font-size: 11px; letter-spacing: .06em; color: var(--ink-faint); text-transform: uppercase; }
 .nb-card-date { font-size: 12px; color: var(--ink-faint); flex-shrink: 0; }
 .nb-card-sum { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.5; color: var(--ink-dim); margin-top: 4px; white-space: pre-wrap; }
-.nb-card-mine { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; margin-top: 6px; padding: 5px 8px; border-left: 3px solid #8fb3ff; background: #8fb3ff14; border-radius: 0 8px 8px 0; white-space: pre-wrap; }
+.nb-card-mine { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; margin-top: 6px; padding: 5px 8px; border: 1px solid #8fb3ff40; background: #8fb3ff12; border-radius: 10px; white-space: pre-wrap; }
 .nb-card-tag { display: inline-block; margin-top: 7px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); opacity: .8; }
 html.theme-sepia .nb-card, html.theme-light .nb-card { background: #ffffff8c; }
 html.theme-sepia .nb-card-ref, html.theme-light .nb-card-ref, html.theme-sepia .nb-pagename, html.theme-light .nb-pagename { color: var(--ink); }

@@ -7,7 +7,7 @@ body .verses-text .bx-sec-h b { font-family: 'Fraunces', serif; font-weight: 600
 body .verses-text .bx-sec-chev { flex: none; color: var(--ink-faint); transition: transform .18s; margin-top: 1px; }
 body .verses-text .bx-sec.open .bx-sec-chev { transform: rotate(180deg); color: var(--gold); }
 body .verses-text .bx-sec-sub { font-size: .74em; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
-body .verses-text .bx-sec-note { margin: 7px 0 2px; padding: 1px 0 1px 11px; border-left: 2px solid #c9a86766; }
+body .verses-text .bx-sec-note { margin: 7px 0 2px; padding: 1px 0 1px 11px; border-left: 1px solid #c9a86766; }
 body .verses-text .bx-sec-txt { margin: 0; font-size: .8em; line-height: 1.55; color: var(--ink-dim); }
 body .verses-text .bx-sec-err { margin: 0; font-size: .78em; color: var(--ink-faint); }
 body .verses-text .bx-sec-retry { border: 0; background: none; padding: 0 0 0 4px; color: var(--gold); font: inherit; cursor: pointer; }

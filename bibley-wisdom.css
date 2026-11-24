@@ -6,7 +6,7 @@
 .fx-wis-streak b { color: var(--gold-soft); font-weight: 600; }
 .fx-wis-text { font-family: var(--fx-verse-font); font-size: 18px; line-height: 1.6; margin: 10px 0 6px; color: var(--ink); }
 .fx-wis-ref { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font-family: 'Fraunces', Georgia, serif; color: var(--gold); font-size: 15px; }
-.fx-wis-note { margin: 12px 0 2px; padding: 2px 0 2px 12px; border-left: 2px solid #c9a86766; color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
+.fx-wis-note { margin: 12px 0 2px; padding: 10px 12px; border: 1px solid #c9a86744; border-radius: 12px; background: #c9a8670a; color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
 .fx-wis-lbl { font-family: 'Fraunces', Georgia, serif; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint, var(--ink-dim)); margin-bottom: 2px; }
 .fx-wis-acts { margin-top: 12px; }
 .fx-wis-acts .fx-btn.on { border-color: var(--gold); color: var(--gold); }

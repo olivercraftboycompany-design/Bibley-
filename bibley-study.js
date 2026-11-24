@@ -190,7 +190,7 @@
       "<div class='bst-row'>Study: <button class='bst-chip" + (ps.scope === "chapter" ? " on" : "") + "' data-scope='chapter'>Whole chapter</button>" + verseBtn + "</div>" +
       "<div class='bst-row'>Depth: <button class='bst-chip" + (d === "simple" ? " on" : "") + "' data-depth='simple'>Simple</button><button class='bst-chip" + (!d ? " on" : "") + "' data-depth=''>Normal</button><button class='bst-chip" + (d === "deep" ? " on" : "") + "' data-depth='deep'>Deep</button></div>" +
       "<div class='bst-grid'><button class='ai-action-btn' data-act='explain'>Explain</button><button class='ai-action-btn' data-act='xref'>Cross-references</button><button class='ai-action-btn' data-act='background'>Background</button><button class='ai-action-btn' data-act='quiz'>Quiz me</button></div>" +
-      "<div class='bst-note'>Every verse the AI cites is checked against the real text in " + esc(C.versionName(ps.p.version)) + ". Depth also applies to the Chatbot.</div></div><div id='bstOut'></div>";
+      "</div><div id='bstOut'></div>";
     el.querySelectorAll("[data-scope]").forEach(b => b.addEventListener("click", () => { state.scope = b.dataset.scope; render(el); }));
     el.querySelectorAll("[data-depth]").forEach(b => b.addEventListener("click", () => { setDepth(b.dataset.depth); render(el); }));
     el.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => run(b.dataset.act)));

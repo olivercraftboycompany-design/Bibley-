@@ -398,9 +398,15 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.0";
+  const APP_VERSION = "7.1";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.1", date: "November 2026", items: [
+      ["AI Grammar Fix", "Tap Grammar in any note to fix spelling, punctuation and grammar in your selection or the whole note. Your voice, Markdown and quoted Bible verses stay as they are, you review every change first, and Undo reverts it."],
+      ["Notebook made for phones", "Switch notebooks with one tap from the pills under the header, clean note cards, a tidy top bar with Grammar, Verse and a \u22ef menu, Write | Preview tabs and a one-row formatting bar with bigger buttons."],
+      ["Tips in Settings", "A new searchable Tips section with guides for the AI models, the Notebook, reading, Lost Books, sync and appearance. The long help text at the bottom of pages has moved there."],
+      ["Cleaner borders", "Every card, quote and highlight now uses the same thin border all the way around."]
+    ] },
     { v: "7.0", date: "November 2026", items: [
       ["Full-page Study Notebook", "Notes now open as a full-page workspace: notebooks, pinned notes, highlights and tags in a sidebar on tablets and computers, and clean full-screen pages on your phone. Focus mode hides everything but your writing, with Clean, Warm Parchment or Lined paper."],
       ["Insert any verse", "Tap Verse in the editor, type John 3:16, Psalm 23:1-3 or a word like peace, and the real King James text drops into your note. Tap any verse reference in a note to preview it, copy it or jump to the chapter."],

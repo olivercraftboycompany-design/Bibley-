@@ -20,7 +20,7 @@ html.bsc-lock, html.bsc-lock body { overflow: hidden; }
 .bsc-xl { font-size: 28px; } .bsc-l { font-size: 24px; } .bsc-m { font-size: 20.5px; } .bsc-s { font-size: 17.5px; }
 .bsc-ref { margin-top: 20px; font-family: 'Fraunces', Georgia, serif; font-size: 17px; color: var(--gold-soft, #e0c48c); display: flex; align-items: baseline; gap: 10px; }
 .bsc-ref span { font: 600 10.5px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; letter-spacing: .08em; color: var(--ink-faint, #e8e1d066); text-transform: uppercase; }
-.bsc-note { margin: 16px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-dim, #e8e1d0a6); border-left: 2px solid var(--border, #c9a86733); padding-left: 12px; }
+.bsc-note { margin: 16px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-dim, #e8e1d0a6); border: 1px solid var(--border, #c9a86733); border-radius: 12px; padding: 10px 12px; background: #c9a8670a; }
 .bsc-rail { position: absolute; right: 8px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
 .bsc-rail button { width: 56px; border: 0; background: none; color: var(--ink, #e8e1d0); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
 .bsc-rail button .ui-ic { width: 44px; height: 44px; padding: 10px; box-sizing: border-box; border-radius: 50%; background: #ffffff0f; border: 1px solid var(--border, #c9a86733); transition: transform .15s; }

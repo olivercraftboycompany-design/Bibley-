@@ -9,7 +9,7 @@
 .st-preview canvas { width: auto; height: 46vh; max-height: 420px; max-width: 100%; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); background: #111; }
 .st-preview[data-format="square"] canvas { height: auto; width: 100%; max-width: 340px; }
 .st-bgs { display: grid; grid-auto-flow: column; grid-auto-columns: 66px; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
-.st-bg { position: relative; border: 2px solid transparent; background: none; padding: 0; border-radius: 12px; cursor: pointer; scroll-snap-align: start; color: var(--ink-dim); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.st-bg { position: relative; border: 1px solid transparent; background: none; padding: 0; border-radius: 12px; cursor: pointer; scroll-snap-align: start; color: var(--ink-dim); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .st-bg canvas { width: 62px; height: 82px; border-radius: 10px; display: block; }
 .st-bg.on { border-color: var(--gold); color: var(--gold-soft); }
 .st-bg:focus-visible, .st-blank:focus-visible, .st-lv:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -63,7 +63,7 @@ html.theme-sepia .st-wn, html.theme-light .st-wn { background: linear-gradient(1
 .st-wn-x { position: absolute; z-index: 3; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--panel-border); background: rgba(255,255,255,.04); color: var(--ink-dim); font-size: 24px; line-height: 1; cursor: pointer; }
 .st-wn-x:focus-visible, .st-wn-ok:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .st-wn-list { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 11px; }
-.st-wn-list li { padding-left: 14px; border-left: 3px solid var(--gold); }
+.st-wn-list li { padding: 8px 12px; border: 1px solid var(--panel-border, #c9a86733); border-radius: 10px; background: #c9a8670a; }
 .st-wn-list b { display: block; font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 15.5px; color: var(--gold-soft); }
 .st-wn-list span { display: block; font-size: 14px; color: var(--ink-dim); line-height: 1.45; margin-top: 2px; }
 .st-wn-list.small b { font-size: 14px; } .st-wn-list.small span { font-size: 13px; }

@@ -357,6 +357,40 @@
     return tidy(text);
   }
 
-  var api = { generate: generate, stream: stream, tidy: tidy, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), engine: function () { return localOn() ? "local" : "cloud"; }, last: readJSON(localStorage, LS_LAST, null), version: 4 };
+
+  /* v7.1: raw(system, user, { maxTokens, accept }) - one plain completion with the text exactly as the model
+     wrote it: no Markdown stripping, no Bible accuracy rules, no answer-shape checks. Used by the Study
+     Notebook's Grammar Fix, which must keep the author's Markdown. Same provider chain and pauses as generate(). */
+  async function raw(system, user, opts) {
+    opts = opts || {};
+    if (typeof navigator !== "undefined" && navigator.onLine === false) throw err("offline");
+    var msgs = [{ role: "system", content: system }, { role: "user", content: user }], started = now(), lastErr = null, tried = 0, netFails = 0;
+    for (var p = 0; p < PROVIDERS.length; p++) {
+      var prov = PROVIDERS[p], net = false;
+      if (pausedUntil(prov.name) > now()) continue;
+      tried++;
+      for (var a = 0; a < prov.attempts; a++) {
+        try {
+          var r = await prov.call(msgs, opts.maxTokens || 900, Math.floor(Math.random() * 1e9));
+          var t = String(r && r.text || "");
+          if (t.trim() && !isProviderNotice(t) && (!opts.accept || opts.accept(t))) {
+            api.last = { provider: prov.name, model: r.model, at: new Date().toISOString(), ms: now() - started, raw: true };
+            writeJSON(localStorage, LS_LAST, api.last);
+            return t;
+          }
+          lastErr = err("malformed-response");
+        } catch (e) {
+          lastErr = e; if (e instanceof TypeError) net = true;
+          if (typeof navigator !== "undefined" && navigator.onLine === false) throw err("offline");
+          if (e && e.noRetry) break;
+          if (e && e.retryAfter) { if (e.retryAfter > 20) break; await sleep(e.retryAfter * 1000 + 300); continue; }
+        }
+      }
+      if (net) netFails++;
+    }
+    if (tried && netFails === tried) throw err("offline");
+    throw lastErr || err("malformed-response");
+  }
+  var api = { generate: generate, stream: stream, raw: raw, tidy: tidy, check: check, stripScripts: stripScripts, labelsOf: labelsOf, providers: PROVIDERS.map(function (p) { return p.name; }), engine: function () { return localOn() ? "local" : "cloud"; }, last: readJSON(localStorage, LS_LAST, null), version: 4 };
   window.BibleyAI = api;
 })();

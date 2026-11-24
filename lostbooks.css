@@ -26,7 +26,7 @@
 .lb-link { background:none; border:none; color:var(--gold, #c9a867); text-decoration:underline; font-family:inherit; font-size:14px; cursor:pointer; padding:8px; margin-top:6px; }
 .lb-shake { animation:lbShake .35s; border-color:#f19a8e !important; }
 @keyframes lbShake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-8px); } 75% { transform:translateX(8px); } }
-.lb-warn { max-width:460px; margin:18px auto; background:#2a1414; border:2px solid #e0a040; border-radius:16px; padding:22px 20px; text-align:center; line-height:1.55; color:#fbeee0; }
+.lb-warn { max-width:460px; margin:18px auto; background:#2a1414; border:1px solid #e0a040; border-radius:16px; padding:22px 20px; text-align:center; line-height:1.55; color:#fbeee0; }
 .lb-warn h2 { color:#ffcf70 !important; font-size:26px !important; }
 .lb-warnico { width:54px; height:54px; margin:0 auto 10px; border-radius:50%; background:#e0a040; color:#2a1414; font:700 34px/54px 'Fraunces', Georgia, serif; }
 .lb-warn p { margin:0 0 12px; font-size:16.5px; }

@@ -69,7 +69,7 @@ body .verses-text span.fx-flash { animation: fxFlash 1.8s ease-out 1; }
 /* verse sheet */
 .fx-vtext { font-family: var(--fx-verse-font); font-size: 15px; line-height: 1.55; color: var(--ink-dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 12px; }
 .fx-swatches { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
-.fx-sw { width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.fx-sw { width: 40px; height: 40px; border-radius: 50%; border: 1px solid transparent; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
 .fx-sw.on { border-color: var(--gold); box-shadow: 0 0 0 3px #c9a86744; }
 .fx-sw.yellow { background: #fde68a; } .fx-sw.green { background: #a7f3d0; } .fx-sw.blue { background: #bfdbfe; } .fx-sw.pink { background: #fbcfe8; } .fx-sw.purple { background: #ddd6fe; }
 .fx-sw.clear { background: none; border: 1px dashed var(--border); color: var(--ink-dim); font-size: 16px; }
@@ -91,7 +91,7 @@ body .verses-text span.fx-flash { animation: fxFlash 1.8s ease-out 1; }
 .fx-item .b { flex: 1; min-width: 0; }
 .fx-item .r { font-family: 'Fraunces', Georgia, serif; color: var(--gold-soft); font-size: 14px; display: flex; gap: 6px; align-items: center; }
 .fx-item .s { font-size: 13.5px; color: var(--ink-dim); line-height: 1.45; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.fx-item .n { font-size: 13.5px; color: var(--ink); margin-top: 6px; padding: 7px 9px; border-left: 3px solid #8fb3ff; background: #8fb3ff14; border-radius: 0 8px 8px 0; white-space: pre-wrap; }
+.fx-item .n { font-size: 13.5px; color: var(--ink); margin-top: 6px; padding: 7px 9px; border: 1px solid #8fb3ff40; background: #8fb3ff12; border-radius: 10px; white-space: pre-wrap; }
 .fx-item .x { background: none; border: none; color: var(--ink-faint); font-size: 18px; cursor: pointer; align-self: flex-start; padding: 0 2px; }
 .fx-empty { text-align: center; padding: 26px 10px; color: var(--ink-dim); font-size: 14px; line-height: 1.6; }
 
@@ -152,9 +152,9 @@ html.theme-sepia .fx-sheet, html.theme-light .fx-sheet { box-shadow: 0 -12px 40p
 html.theme-sepia .install-pill, html.theme-light .install-pill { color: #e8e1d0; }
 
 /* ---------- v5.1 multi-verse selection bar ---------- */
-body .verses-text span.fx-sel { box-shadow: inset 0 -2px 0 var(--gold); border-radius: 3px; text-decoration: underline dotted var(--gold); text-underline-offset: 4px; }
+body .verses-text span.fx-sel { box-shadow: inset 0 -1px 0 var(--gold); border-radius: 3px; text-decoration: underline dotted var(--gold); text-underline-offset: 4px; }
 body .verses-text span.fx-sel:not([class*="hl-"]) { background-color: #c9a86726; }
-body .verses-text span.fx-sel[class*="hl-"] { box-shadow: inset 0 -3px 0 var(--gold), 0 0 0 1px #c9a86799; }
+body .verses-text span.fx-sel[class*="hl-"] { box-shadow: inset 0 -1px 0 var(--gold), 0 0 0 1px #c9a86799; }
 body .verses-text span.fx-sel sup { color: var(--gold); font-weight: 700; }
 .fx-selbar { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 560px; z-index: 55; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-header) 100%); color: var(--ink); border: 1px solid var(--panel-border); border-bottom: 0;

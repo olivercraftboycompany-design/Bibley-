@@ -406,7 +406,7 @@
       const top = h(`<div><input class="fx-input" type="search" placeholder="Search highlights, notes, bookmarks… or type a reference" aria-label="Search My Bible" value="${esc(mbQuery)}">
         <div class="fx-tabs">${[["all", "All"], ["hl", "Highlights"], ["notes", "Notes"], ["bm", "Bookmarks"]].map(([k, l]) => `<button class="fx-tab ${mbFilter === k ? "on" : ""}" data-f="${k}">${l} ${cnt[k]}</button>`).join("")}</div>
         <div class="fx-list"></div>
-        <div class="fx-card" style="margin-top:14px"><div class="fx-eyebrow">Backup</div><p class="fx-muted" style="margin:6px 0 10px">Everything lives on this phone. Save a backup file now and then, or move it to a new phone.</p>
+        <div class="fx-card" style="margin-top:14px"><div class="fx-eyebrow">Backup</div><p class="fx-muted" style="margin:6px 0 10px">Save or restore a backup file.</p>
           <div class="fx-row"><button class="fx-btn small" data-a="export">${IC.download}Export backup</button><button class="fx-btn small" data-a="import">${IC.upload}Import backup</button><input type="file" accept="application/json,.json" hidden></div></div></div>`);
       body.append(top);
       const input = top.querySelector("input[type=search]"), list = top.querySelector(".fx-list");
@@ -522,7 +522,6 @@
         };
         body.append(row);
       });
-      body.append(h(`<p class="fx-muted" style="text-align:center;margin:4px 0 8px">Tip: tap "Mark chapter read" at the end of a chapter. When every chapter for today is read, the day checks itself off.</p>`));
     });
   }
 
