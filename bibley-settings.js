@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.1";
+  const APP_VER = "1.9", WEB_VER = "7.2";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -73,7 +73,7 @@
   /* ---------- state ---------- */
   const DEF = { themeMode: "", accent: "gold", face: "", width: "normal", margin: "m", vnum: "sup", layout: "paragraph",
     labels: true, dock: ["today", "scroll", "mb", "plans", "notes", "aa"], dockHidden: [], density: "comfortable", radius: "soft", motion: "on",
-    today: ["votd", "widgets", "wisdom", "continue", "focus", "plan", "links", "memory"], todayHidden: [], tts: 0.95,
+    today: ["votd", "recap", "widgets", "wisdom", "continue", "focus", "plan", "links", "memory"], todayHidden: [], tts: 0.95,
     mode: "", modeBackup: null, modeOpts: {}, night: { on: false, type: "time", start: "21:30", end: "06:30" }, widgetCardHidden: false };
   const S = () => { const s = Object.assign({}, DEF, load(K_SET, {})); s.night = Object.assign({}, DEF.night, s.night || {}); s.modeOpts = s.modeOpts || {}; return s; };
   function setS(patch) { const s = Object.assign(load(K_SET, {}), patch); save(K_SET, s); applyAll(); }
@@ -151,7 +151,7 @@
   }
 
   /* ---------- Today cards ---------- */
-  const TODAY_NAMES = { votd: "Verse of the day", widgets: "Add widgets card", wisdom: "Daily dose of wisdom", continue: "Continue reading", focus: "Time with God", plan: "Streak & reading plan", links: "Shortcuts (My Bible, Plans, Settings)", memory: "Memory verses" };
+  const TODAY_NAMES = { votd: "Verse of the day", recap: "Your Year in Bibley (Dec \u2013 mid-Jan)", widgets: "Add widgets card", wisdom: "Daily dose of wisdom", continue: "Continue reading", focus: "Time with God", plan: "Streak & reading plan", links: "Shortcuts (My Bible, Plans, Settings)", memory: "Memory verses" };
   function todayParts(body) {
     const m = {};
     const kids = [...body.children];
@@ -164,6 +164,7 @@
       else if (el.classList.contains("fx-today-links")) m.links = [el];
       else if (el.matches('[data-a="memlist"]')) m.memory = [el];
       else if (el.classList.contains("bs-wcard")) m.widgets = [el];
+      else if (el.classList.contains("br-today-slot")) m.recap = [el];
     });
     return m;
   }
@@ -173,7 +174,7 @@
     const s = S();
     if (!body.querySelector(".bs-wcard") && NAT && !s.widgetCardHidden && !(s.todayHidden || []).includes("widgets")) body.appendChild(widgetCard());
     const parts = todayParts(body);
-    const order = (s.today || DEF.today).slice(); Object.keys(TODAY_NAMES).forEach(k => { if (!order.includes(k)) order.push(k); });
+    const order = (s.today || DEF.today).slice(); if (!order.includes("recap")) order.splice(order.indexOf("votd") + 1, 0, "recap"); Object.keys(TODAY_NAMES).forEach(k => { if (!order.includes(k)) order.push(k); });
     const hidden = s.todayHidden || [];
     const focusFirst = s.mode === "prayer";
     const ord = focusFirst ? ["focus"].concat(order.filter(k => k !== "focus")) : order;
@@ -383,7 +384,7 @@
     ["Widgets", "widget home screen add", "widgets", ""], ["Notifications", "notifications quiet hours pause dnd do not disturb", "device", ""], ["Quiet hours", "quiet hours", "device", ""],
     ["Time with God", "time with god prayer timer dnd do not disturb", "device", ""], ["Daily verse notification", "daily verse reminder notification", "device", ""],
     ["Study AI depth", "ai depth simple deep explain", "study", "depth"], ["Study Notebook", "notes notebook", "study", "nb"], ["Memory verses", "memorize memory", "study", "mem"],
-    ["Reading plans", "plans streak", "study", "plans"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
+    ["Reading plans", "plans streak", "study", "plans"], ["Your Year in Bibley", "recap year review wrapped stats summary share year in review", "study", "recap"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
     ["AI Engine", "ai engine bibley 2.1 2.2 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma model 1 model 2 second model cloud ai switch verse lookup", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
@@ -408,6 +409,7 @@
       group("Device", (window.BibleyFocusUI ? (() => { const f = window.BibleyFocusUI.get(); return swRow("focus", "Focus mode", "", f.on, "focus", window.BibleyFocusUI.icon) + (f.needsAccess ? '<div class="bs-bf-ask"><span>' + esc(window.BibleyFocusUI.ask) + '</span><button type="button" class="fx-btn small primary" data-act="focusallow">Allow</button></div>' : ""); })() : "") + (NAT ? row({ ic: IC.grid, t: "Widgets", s: "Add widgets to your home screen", go: "widgets" }) : "") +
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
+        (window.BibleyRecap ? row({ ic: window.BibleyRecap.icon, t: "Your Year in Bibley", s: "Your " + window.BibleyRecap.defaultYear() + " reading recap", act: "recap" }) : "") +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
       group("Bibley AI", row({ ic: IC.chip, t: "AI Engine", s: (window.BibleyLocalAI && window.BibleyLocalAI.isLocal()) ? "On-Device AI \u00b7 " + (window.BibleyLocalAI.label ? window.BibleyLocalAI.label() : "Bibley 2.1") : "Cloud AI (Fast)", go: "aiengine" }) + row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
         row({ ic: IC.mem, t: "What Bibley remembers", s: memSub(), go: "memory" })) +
@@ -428,7 +430,7 @@
       res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = all[+b.dataset.i]; if (h[4]) { tipQ = h[0]; tipCat = "all"; } nav(h[2], h[3]); });
       res.hidden = false; grp.hidden = true;
     };
-    wire(el, { act: a => { if (a === "modeoff") { setMode(""); rerender(); } if (a === "focusallow" && window.BibleyFocusUI) window.BibleyFocusUI.requestAccess(); },
+    wire(el, { act: a => { if (a === "recap" && window.BibleyRecap) { close(() => window.BibleyRecap.open(), 150); return; } if (a === "modeoff") { setMode(""); rerender(); } if (a === "focusallow" && window.BibleyFocusUI) window.BibleyFocusUI.requestAccess(); },
       sw: (k, v) => { if (k === "focus" && window.BibleyFocusUI) { window.BibleyFocusUI.set(v, { quiet: true }); rerender(); } } });
     if (window.BibleySync) { const unS = window.BibleySync.on(() => { if (!el.isConnected) { unS(); return; } const r = el.querySelector('[data-go="account"]'); if (r) { const sm = r.querySelector("small"); if (sm) sm.textContent = acctSub(); const b = r.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); } }); }
     if (window.BibleyFocusUI) { const un = window.BibleyFocusUI.subscribe(f => { if (!el.isConnected) { un(); return; } const i = el.querySelector('[data-sw="focus"]'); if (!i || i.checked !== f.on || !!el.querySelector(".bs-bf-ask") !== f.needsAccess) rerender(); }); }
@@ -578,12 +580,14 @@
       group("", row({ ic: IC.notes, t: "Study Notebook", s: "Notebooks, templates, highlights", act: "nb", anchor: "nb" }) +
         row({ ic: IC.star, t: "My Bible", s: "Highlights, notes and bookmarks", act: "mb" }) +
         row({ ic: IC.flame, t: "Reading plans", s: (FX.plan() ? FX.plan().name + " \u00b7 day " + FX.plan().day : "Pick a plan"), act: "plans", anchor: "plans" }) +
-        row({ ic: IC.study, t: "Memory verses", s: "Practise the verses you're memorizing", act: "mem", anchor: "mem" }));
+        row({ ic: IC.study, t: "Memory verses", s: "Practise the verses you're memorizing", act: "mem", anchor: "mem" }) +
+        (window.BibleyRecap ? row({ ic: window.BibleyRecap.icon, t: "Your Year in Bibley", s: "Chapters, streaks, top books and a verse you held onto", act: "recap", anchor: "recap" }) : ""));
     wire(el, { seg: (k, v) => { try { if (v) localStorage.setItem("bibley_ai_depth_v1", v); else localStorage.removeItem("bibley_ai_depth_v1"); } catch {} toast("Study AI: " + (v || "normal")); },
       act: a => { close(() => {
         if (a === "nb") { const b = document.querySelector('.fx-dock [data-a="notes"]'); if (b) b.click(); }
         if (a === "mb") FX.open.myBible(); if (a === "plans") FX.open.plans();
         if (a === "mem") { if (window.BibleyStudio) window.BibleyStudio.memoryList(); }
+        if (a === "recap" && window.BibleyRecap) window.BibleyRecap.open();
       }, 150); } });
   } };
 
@@ -738,6 +742,7 @@
   const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
+    ["read", "Your Year in Bibley", "Settings > Study > Your Year in Bibley (or More > Your Year in Bibley) plays a story of your year: chapters, days, longest streak, top books, your translation and a verse you held onto. Tap or swipe to move, hold to pause, and share it as an image. Built on this device from your own data.", "recap year review wrapped stats share", "study"],
     ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is fast and light. Bibley 2.2 (Google Gemma 3 1B, about 600-880 MB) gives fuller, more careful answers and is best on newer devices.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
     ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI, Bibley 2.1 or Bibley 2.2 without opening Settings.", "switcher pill cloud local engine", ""],
     ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed", "aiengine"],
@@ -883,7 +888,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Bibley 7.1: Tips, Grammar Fix, mobile Notebook", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Bibley 7.2: Your Year in Bibley", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

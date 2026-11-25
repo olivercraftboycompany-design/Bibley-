@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.1";
+  const APP_VERSION = "7.2";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.2", date: "November 2026", items: [
+      ["Your Year in Bibley", "A swipeable story of your reading year: chapters read and how much of the Bible that is, days in the Word, your longest streak, most-read books, your translation, your busiest month, highlights, notes and bookmarks, and a verse you held onto. Open it from Settings > Study, the More menu, or the Today card in December."],
+      ["Share your year", "The last card turns your year into an image you can share or save. It's drawn right on your device."],
+      ["Counts more of your reading", "Bibley now quietly notes the chapters you spend time in (not only the ones you mark read), with the verses and translation, so next year's recap is even fuller. It stays on your device and syncs with your account like your other study data."]
+    ] },
     { v: "7.1", date: "November 2026", items: [
       ["AI Grammar Fix", "Tap Grammar in any note to fix spelling, punctuation and grammar in your selection or the whole note. Your voice, Markdown and quoted Bible verses stay as they are, you review every change first, and Undo reverts it."],
       ["Notebook made for phones", "Switch notebooks with one tap from the pills under the header, clean note cards, a tidy top bar with Grammar, Verse and a \u22ef menu, Write | Preview tabs and a one-row formatting bar with bigger buttons."],
