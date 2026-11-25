@@ -463,7 +463,9 @@
   }
   // 5.7: the Study Notebook keys ride along; older backups without them import exactly as before.
   const SNB_KEYS = ["bibley_nb_v1_notebooks", "bibley_nb_v1_notes", "bibley_nb_v1_meta"];
-  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB].concat(SNB_KEYS);
+  // 7.2: the Your Year in Bibley reading log rides along too.
+  const RECAP_KEY = "bibley_recap_v1";
+  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB].concat(SNB_KEYS, [RECAP_KEY]);
   function exportBackup() {
     const data = {}; BACKUP_KEYS.forEach(k => { const v = load(k, null); if (v != null) data[k] = v; });
     const blob = new Blob([JSON.stringify({ app: "Bibley", kind: "backup", v: 1, exported: new Date().toISOString(), data }, null, 1)], { type: "application/json" });
@@ -483,6 +485,9 @@
     if (d[K.PLAN]) { const cur = getPlan(); if (!cur || Object.keys(d[K.PLAN].done || {}).length > Object.keys(cur.done || {}).length) save(K.PLAN, d[K.PLAN]); }
     if (d[K.PREFS] && !localStorage.getItem(K.PREFS)) { save(K.PREFS, d[K.PREFS]); applyPrefs(); }
     if (d[K.NB] && window.BibleyNotes && window.BibleyNotes.importData) window.BibleyNotes.importData(d[K.NB]);
+    if (d[RECAP_KEY] && d[RECAP_KEY].d && typeof d[RECAP_KEY].d === "object") { const cur = load(RECAP_KEY, null) || {}; const cd = cur.d && typeof cur.d === "object" ? cur.d : {};
+      Object.keys(d[RECAP_KEY].d).forEach(day => { const a = Array.isArray(cd[day]) ? cd[day] : []; (Array.isArray(d[RECAP_KEY].d[day]) ? d[RECAP_KEY].d[day] : []).forEach(e => { if (Array.isArray(e) && !a.some(x => x[0] === e[0] && x[1] === e[1])) a.push(e); }); cd[day] = a; });
+      save(RECAP_KEY, { v: 1, d: cd }); }
     if ((d[SNB_KEYS[0]] || d[SNB_KEYS[1]]) && window.BibleyStudyNB) window.BibleyStudyNB.importData({ notebooks: d[SNB_KEYS[0]], notes: d[SNB_KEYS[1]], meta: d[SNB_KEYS[2]] });
     C.rerender(); C.refreshLists(); updateDock(); toast("Backup imported ✓");
     return true;
