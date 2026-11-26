@@ -574,6 +574,33 @@
   const cplanAll = () => { const d = load(K.CPLAN, null); return d && Array.isArray(d.plans) ? d : { plans: [], active: null }; };
   const cplanSave = d => save(K.CPLAN, d);
   const chRange = (b0, b1) => { const out = []; for (let b = b0; b <= b1; b++) for (let c = 1; c <= BOOKS[b][2]; c++) out.push([b, c]); return out; };
+  const rangeChapters = ranges => {
+    const result = [], seen = new Set();
+    for (const [book, first, last] of ranges) {
+      if (![book, first, last].every(Number.isInteger) || !BOOKS[book] || first < 1 || last < first || last > BOOKS[book][2]) continue;
+      for (let ch = first; ch <= last; ch++) {
+        const key = book + ':' + ch;
+        if (!seen.has(key)) { seen.add(key); result.push([book, ch]); }
+      }
+    }
+    return result;
+  };
+  function planSchedule(plan) {
+    const details = h('<details class="bp-card bp-plan-schedule"><summary>' + esc(tr("All reading days")) + '</summary></details>');
+    plan.days.forEach((chapters, i) => {
+      const row = h('<div class="bp-card"><b></b><p class="bp-muted"></p><div class="bp-chips"></div></div>');
+      row.firstElementChild.textContent = tr("Day") + ' ' + (i + 1) + (plan.done?.[i] ? ' · ' + tr("Done") : plan.skipped?.[i] ? ' · ' + tr("Skipped") : '');
+      row.querySelector('p').textContent = summarizeChapters(chapters);
+      chapters.forEach(([book, chapter]) => {
+        const b = h('<button type="button" class="bp-chip"></button>');
+        b.textContent = refOf(book, chapter);
+        b.onclick = () => { C.goTo(book, chapter); closeTool(); };
+        row.lastElementChild.append(b);
+      });
+      details.append(row);
+    });
+    return details;
+  }
   const splitDays = (list, days) => {
     // A short book must not produce empty reading days (which cannot be opened).
     days = Math.min(list.length, Math.max(1, Math.floor(days)));
@@ -651,6 +678,21 @@
           body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Plan complete. Start another below.")) + "</p>")));
         }
       }
+      if (mine) body.append(planSchedule(mine));
+      const previous = d.plans.filter(pl => pl.id !== d.active);
+      if (previous.length) {
+        const history = h('<details class="bp-card bp-plan-history"><summary>' + esc(tr("Saved plans")) + '</summary></details>');
+        previous.slice().reverse().forEach(pl => {
+          const row = h('<div class="bp-card"><b data-locale-user></b><p class="bp-muted"></p><button type="button" class="bp-btn small"></button></div>');
+          const st = cplanState(pl);
+          row.firstElementChild.textContent = pl.name;
+          row.querySelector('p').textContent = st.doneCount + '/' + st.total + ' · ' + tr(st.finished ? "Complete" : "In progress");
+          row.lastElementChild.textContent = tr(st.finished ? "View plan" : "Resume plan");
+          row.lastElementChild.onclick = () => { const dd = cplanAll(); dd.active = pl.id; if (cplanSave(dd)) renderView("plans", true); };
+          history.append(row);
+        });
+        body.append(history);
+      }
       body.appendChild(h('<div class="bp-eyebrow">' + esc(tr(mine ? "Start a different plan" : "Start a plan")) + '</div>'));
       const custom = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.route + ("</span><span>" + esc(tr("Build a custom plan")) + "<span class=\"mi-sub\">" + esc(tr("Choose the books and the pace")) + "</span></span><span class=\"mi-arrow\">&#8250;</span></button>"));
       custom.onclick = () => renderView("plan-builder");
@@ -682,9 +724,63 @@
         ("<button class=\"bp-btn primary block\" style=\"margin-top:10px\">" + esc(tr("Start this plan")) + "</button></div>"));
       const [nameIn, sel, daysIn, preview, start] = [card.querySelector("input"), card.querySelector("select"), card.querySelector("input[type=number]"), card.querySelector(".bp-day-list"), card.querySelector("button")];
       scopes.concat(BOOKS.map((b, i) => [b[1], i, i])).forEach(([n, b0, b1]) => sel.appendChild(h('<option value="' + b0 + '-' + b1 + '">' + esc(tr(n)) + '</option>')));
+      sel.setAttribute('aria-label', tr("What to read"));
+      nameIn.setAttribute('aria-label', tr("Plan name (optional)"));
+      daysIn.setAttribute('aria-label', tr("Days to finish"));
+      sel.append(h('<option value="custom">' + esc(tr("Choose chapter ranges")) + '</option>'));
+      const ranges = [];
+      const rangeWrap = h('<div class="bp-range-builder" hidden></div>');
+      sel.after(rangeWrap);
+      const form = h('<div class="bp-card"><label>' + esc(tr("Book")) + '<select class="bp-select" data-range="book"></select></label><div class="bp-row"><label>' + esc(tr("First chapter")) + '<select class="bp-select" data-range="first"></select></label><label>' + esc(tr("Last chapter")) + '<select class="bp-select" data-range="last"></select></label></div><button type="button" class="bp-btn small">' + esc(tr("Add range")) + '</button></div>');
+      const [bookIn, firstIn, lastIn] = form.querySelectorAll('select');
+      [bookIn, firstIn, lastIn].forEach((el, i) => el.setAttribute('aria-label', tr(["Book", "First chapter", "Last chapter"][i])));
+      BOOKS.forEach((book, i) => bookIn.append(h('<option value="' + i + '">' + esc(book[1]) + '</option>')));
+      const resetChapters = () => {
+        firstIn.replaceChildren(); lastIn.replaceChildren();
+        for (let c = 1; c <= BOOKS[+bookIn.value][2]; c++) {
+          firstIn.append(h('<option value="' + c + '">' + c + '</option>'));
+          lastIn.append(h('<option value="' + c + '">' + c + '</option>'));
+        }
+        lastIn.value = String(BOOKS[+bookIn.value][2]);
+      };
+      bookIn.onchange = resetChapters; resetChapters();
+      const rangeRows = h('<div class="bp-range-rows"></div>');
+      rangeWrap.append(form, rangeRows, h('<p class="bp-muted">' + esc(tr("Read in the order below. Overlapping chapters are counted once. These plans use the 66-book reader.")) + '</p>'));
+      const selectedChapters = () => {
+        if (sel.value === 'custom') return rangeChapters(ranges);
+        const [b0, b1] = sel.value.split('-').map(Number);
+        return chRange(b0, b1);
+      };
+      const drawRanges = () => {
+        rangeRows.replaceChildren();
+        ranges.forEach(([book, first, last], i) => {
+          const row = h('<div class="bp-card"><p></p><div class="bp-row"></div></div>');
+          row.firstElementChild.textContent = (i + 1) + '. ' + BOOKS[book][1] + ' ' + first + (first === last ? '' : '–' + last);
+          [["Move up", -1], ["Move down", 1], ["Remove range", 0]].forEach(([label, step]) => {
+            const b = h('<button type="button" class="bp-btn small">' + esc(tr(label)) + '</button>');
+            b.setAttribute('aria-label', tr(label) + ' ' + (i + 1));
+            b.disabled = step < 0 && i === 0 || step > 0 && i === ranges.length - 1;
+            b.onclick = () => {
+              if (!step) ranges.splice(i, 1);
+              else [ranges[i], ranges[i + step]] = [ranges[i + step], ranges[i]];
+              drawRanges(); draw();
+            };
+            row.lastElementChild.append(b);
+          });
+          rangeRows.append(row);
+        });
+      };
+      form.querySelector('button').onclick = () => {
+        const range = [+bookIn.value, +firstIn.value, +lastIn.value];
+        if (range[1] > range[2]) { toast("Last chapter must not come before first chapter"); return; }
+        if (ranges.length >= 100) { toast("A plan can contain up to 100 ranges"); return; }
+        ranges.push(range); drawRanges(); draw();
+      };
       const draw = () => {
-        const [b0, b1] = sel.value.split("-").map(Number);
-        const list = chRange(b0, b1);
+        rangeWrap.hidden = sel.value !== 'custom';
+        const list = selectedChapters();
+        start.disabled = !list.length;
+        if (!list.length) { preview.textContent = tr("Add a chapter range to preview your plan."); return; }
         const days = Math.max(1, Math.min(365, list.length, Math.floor(+daysIn.value || 30)));
         daysIn.max = String(Math.min(365, list.length));
         const dd = splitDays(list, days);
@@ -692,14 +788,15 @@
       };
       sel.onchange = draw; daysIn.oninput = draw; draw();
       start.onclick = () => {
-        const [b0, b1] = sel.value.split("-").map(Number);
-        const list = chRange(b0, b1);
+        const list = selectedChapters();
+        if (!list.length) return;
         const days = Math.max(1, Math.min(365, list.length, Math.floor(+daysIn.value || 30)));
         const name = nameIn.value.trim() || (sel.options[sel.selectedIndex].text + (isEs() ? " en " : " in ") + days + (isEs() ? " días" : " days"));
         const dd = cplanAll();
         const id = "c" + Date.now().toString(36);
         dd.plans.push({ id, name, days: splitDays(list, days), started: dayStr(), done: {}, skipped: {} });
-        dd.active = id; cplanSave(dd);
+        dd.active = id;
+        if (!cplanSave(dd)) return;
         toast("Plan started"); renderView("plans", true);
       };
       body.appendChild(card);
@@ -1224,6 +1321,54 @@
       source.onchange = draw; draw();
     }
   };
+  VIEWS.deuterocanon = {
+    title: "Deuterocanon study notes",
+    async render(body) {
+      body.append(h('<p class="bp-muted">' + esc(tr("Publisher introductions and footnotes for 15 WEB Classic book units, including Greek Esther and Daniel, Baruch with the Letter of Jeremiah, and books used in different Catholic and Orthodox traditions. These are source-edition notes, not a full commentary or an alignment to your selected translation. Canon and numbering vary by tradition.")) + '</p>'));
+      const status = h('<p role="status">' + esc(tr("Loading study notes…")) + '</p>'); body.append(status);
+      try {
+        const data = await getStudyFile('deuterocanon-notes');
+        if (!body.isConnected) return;
+        status.remove();
+        const controls = h('<div class="bp-card"><label>' + esc(tr("Source book")) + '<select class="bp-select"></select></label><label>' + esc(tr("Source chapter")) + '<select class="bp-select"></select></label></div>');
+        const [book, chapter] = controls.querySelectorAll('select');
+        book.setAttribute('aria-label', tr("Source book")); chapter.setAttribute('aria-label', tr("Source chapter"));
+        data.books.forEach(b => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.title; book.append(o); });
+        const content = h('<div class="bp-canon-content"></div>');
+        const credit = h('<p class="bp-muted">World English Bible Classic · Public domain · <a href="https://ebible.org/eng-web/webfaq.htm" target="_blank" rel="noopener">' + esc(tr("Source and license")) + '</a></p>');
+        body.append(controls, content, credit);
+        const draw = () => {
+          const b = data.books.find(b => b.id === book.value), c = b.chapters.find(c => c.number === +chapter.value);
+          content.replaceChildren();
+          const heading = h('<h3 data-locale-user></h3>'); heading.textContent = b.title + ' ' + c.number; content.append(heading);
+          if (b.intro.length) {
+            const intro = h('<details class="bp-card"><summary>' + esc(tr("Publisher introduction")) + '</summary></details>');
+            b.intro.forEach(text => { const p = h('<p class="bp-study-prose" data-locale-user></p>'); p.textContent = text; intro.append(p); }); content.append(intro);
+          }
+          const link = h('<a class="bp-btn" target="_blank" rel="noopener"></a>');
+          link.href = c.url; link.textContent = tr("Read source chapter"); content.append(link);
+          if (!c.notes.length) content.append(h('<p class="bp-muted">' + esc(tr("No publisher footnotes are listed for this source chapter.")) + '</p>'));
+          c.notes.forEach(note => {
+            const card = h('<div class="bp-card"><b></b><p class="bp-study-prose" data-locale-user></p><div class="bp-chips" data-locale-user></div></div>');
+            card.firstElementChild.textContent = note.verse ? tr("Verse") + ' ' + note.verse : tr("Book note");
+            card.querySelector('p').textContent = note.text;
+            note.links.forEach(item => {
+              const a = document.createElement('a'); a.className = 'bp-chip'; a.textContent = item.label; a.href = item.url; a.target = '_blank'; a.rel = 'noopener'; card.lastElementChild.append(a);
+            });
+            content.append(card);
+          });
+        };
+        const choose = () => {
+          chapter.replaceChildren();
+          data.books.find(b => b.id === book.value).chapters.forEach(c => chapter.append(h('<option value="' + c.number + '">' + c.number + '</option>')));
+          draw();
+        };
+        book.onchange = choose; chapter.onchange = draw; choose();
+      } catch {
+        status.textContent = tr("Couldn’t load the study notes. Try again online.");
+      }
+    }
+  };
   VIEWS.dictionary = {
     title: "Easton’s Bible dictionary",
     async render(body) {
@@ -1548,7 +1693,7 @@
     try { wireRedLetters(); } catch (e) { console.warn("Bibley red letters", e); }
     try { wireHistory(); } catch (e) { console.warn("Bibley reading history", e); }
     try { wireTtsBar(); } catch (e) { console.warn("Bibley read-aloud controls", e); }
-    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, openVerseWords, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
+    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, openVerseWords, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { rangeChapters, lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
