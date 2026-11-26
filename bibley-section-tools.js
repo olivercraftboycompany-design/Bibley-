@@ -35,13 +35,15 @@
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const tr = s => window.BibleyLocale?.text(s) ?? s;
+  const isEs = () => window.BibleyLocale?.get() === "es";
+  const amount = (n, one, many) => n + " " + (n === 1 ? one : many);
   const h = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
   const pad = n => String(n).padStart(2, "0");
   const dayStr = (d = new Date()) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   const addDays = (s, n) => { const [y, m, d] = s.split("-").map(Number); const t = new Date(y, m - 1, d + n); return dayStr(t); };
   const monthStr = (d = new Date()) => d.getFullYear() + "-" + pad(d.getMonth() + 1);
   const tsDay = ts => { const d = new Date(ts); return isNaN(d) ? null : dayStr(d); };
-  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const refOf = (b, c, v) => BOOKS[b][1] + " " + c + (v ? ":" + v : "");
   function toast(msg, ms) {
     if (typeof window.bibleyToast === "function") { window.bibleyToast(msg, ms); return; }
@@ -79,7 +81,7 @@
     const fx = window.BibleyFX;
     if (!fx) return;
     if (view === "journal" && fx.ui.isOpen("tool-journal")) fx.ui.onClose(null);
-    fx.ui.openSheet("tool-" + view, title, host => {
+    fx.ui.openSheet("tool-" + view, tr(title), host => {
       if (back) {
         const b = h('<button type="button" class="bp-btn small bp-section-back">← Back</button>');
         b.onclick = back;
@@ -169,18 +171,19 @@
     };
   }
   function recapText(d) {
-    const L = ["Bibley recap - " + d.day];
-    if (d.chapters.length) L.push("Read: " + summarizeChapters(d.chapters));
-    if (d.planDays) L.push("Reading plan days completed: " + d.planDays);
-    if (d.notes) L.push("Notes written: " + d.notes);
-    if (d.highlights) L.push("Highlights: " + d.highlights);
-    if (d.savedVerses) L.push("Verses saved: " + d.savedVerses);
-    if (d.prayersAdded) L.push("Prayers added: " + d.prayersAdded);
-    if (d.prayersAnswered.length) L.push("Prayers answered: " + d.prayersAnswered.length);
-    if (d.memReviews) L.push("Memory verses reviewed: " + d.memReviews);
-    if (d.journal) L.push("Journaled: yes");
-    if (L.length === 1) L.push("Nothing recorded for this day.");
-    const s = streak(); if (s.n) L.push("Current streak: " + s.n + " day" + (s.n === 1 ? "" : "s"));
+    const L = [tr("Bibley recap") + " - " + d.day];
+    const count = (label, n) => { if (n) L.push(tr(label) + ": " + n); };
+    if (d.chapters.length) L.push(tr("Read") + ": " + summarizeChapters(d.chapters));
+    count("Reading plan days completed", d.planDays);
+    count("Notes written", d.notes);
+    count("Highlights", d.highlights);
+    count("Verses saved", d.savedVerses);
+    count("Prayers added", d.prayersAdded);
+    count("Prayers answered", d.prayersAnswered.length);
+    count("Memory verses reviewed", d.memReviews);
+    if (d.journal) L.push(tr("Journaled: yes"));
+    if (L.length === 1) L.push(tr("Nothing recorded for this day."));
+    const s = streak(); if (s.n) L.push(tr("Current streak") + ": " + (isEs() ? amount(s.n, "día", "días") : amount(s.n, "day", "days")));
     return L.join("\n");
   }
 
@@ -191,37 +194,38 @@
       let day = dayStr();
       const head = h('<div class="bp-row spread"><button class="bp-btn small">&#8249; Prev</button><b style="font-family:Fraunces;color:var(--gold-soft)"></b><button class="bp-btn small">Next &#8250;</button></div>');
       const [prev, label, next] = head.querySelectorAll("button,b");
+      prev.textContent = tr("‹ Prev"); next.textContent = tr("Next ›");
       const content = h('<div></div>');
       const draw = () => {
         next.disabled = day >= dayStr();
-        label.textContent = day === dayStr() ? "Today" : day;
+        label.textContent = day === dayStr() ? tr("Today") : day;
         const d = dayRecap(day);
         content.innerHTML = "";
         const rows = [];
         if (d.chapters.length) rows.push(["\u{1F4D6}", "Read", summarizeChapters(d.chapters)]);
-        if (d.planDays) rows.push(["\u{1F4C5}", "Reading plan", d.planDays + " day" + (d.planDays === 1 ? "" : "s") + " completed"]);
-        if (d.notes) rows.push(["\u270D\uFE0F", "Notes", d.notes + " written"]);
+        if (d.planDays) rows.push(["\u{1F4C5}", "Reading plan", isEs() ? amount(d.planDays, "día completado", "días completados") : amount(d.planDays, "day completed", "days completed")]);
+        if (d.notes) rows.push(["\u270D\uFE0F", "Notes", isEs() ? amount(d.notes, "escrita", "escritas") : d.notes + " written"]);
         if (d.highlights) rows.push(["\u{1F3A8}", "Highlights", String(d.highlights)]);
         if (d.savedVerses) rows.push(["\u{1F516}", "Verses saved", String(d.savedVerses)]);
         if (d.prayersAdded) rows.push(["\u{1F64F}", "Prayers added", String(d.prayersAdded)]);
         d.prayersAnswered.forEach(p => rows.push(["\u2728", "Prayer answered", p.title]));
-        if (d.memReviews) rows.push(["\u{1F9E0}", "Memory review", d.memReviews + " verse" + (d.memReviews === 1 ? "" : "s") + " reviewed"]);
-        if (d.journal) rows.push(["\u{1F4D3}", "Journal", "Entry written"]);
+        if (d.memReviews) rows.push(["\u{1F9E0}", "Memory review", isEs() ? amount(d.memReviews, "versículo repasado", "versículos repasados") : amount(d.memReviews, "verse reviewed", "verses reviewed")]);
+        if (d.journal) rows.push(["\u{1F4D3}", "Journal", tr("Entry written")]);
         const card = h('<div class="bp-card gold"></div>');
-        if (rows.length) rows.forEach(([ic, t, sub]) => card.appendChild(h('<div class="bp-list-row"><span class="lr-ic">' + ic + '</span><span class="lr-txt">' + esc(t) + '<span class="lr-sub">' + esc(sub) + '</span></span></div>')));
-        else card.innerHTML = '<p class="bp-muted" style="margin:0">Nothing recorded for this day' + (day === dayStr() ? " yet" : "") + '. Reading, notes, highlights, saved verses, prayers, memory practice and journal entries show up here as you do them.</p>';
+        if (rows.length) rows.forEach(([ic, t, sub]) => card.appendChild(h('<div class="bp-list-row"><span class="lr-ic">' + ic + '</span><span class="lr-txt">' + esc(tr(t)) + '<span class="lr-sub">' + esc(sub) + '</span></span></div>')));
+        else card.innerHTML = '<p class="bp-muted" style="margin:0">' + esc(tr(day === dayStr() ? "Nothing recorded for today yet." : "Nothing recorded for this day.")) + " " + esc(tr("Reading, notes, highlights, saved verses, prayers, memory practice and journal entries show up here as you do them.")) + '</p>';
         content.appendChild(card);
         const s = streak();
-        content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + d.chapters.length + '</b><span>chapters</span></div><div class="bp-stat"><b>' + s.n + '</b><span>current streak</span></div><div class="bp-stat"><b>' + (d.notes + d.highlights + d.savedVerses) + '</b><span>study marks</span></div></div>'));
-        const cp = h('<button class="bp-btn block">Copy recap as text</button>');
-        cp.onclick = async () => { const ok = await copyText(recapText(d)); toast(ok ? "Recap copied" : "Couldn't copy"); };
+        content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + d.chapters.length + '</b><span>' + esc(tr("chapters")) + '</span></div><div class="bp-stat"><b>' + s.n + '</b><span>' + esc(tr("current streak")) + '</span></div><div class="bp-stat"><b>' + (d.notes + d.highlights + d.savedVerses) + '</b><span>' + esc(tr("study marks")) + '</span></div></div>'));
+        const cp = h('<button class="bp-btn block">' + esc(tr("Copy recap as text")) + '</button>');
+        cp.onclick = async () => { const ok = await copyText(recapText(d)); toast(tr(ok ? "Recap copied" : "Couldn't copy")); };
         content.appendChild(cp);
       };
       prev.onclick = () => { day = addDays(day, -1); draw(); };
       next.onclick = () => { day = addDays(day, 1); draw(); };
       draw();
       body.append(head, content);
-      body.appendChild(h('<p class="bp-muted">Based on records available on this device. Deleted items and unavailable history aren’t counted.</p>'));
+      body.appendChild(h('<p class="bp-muted">' + esc(tr("Based on records available on this device. Deleted items and unavailable history aren’t counted.")) + '</p>'));
     }
   };
   VIEWS["recap-month"] = {
@@ -230,20 +234,21 @@
       let month = monthStr();
       const head = h('<div class="bp-row spread"><button class="bp-btn small">&#8249; Prev</button><b style="font-family:Fraunces;color:var(--gold-soft)"></b><button class="bp-btn small">Next &#8250;</button></div>');
       const [prev, label, next] = head.querySelectorAll("button,b");
+      prev.textContent = tr("‹ Prev"); next.textContent = tr("Next ›");
       const content = h('<div></div>');
       const draw = () => {
         next.disabled = month >= monthStr();
         const [y, m] = month.split("-").map(Number);
-        label.textContent = MONTHS[m - 1] + " " + y + (month === monthStr() ? " (so far)" : "");
+        label.textContent = new Intl.DateTimeFormat(isEs() ? "es" : "en", { month: "long", year: "numeric" }).format(new Date(y, m - 1, 1)) + (month === monthStr() ? " " + tr("(so far)") : "");
         const r = monthRecap(month);
         content.innerHTML = "";
-        content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + r.chapters + '</b><span>chapters read</span></div><div class="bp-stat"><b>' + r.activeDays + '</b><span>days active</span></div><div class="bp-stat"><b>' + r.bestStreak + '</b><span>best streak</span></div><div class="bp-stat"><b>' + r.notes + '</b><span>notes</span></div><div class="bp-stat"><b>' + r.highlights + '</b><span>highlights</span></div><div class="bp-stat"><b>' + r.savedVerses + '</b><span>verses saved</span></div><div class="bp-stat"><b>' + r.prayersAdded + '</b><span>prayers added</span></div><div class="bp-stat"><b>' + r.prayersAnswered + '</b><span>prayers answered</span></div><div class="bp-stat"><b>' + r.memReviews + '</b><span>memory reviews</span></div></div>'));
-        if (r.topBooks.length) content.appendChild(h('<div class="bp-card"><div class="bp-eyebrow">Most read</div><p style="margin:4px 0 0;font-size:14px">' + esc(r.topBooks.join(" \u00b7 ")) + '</p></div>'));
+        content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + r.chapters + '</b><span>' + esc(tr("chapters read")) + '</span></div><div class="bp-stat"><b>' + r.activeDays + '</b><span>' + esc(tr("days active")) + '</span></div><div class="bp-stat"><b>' + r.bestStreak + '</b><span>' + esc(tr("best streak")) + '</span></div><div class="bp-stat"><b>' + r.notes + '</b><span>' + esc(tr("notes")) + '</span></div><div class="bp-stat"><b>' + r.highlights + '</b><span>' + esc(tr("highlights")) + '</span></div><div class="bp-stat"><b>' + r.savedVerses + '</b><span>' + esc(tr("verses saved")) + '</span></div><div class="bp-stat"><b>' + r.prayersAdded + '</b><span>' + esc(tr("prayers added")) + '</span></div><div class="bp-stat"><b>' + r.prayersAnswered + '</b><span>' + esc(tr("prayers answered")) + '</span></div><div class="bp-stat"><b>' + r.memReviews + '</b><span>' + esc(tr("memory reviews")) + '</span></div></div>'));
+        if (r.topBooks.length) content.appendChild(h('<div class="bp-card"><div class="bp-eyebrow">' + esc(tr("Most read")) + '</div><p style="margin:4px 0 0;font-size:14px">' + esc(r.topBooks.join(" \u00b7 ")) + '</p></div>'));
         const more = [];
-        if (r.planDays) more.push(r.planDays + " reading-plan day" + (r.planDays === 1 ? "" : "s") + " completed");
-        if (r.journalDays) more.push(r.journalDays + " day" + (r.journalDays === 1 ? "" : "s") + " with journal entries");
+        if (r.planDays) more.push(isEs() ? amount(r.planDays, "día del plan completado", "días del plan completados") : amount(r.planDays, "reading-plan day completed", "reading-plan days completed"));
+        if (r.journalDays) more.push(isEs() ? amount(r.journalDays, "día con entradas en el diario", "días con entradas en el diario") : amount(r.journalDays, "day with journal entries", "days with journal entries"));
         if (more.length) content.appendChild(h('<p class="bp-muted">' + esc(more.join(" \u00b7 ")) + '</p>'));
-        if (![r.chapters, r.activeDays, r.notes, r.highlights, r.savedVerses, r.prayersAdded, r.prayersAnswered, r.memReviews, r.planDays, r.journalDays].some(Boolean)) content.appendChild(h('<p class="bp-muted">Nothing recorded for this month. Counts start from activity recorded on this device.</p>'));
+        if (![r.chapters, r.activeDays, r.notes, r.highlights, r.savedVerses, r.prayersAdded, r.prayersAnswered, r.memReviews, r.planDays, r.journalDays].some(Boolean)) content.appendChild(h('<p class="bp-muted">' + esc(tr("Nothing recorded for this month. Counts start from activity recorded on this device.")) + '</p>'));
       };
       prev.onclick = () => { const [y, m] = month.split("-").map(Number); const d = new Date(y, m - 2, 1); month = monthStr(d); draw(); };
       next.onclick = () => { const [y, m] = month.split("-").map(Number); const d = new Date(y, m, 1); month = monthStr(d); draw(); };
@@ -1017,7 +1022,8 @@
         if (!result.isConnected) return;
         const words = book?.[c]?.[v];
         if (!words?.length) { result.textContent = "No source words for this verse number."; return; }
-        const tokens = h('<ol class="bp-card bp-interlinear" aria-label="Interlinear words"></ol>');
+        const tokens = h('<ol class="bp-card bp-interlinear"></ol>');
+        tokens.setAttribute("aria-label", tr("Interlinear words"));
         tokens.dir = greek ? 'ltr' : 'rtl';
         for (const [word, translit, gloss, codes, morphology] of words) {
           const token = h('<li><bdi class="bp-source-word" lang="' + (greek ? 'grc' : 'he') + '">' + esc(word) + '</bdi><bdi class="bp-muted">' + esc(translit) + '</bdi><bdi>' + esc(gloss) + '</bdi></li>');
