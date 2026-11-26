@@ -300,16 +300,202 @@
     'Strong’s word study':'Estudio de palabras de Strong','Commentaries & outline':'Comentarios y bosquejo','Bible dictionary':'Diccionario bíblico','Bible places map':'Mapa de lugares bíblicos','Bible timeline':'Cronología bíblica','Character profiles':'Perfiles de personajes'
   };
   Object.assign(entries, {"Start a different plan": "Empezar otro plan", "Start a plan": "Empezar un plan", "Schedule moved up - today is your next reading": "Calendario ajustado: tu próxima lectura es hoy", "Plan complete - well done!": "Plan terminado. ¡Buen trabajo!", "Plan started": "Plan iniciado", "Correct": "Correcto", "Not that one - it will come back tomorrow": "No es ese; volverá mañana", "Voice search needs Chrome or Edge": "La búsqueda por voz requiere Chrome o Edge", "Didn't catch that": "No se pudo reconocer", "Type at least 2 letters": "Escribe al menos 2 letras", "Couldn’t load a random verse in this translation": "No se pudo cargar un versículo aleatorio en esta traducción"});
+  // Fixed interface vocabulary; never use this table on stored user content.
+  Object.assign(entries, {
+    "Theme": "Tema",
+    "Accent colour": "Color de acento",
+    "Font": "Tipo de letra",
+    "Text size": "Tamaño del texto",
+    "Line spacing": "Interlineado",
+    "Text width": "Ancho del texto",
+    "Margins": "Márgenes",
+    "Card density": "Densidad de las tarjetas",
+    "Corners": "Esquinas",
+    "Animations": "Animaciones",
+    "Dark": "Oscuro",
+    "Light": "Claro",
+    "True black": "Negro puro",
+    "System": "Sistema",
+    "Gold": "Dorado",
+    "Sage": "Verde salvia",
+    "Slate blue": "Azul pizarra",
+    "Clay rose": "Rosa arcilla",
+    "Lavender": "Lavanda",
+    "Classic serif": "Serif clásica",
+    "System sans": "Sans del sistema",
+    "Condensed sans": "Sans condensada",
+    "Tight": "Ajustado",
+    "Roomy": "Amplio",
+    "Airy": "Muy amplio",
+    "Narrow": "Estrecho",
+    "Wide": "Ancho",
+    "Small": "Pequeño",
+    "Medium": "Mediano",
+    "Large": "Grande",
+    "Comfortable": "Cómoda",
+    "Compact": "Compacta",
+    "Square": "Cuadradas",
+    "Soft": "Suaves",
+    "Round": "Redondas",
+    "On": "Activado",
+    "Off": "Desactivado",
+    "Reduced": "Reducidas",
+    "Reset appearance": "Restablecer apariencia",
+    "Appearance reset": "Apariencia restablecida",
+    "Reset theme, colours, fonts, size and layout to the defaults? Your notes and highlights are not touched.": "¿Restablecer el tema, los colores, las fuentes, el tamaño y el diseño? Tus notas y resaltados no se modificarán.",
+    "Verse numbers": "Números de versículo",
+    "Layout": "Diseño",
+    "Inline": "En línea",
+    "Hidden": "Ocultos",
+    "Paragraph": "Párrafos",
+    "Verse per line": "Un versículo por línea",
+    "Sections": "Secciones",
+    "Section headings": "Encabezados de sección",
+    "Section context": "Contexto de la sección",
+    "Bible version": "Versión de la Biblia",
+    "Classic reading sheet": "Panel de lectura clásico",
+    "The quick size, font and theme sheet": "Ajustes rápidos de tamaño, fuente y tema",
+    "ESV API key": "Clave API de ESV",
+    "Saved on this phone. Tap to change": "Guardada en este teléfono. Toca para cambiarla",
+    "Needed only to read the ESV": "Solo es necesaria para leer ESV",
+    "Bottom bar": "Barra inferior",
+    "Today cards": "Tarjetas de Hoy",
+    "Show labels under icons": "Mostrar etiquetas bajo los iconos",
+    "Reset layout": "Restablecer diseño",
+    "Layout reset": "Diseño restablecido",
+    "Move up": "Mover arriba",
+    "Move down": "Mover abajo",
+    "Always shown": "Siempre visible",
+    "Keep at least one tab next to Settings": "Mantén al menos una pestaña junto a Configuración",
+    "Read aloud speed": "Velocidad de lectura en voz alta",
+    "Study AI answers": "Respuestas de la IA de estudio",
+    "Simple": "Sencillo",
+    "Deep": "Profundo",
+    "Study Notebook": "Cuaderno de estudio",
+    "Notebooks, templates, highlights": "Cuadernos, plantillas y resaltados",
+    "Highlights, notes and bookmarks": "Resaltados, notas y marcadores",
+    "Pick a plan": "Elegir un plan",
+    "Memory verses": "Versículos de memoria",
+    "Practise the verses you're memorizing": "Practica los versículos que estás memorizando",
+    "Search features, guides & shortcuts": "Buscar funciones, guías y atajos",
+    "Verse numbers, layout, sections, Bible version": "Números de versículo, diseño, secciones y versión bíblica",
+    "Focus, Night, Simple, Study and more": "Lectura, noche, sencillo, estudio y más",
+    "Bottom bar, Today cards": "Barra inferior y tarjetas de Hoy",
+    "Quiet hours, pause, Time with God": "Horas de silencio, pausa y Tiempo con Dios",
+    "Notebook, AI depth, plans, memory verses": "Cuaderno, profundidad de la IA, planes y memorización",
+    "Open or delete past chats and calls": "Abrir o eliminar chats y llamadas anteriores",
+    "What Bibley remembers": "Lo que Bibley recuerda",
+    "Export or import everything": "Exportar o importar todo",
+    "What stays on this phone": "Qué se guarda en este teléfono",
+    "Not signed in · Sync notes & highlights across devices": "Sin sesión iniciada · Sincroniza notas y resaltados entre dispositivos",
+    "Cloud AI (Fast)": "IA en la nube (rápida)",
+    "AI Engine": "Motor de IA",
+    "Nothing yet": "Todavía no hay nada",
+    "Sign in": "Iniciar sesión",
+    "Sign In": "Iniciar sesión",
+    "Create Account": "Crear cuenta",
+    "Username": "Nombre de usuario",
+    "Password": "Contraseña",
+    "Display name": "Nombre para mostrar",
+    "(optional)": "(opcional)",
+    "At least 6 characters": "Al menos 6 caracteres",
+    "Your password": "Tu contraseña",
+    "How your name shows": "Cómo se mostrará tu nombre",
+    "e.g. oliver_reads": "p. ej., lector_biblico",
+    "Username must be 3-24 letters, numbers, _ or -": "El nombre debe tener entre 3 y 24 letras, números, _ o -",
+    "Password must be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+    "Creating account…": "Creando cuenta…",
+    "Signing in…": "Iniciando sesión…",
+    "Focus": "Lectura sin distracciones",
+    "Night": "Noche",
+    "Prayer": "Oración",
+    "Just the words. Hides the bottom bar and extra buttons.": "Solo el texto. Oculta la barra inferior y los botones adicionales.",
+    "Warm, dim and easy on the eyes after dark.": "Cálido, tenue y cómodo para leer de noche.",
+    "Verse numbers, one verse per line, notes marked.": "Números de versículo, uno por línea y notas marcadas.",
+    "Calm colours, Time with God first on Today.": "Colores suaves y Tiempo con Dios primero en Hoy.",
+    "Hide the bottom bar": "Ocultar la barra inferior",
+    "Hide extra top-bar buttons": "Ocultar botones adicionales de la barra superior",
+    "Warmth": "Calidez",
+    "Low": "Baja",
+    "High": "Alta",
+    "Dim the screen": "Atenuar la pantalla",
+    "One verse per line": "Un versículo por línea",
+    "Mark notes and highlights clearly": "Marcar claramente notas y resaltados",
+    "Open Time with God when turned on": "Abrir Tiempo con Dios al activarlo",
+    "Night mode schedule": "Horario del modo nocturno",
+    "Turn on Night mode automatically": "Activar el modo nocturno automáticamente",
+    "At sunset": "Al atardecer",
+    "At a set time": "A una hora determinada",
+    "From": "Desde",
+    "Until": "Hasta",
+    "Customize": "Personalizar",
+    "Turn off": "Desactivar",
+    "What it changes": "Qué cambia",
+    "Turn off to go back to your own settings": "Desactívalo para volver a tus ajustes",
+    "Turn on to apply these changes": "Actívalo para aplicar estos cambios",
+    "Start Time with God now": "Iniciar Tiempo con Dios ahora",
+    "Schedule Night mode": "Programar el modo nocturno",
+    "Settings language": "Idioma de la interfaz",
+    "Navigation language": "Idioma de la interfaz",
+    "Changes navigation labels. Bible text and other content keep their original language.": "Cambia la interfaz. El texto bíblico y el contenido de referencia conservan su idioma original.",
+    "Preview": "Vista previa",
+    "Continue": "Continuar",
+    "Highlight": "Resaltar",
+    "Delete chat": "Eliminar chat",
+    "Forget this": "Olvidar esto",
+    "Clear memory": "Borrar memoria",
+    "What Bibley remembers, one per line": "Lo que Bibley recuerda, una cosa por línea",
+    "One thing per line, like: Name is Sam": "Una cosa por línea, por ejemplo: Me llamo Sam",
+    "Edit": "Editar",
+    "About": "Acerca de"
+});
+  Object.assign(entries, {
+    "Low data": "Ahorro de datos",
+    "Accessibility": "Accesibilidad",
+    "Bigger text and fewer buttons. Good for kids.": "Texto más grande y menos botones. Adecuado para niños.",
+    "Bigger text": "Texto más grande",
+    "Simpler navigation": "Navegación más sencilla",
+    "System fonts and no animations. Offline Bibles work as usual.": "Fuentes del sistema y sin animaciones. Las Biblias sin conexión funcionan como siempre.",
+    "Use system fonts": "Usar las fuentes del sistema",
+    "Turn off animations": "Desactivar animaciones",
+    "Large text, high contrast and reduced motion.": "Texto grande, alto contraste y movimiento reducido.",
+    "Large text": "Texto grande",
+    "High contrast": "Alto contraste",
+    "Reduce motion": "Reducir movimiento",
+    "Focus mode": "Modo de lectura",
+    "Night mode": "Modo nocturno",
+    "Simple mode": "Modo sencillo",
+    "Study mode": "Modo de estudio",
+    "Prayer mode": "Modo de oración",
+    "Low data mode": "Modo de ahorro de datos",
+    "Accessibility mode": "Modo de accesibilidad",
+    "Focus mode is on": "Modo de lectura activado",
+    "Night mode is on": "Modo nocturno activado",
+    "Simple mode is on": "Modo sencillo activado",
+    "Study mode is on": "Modo de estudio activado",
+    "Prayer mode is on": "Modo de oración activado",
+    "Low data mode is on": "Modo de ahorro de datos activado",
+    "Accessibility mode is on": "Modo de accesibilidad activado",
+    "Explain": "Explicar",
+    "Background": "Contexto",
+    "Quiz me": "Hazme preguntas",
+    "Study this chapter": "Estudiar este capítulo",
+    "No matching settings": "No se encontraron ajustes",
+    "Settings language": "Idioma de la interfaz"
+});
+  const englishBySpanish = Object.fromEntries(Object.entries(entries).map(([en, es]) => [es, en]));
   let locale = 'en';
   try { if (localStorage.getItem(key) === 'es') locale = 'es'; } catch {}
   const text = original => locale === 'es' ? (Object.hasOwn(entries, original) ? entries[original] : original) : original;
   const apply = () => {
     // Only trusted, fixed labels in the app shell; never touch any user or Bible text.
     const roots = '#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.bp-drawer-mic,.bp-diff-toggle,.bp-tts-bar .t-label,.bp-tts-bar button,.bp-tts-bar option,.bp-tts-bar select,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
-    document.querySelectorAll(roots).forEach(el => {
+    document.querySelectorAll(roots + ',.bs-fl>span,.bs-seg button,.bs-th,.bs-font>span,.bs-ac,.bs-acname,.bs-mini,.bs-lock,.bs-t>small,.bs-dockpv>span,.bs-mode-edit,.bs-times>label,.bs-acct-l,.bs-acct-l>i,.bs-acct-form input,.bs-acct-go,.bs-reset,.bs-pv-btn,.bs-pv-chip,.bs-preview .fx-eyebrow,.bs-mode-hero b,.bs-mode-hero small,.bs-mode-hero~.fx-btn,.bs-root [data-act=resetlayout]').forEach(el => {
+      // Chat titles, message snippets and remembered facts can equal UI words.
+      if (el.closest('.bs-hrow,.bs-mline,.bs-chat,[data-locale-user]')) return;
       const nodes = el.matches('.fx-dock button') ? [...(el.querySelector('span')?.childNodes || [])] : [...el.childNodes];
       for (const n of nodes) if (n.nodeType === 3) {
-        const value = n.nodeValue.trim(), en = originals.get(n) || value;
+        const value = n.nodeValue.trim(), en = originals.get(n) || (Object.hasOwn(entries, value) ? value : (el.closest('.bs-root') ? englishBySpanish[value] : undefined)) || value;
         if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           originals.set(n,en); const changed = n.nodeValue.replace(value, text(en));
           if (n.nodeValue !== changed) n.nodeValue = changed;
@@ -319,7 +505,7 @@
       const attrs = originalAttrs.get(el) || {};
       for (const attr of ['aria-label','title','placeholder']) {
         const value = el.getAttribute(attr); if (!value) continue;
-        const en = attrs[attr] || value;
+        const en = attrs[attr] || (Object.hasOwn(entries, value) ? value : (el.closest('.bs-root') ? englishBySpanish[value] : undefined)) || value;
         if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           attrs[attr]=en; if (value !== text(en)) el.setAttribute(attr,text(en));
           if (locale === 'es') el.lang = 'es'; else el.removeAttribute('lang');
@@ -332,6 +518,7 @@
   window.BibleyLocale = {get: () => locale, set(value) {
     locale = value === 'es' ? 'es' : 'en'; try { localStorage.setItem(key, locale); } catch {}
     apply();
+    window.dispatchEvent(new CustomEvent('bibley:localechange', {detail: {locale}}));
   }, text};
   const init = () => {
     apply();

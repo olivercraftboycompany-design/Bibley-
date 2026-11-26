@@ -12,7 +12,9 @@
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
   const APP_VER = "1.9", WEB_VER = "7.1";
-  const ui = FX.ui, esc = ui.esc, toast = ui.toast;
+  const ui = FX.ui, esc = ui.esc;
+  const tr = value => window.BibleyLocale?.text(value) ?? value;
+  const toast = value => ui.toast(tr(value));
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
   const NAT = window.BibleyDeviceNative || null;
@@ -338,7 +340,9 @@
     const top = stack[stack.length - 1]; if (!top) return;
     const pg = PAGES[top.page] || PAGES.home;
     root.dataset.page = top.page;
-    root.querySelector(".bs-title").textContent = typeof pg.title === "function" ? pg.title() : pg.title;
+    root.lang = window.BibleyLocale?.get() || "en";
+    root.querySelector(".bs-title").toggleAttribute("data-locale-user", top.page === "chatview");
+    root.querySelector(".bs-title").textContent = tr(typeof pg.title === "function" ? pg.title() : pg.title);
     root.querySelector(".bs-back").style.visibility = stack.length > 1 ? "visible" : "hidden";
     const body = root.querySelector(".bs-body"); body.innerHTML = ""; body.scrollTop = 0;
     const el = document.createElement("div"); el.className = "bs-page"; body.appendChild(el);
@@ -350,8 +354,8 @@
   /* ---------- small builders ---------- */
   const row = (o) => '<button type="button" class="bs-row" data-go="' + (o.go || "") + '"' + (o.anchor ? ' data-anchor="' + o.anchor + '"' : "") + (o.act ? ' data-act="' + o.act + '"' : "") + '><span class="bs-ic">' + o.ic + '</span><span class="bs-t">' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(o.t)) : esc(o.t)) + (o.s ? "<small>" + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(o.s)) : esc(o.s)) + "</small>" : "") + "</span>" + (o.right || IC.chev) + "</button>";
   const sw = (k, on, dis) => '<label class="dv-sw bs-sw"><input type="checkbox" data-sw="' + k + '"' + (on ? " checked" : "") + (dis ? " disabled" : "") + '><span></span></label>';
-  const swRow = (k, t, sub, on, anchor, ic) => '<div class="bs-row bs-static"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (ic ? '<span class="bs-ic">' + ic + "</span>" : "") + '<span class="bs-t">' + esc(t) + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</span>" + sw(k, on) + "</div>";
-  const seg = (k, val, opts) => '<div class="fx-seg bs-seg" data-seg="' + k + '">' + opts.map(([v, l]) => '<button type="button" data-v="' + v + '" class="' + (String(val) === String(v) ? "on" : "") + '">' + l + "</button>").join("") + "</div>";
+  const swRow = (k, t, sub, on, anchor, ic) => '<div class="bs-row bs-static"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (ic ? '<span class="bs-ic">' + ic + "</span>" : "") + '<span class="bs-t">' + esc(tr(t)) + (sub ? "<small>" + esc(tr(sub)) + "</small>" : "") + "</span>" + sw(k, on) + "</div>";
+  const seg = (k, val, opts) => '<div class="fx-seg bs-seg" data-seg="' + k + '">' + opts.map(([v, l]) => '<button type="button" data-v="' + v + '" class="' + (String(val) === String(v) ? "on" : "") + '">' + esc(tr(l)) + "</button>").join("") + "</div>";
   const group = (label, inner, anchor) => '<div class="bs-group"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (label ? '<div class="bs-gl">' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(label)) : esc(label)) + "</div>" : "") + '<div class="bs-card">' + inner + "</div></div>";
   const field = (label, inner, anchor, right) => '<div class="bs-field"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + '><div class="bs-fl"><span>' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(label)) : esc(label)) + "</span>" + (right ? "<b>" + right + "</b>" : "") + "</div>" + inner + "</div>";
   function wire(el, handlers) {
@@ -420,13 +424,14 @@
       "</div>";
     const inp = el.querySelector("input"), res = el.querySelector(".bs-results"), grp = el.querySelector(".bs-groups");
     inp.oninput = () => {
-      const q = inp.value.trim().toLowerCase();
+      const norm = v => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const q = norm(inp.value.trim());
       if (!q) { res.hidden = true; grp.hidden = false; return; }
       const idx = INDEX.filter(r => NAT || r[2] !== "widgets").concat(fl.unlocked ? [["Tester", "tester labs experimental flags playground debug", "tester", ""]] : []);
-      const hits = idx.filter(([t, k]) => (t + " " + k).toLowerCase().includes(q));
-      const tw = q.split(/\s+/), th = TIPS.filter(t => tw.every(w => (t[1] + " " + t[2] + " " + t[3]).toLowerCase().includes(w))).slice(0, 6);
+      const hits = idx.filter(([t, k]) => norm(t + " " + tr(t) + " " + k).includes(q));
+      const tw = q.split(/\s+/), th = TIPS.filter(t => tw.every(w => norm(t[1] + " " + tr(t[1]) + " " + t[2] + " " + t[3]).includes(w))).slice(0, 6);
       const all = hits.concat(th.map(t => [t[1], "", "tips", "", t]));
-      res.innerHTML = all.length ? '<div class="bs-card">' + all.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(h[0]) + "<small>" + esc(h[4] ? "Tips" : PG_NAMES[h[2]]) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">No settings match \u201c' + esc(inp.value) + "\u201d</div>";
+      res.innerHTML = all.length ? '<div class="bs-card">' + all.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(tr(h[0])) + "<small>" + esc(tr(h[4] ? "Tips" : PG_NAMES[h[2]])) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">' + esc(tr('No matching settings')) + ' \u201c' + esc(inp.value) + "\u201d</div>";
       res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = all[+b.dataset.i]; if (h[4]) { tipQ = h[0]; tipCat = "all"; } nav(h[2], h[3]); });
       res.hidden = false; grp.hidden = true;
     };
@@ -438,10 +443,10 @@
 
   PAGES.language = { title: "Language / Idioma", render(el) {
     const locale = window.BibleyLocale;
-    el.innerHTML = field("Navigation language", '<select class="bs-input" aria-label="Language / Idioma"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option></select>') +
-      '<p lang="en" class="bs-empty">Changes navigation labels. Bible text and other content keep their original language.</p><p lang="es" class="bs-empty">Cambia las etiquetas de navegación. El texto bíblico y otros contenidos conservan su idioma original.</p>';
+    el.innerHTML = field("Settings language", '<select class="bs-input" aria-label="Language / Idioma"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option></select>') +
+      '<p class="bs-empty">' + esc(tr("Changes navigation labels. Bible text and other content keep their original language.")) + '</p>';
     const select = el.querySelector('select'); select.value = locale?.get() || 'en';
-    select.disabled = !locale; select.onchange = () => { locale.set(select.value); rerender(); };
+    select.disabled = !locale; select.onchange = () => { locale.set(select.value); };
   } };
 
   PAGES.appearance = { title: "Appearance", render(el) {
@@ -503,7 +508,7 @@
   PAGES.modes = { title: "Modes", render(el) {
     const s = S(), n = s.night;
     el.innerHTML = '<div class="bs-modes">' +
-      MODES.map(m => '<div class="bs-mode' + (s.mode === m.id ? " on" : "") + '" data-anchor="m-' + m.id + '"><button type="button" class="bs-mode-main" data-mode="' + m.id + '"><span class="bs-ic">' + m.ic + '</span><span class="bs-t">' + esc(m.name) + "<small>" + esc(m.sub) + "</small></span></button>" + sw("mode:" + m.id, s.mode === m.id) + '<button type="button" class="bs-mode-edit" data-edit="' + m.id + '" aria-label="Customize ' + esc(m.name) + '">Customize' + IC.chev + "</button></div>").join("") + "</div>" +
+      MODES.map(m => '<div class="bs-mode' + (s.mode === m.id ? " on" : "") + '" data-anchor="m-' + m.id + '"><button type="button" class="bs-mode-main" data-mode="' + m.id + '"><span class="bs-ic">' + m.ic + '</span><span class="bs-t">' + esc(m.name) + "<small>" + esc(m.sub) + "</small></span></button>" + sw("mode:" + m.id, s.mode === m.id) + '<button type="button" class="bs-mode-edit" data-edit="' + m.id + '" aria-label="' + esc(tr('Customize') + ' ' + tr(m.name)) + '">' + esc(tr('Customize')) + IC.chev + "</button></div>").join("") + "</div>" +
       group("Night mode schedule", swRow("sched", "Turn on Night mode automatically", n.on ? (n.type === "sunset" ? "At sunset, about " + fmtMin(sunsetMin(new Date())) + ", until " + fmtMin(toMin(n.end)) : "From " + fmtMin(toMin(n.start)) + " to " + fmtMin(toMin(n.end))) : "Off", n.on, "sched", IC.sunset) +
         '<div class="bs-sched' + (n.on ? "" : " off") + '">' + seg("stype", n.type, [["sunset", "At sunset"], ["time", "At a set time"]]) +
         '<div class="bs-times">' + (n.type === "time" ? '<label>From<input type="time" class="fx-input" data-t="start" value="' + esc(n.start) + '"></label>' : "") + '<label>Until<input type="time" class="fx-input" data-t="end" value="' + esc(n.end) + '"></label></div>' + "</div>", "sched");
@@ -518,7 +523,7 @@
   MODES.forEach(m => {
     PAGES["mode-" + m.id] = { title: m.name + " mode", render(el) {
       const s = S(), o = modeOpts(m.id), on = s.mode === m.id;
-      el.innerHTML = '<div class="bs-mode-hero"><span class="bs-ic big">' + m.ic + '</span><div><b>' + esc(m.name) + " mode</b><small>" + esc(m.sub) + "</small></div></div>" +
+      el.innerHTML = '<div class="bs-mode-hero"><span class="bs-ic big">' + m.ic + '</span><div><b>' + esc(tr(m.name + " mode")) + "</b><small>" + esc(tr(m.sub)) + "</small></div></div>" +
         group("", swRow("on", on ? "On" : "Off", on ? "Turn off to go back to your own settings" : "Turn on to apply these changes", on)) +
         group("What it changes", m.opts.map(op => {
           if (op[3] === "range") return '<div class="bs-row bs-static bs-col"><span class="bs-t">' + esc(op[1]) + '<small class="v-' + op[0] + '">' + o[op[0]] + '%</small></span><input class="fx-range bs-range" type="range" min="0" max="60" step="5" value="' + o[op[0]] + '" data-mrange="' + op[0] + '"></div>';
@@ -643,8 +648,8 @@
         e.preventDefault(); if (acctBusy) return;
         const u = f.username.value.trim(), pw = f.password.value, dn = f.display_name ? f.display_name.value.trim() : "";
         const bad = !/^[A-Za-z0-9_-]{3,24}$/.test(u) ? "Username must be 3-24 letters, numbers, _ or -" : pw.length < 6 ? "Password must be at least 6 characters" : "";
-        if (bad) { err.textContent = bad; err.hidden = false; return; }
-        acctBusy = true; go.disabled = true; go.textContent = up ? "Creating account\u2026" : "Signing in\u2026"; err.hidden = true;
+        if (bad) { err.textContent = tr(bad); err.hidden = false; return; }
+        acctBusy = true; go.disabled = true; go.textContent = tr(up ? "Creating account\u2026" : "Signing in\u2026"); err.hidden = true;
         (up ? B.register(u, pw, dn) : B.login(u, pw)).then(st2 => {
           acctBusy = false; acctPw = false;
           toast((up ? "Account created" : "Signed in") + " \u00b7 " + (st2.state === "ok" ? "Synced \u2713" : "will sync when online"));
@@ -984,6 +989,14 @@
     else { setS({ themeMode: "" }); FX.prefs.set("theme", t); }
     applyAll();
   }
+  window.addEventListener("bibley:localechange", () => {
+    if (root?.classList.contains("open")) {
+      const focused = root.querySelector(":focus");
+      // Do not discard unsaved account passwords, edited memory or search input.
+      if (focused?.matches("input:not([type=range]),textarea")) return;
+      rerender();
+    }
+  });
   const isOpen = () => !!(root && root.classList.contains("open"));
   window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, setTtsRate: tts => setS({ tts }), ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
   logp("info", "ready");
