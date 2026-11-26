@@ -101,7 +101,12 @@
     sheetTitle.textContent = V.title;
     try { V.render(sheetBody); } catch (err) { console.error("Bibley Plus view failed", view, err); sheetBody.innerHTML = '<p class="bp-muted">Something went wrong opening this screen.</p>'; }
   }
-  function openPlus(view) { ensureSheet(); overlay.classList.add("open"); sheet.classList.add("open"); renderView(view || "menu"); }
+  function openPlus(view) {
+    ensureSheet();
+    // one sheet at a time: close the app's Today/Plans/etc sheet if it is open
+    try { const fx = window.BibleyFX; if (fx && fx.voice && fx.voice.sheetOpen && fx.voice.sheetOpen()) fx.voice.closeSheet(); } catch {}
+    overlay.classList.add("open"); sheet.classList.add("open"); renderView(view || "menu");
+  }
   function closePlus() { if (!sheet) return; overlay.classList.remove("open"); sheet.classList.remove("open"); lockJournal(); }
 
   /* ================= dock / entry ================= */
@@ -147,7 +152,10 @@
     return n;
   }
   function logOn(day, type) { return load(K.LOG, []).filter(e => e.d === day && (!type || e.t === type)).reduce((s, e) => s + (e.n || 1), 0); }
-  function journalDays() { const m = load(K.JRNL, null); return (m && m.days) || []; }
+  function journalDays() {
+    if (jEntries) return Array.from(new Set(jEntries.map(e => e.d))); // unlocked: derive from memory
+    const m = load(K.JRNL, null); return (m && m.days) || []; // legacy records only (days no longer stored in plaintext)
+  }
 
   /* ================= recaps ================= */
   function dayRecap(day) {
@@ -362,9 +370,13 @@
   }
 
   /* ================= encrypted journal ================= */
-   /* Entries are AES-GCM encrypted with a key derived from the PIN (PBKDF2-SHA256, 250k rounds).
-     Stored: {salt, iv, ct, days[], updated}. Only ciphertext and entry DATES are stored or synced.
-     The PIN is never stored; there is no recovery - the unlock screen says so. */
+   /* Entries are AES-GCM encrypted with a key derived from the PIN/passphrase (PBKDF2-SHA256, 250k rounds).
+     Stored/synced record: {salt, iv, ct, updated} - ciphertext plus a last-modified timestamp for sync
+     merge only. Entry dates live INSIDE the encrypted payload (older records may still carry a plaintext
+     days[] list until the next save). The PIN is never stored; there is no recovery - the screens say so.
+     Honest limits: a short numeric PIN can be brute-forced offline by someone who obtains the stored
+     record, and encryption cannot protect against hostile code running in this page. The setup screen
+     says both in user terms. */
   let jKey = null, jEntries = null, jLockTimer = 0;
   const b64 = buf => btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
   const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -379,7 +391,7 @@
       const key = await deriveKey(pin, unb64(m.salt));
       const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(m.iv) }, key, unb64(m.ct));
       const data = JSON.parse(new TextDecoder().decode(pt));
-      if (!data || data.v !== 1 || !Array.isArray(data.entries)) return false;
+      if (!data || (data.v !== 1 && data.v !== 2) || !Array.isArray(data.entries)) return false;
       jKey = key; jEntries = data.entries; armJournalLock(); return true;
     } catch { return false; }
   }
@@ -391,8 +403,9 @@
   async function journalPersist(salt) {
     const m = journalMeta() || {};
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, jKey, new TextEncoder().encode(JSON.stringify({ v: 1, entries: jEntries })));
-    save(K.JRNL, { salt: salt ? b64(salt) : m.salt, iv: b64(iv), ct: b64(ct), days: Array.from(new Set(jEntries.map(e => e.d))), updated: Date.now() });
+    const payload = { v: 2, entries: jEntries, days: Array.from(new Set(jEntries.map(e => e.d))) };
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, jKey, new TextEncoder().encode(JSON.stringify(payload)));
+    save(K.JRNL, { salt: salt ? b64(salt) : m.salt, iv: b64(iv), ct: b64(ct), updated: Date.now() });
   }
   function lockJournal() { jKey = null; jEntries = null; clearTimeout(jLockTimer); }
   function armJournalLock() { clearTimeout(jLockTimer); jLockTimer = setTimeout(() => { lockJournal(); if (sheet && sheet.classList.contains("open") && sheetTitle.textContent === "Journal") renderView("journal", true); }, 10 * 60 * 1000); }
@@ -406,23 +419,23 @@
         const wrap = h('<div class="bp-lock-wrap"><div class="bp-lock-ic">' + IC.lock + '</div></div>');
         if (!m) {
           wrap.appendChild(h('<p style="font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px">Lock your journal</p>'));
-          wrap.appendChild(h('<p class="bp-muted">Your journal is encrypted on this device with your PIN - nobody can read it without the PIN, and it is never sent anywhere readable. If you forget the PIN, these entries <b>cannot be recovered</b>. There is no reset.</p>'));
-          const p1 = h('<input class="bp-input" type="password" inputmode="numeric" placeholder="Choose a PIN (4+ digits)" maxlength="32"/>');
-          const p2 = h('<input class="bp-input" type="password" inputmode="numeric" placeholder="Repeat the PIN" maxlength="32" style="margin-top:8px"/>');
+          wrap.appendChild(h('<p class="bp-muted">Entries are encrypted on this device with a key made from your PIN or passphrase; if you sync, only the encrypted copy ever leaves the device. <b>Strength matters:</b> a short numeric PIN can be guessed by someone who gets hold of your data - a longer passphrase is much stronger. Encryption protects the stored entries; it cannot protect against malicious software on the device itself. If you forget your PIN or passphrase, these entries <b>cannot be recovered</b>. There is no reset.</p>'));
+          const p1 = h('<input class="bp-input" type="password" placeholder="Choose a PIN or passphrase (longer is stronger)" maxlength="64"/>');
+          const p2 = h('<input class="bp-input" type="password" placeholder="Repeat it" maxlength="64" style="margin-top:8px"/>');
           const btn = h('<button class="bp-btn primary block" style="margin-top:10px">Create locked journal</button>');
           btn.onclick = async () => {
             const a = p1.value.trim();
-            if (a.length < 4) { toast("PIN needs at least 4 characters"); return; }
-            if (a !== p2.value.trim()) { toast("PINs don't match"); return; }
+            if (a.length < 4) { toast("Needs at least 4 characters - longer is stronger"); return; }
+            if (a !== p2.value.trim()) { toast("They don't match"); return; }
             btn.disabled = true;
-            try { await journalSetup(a); toast("Journal created and locked with your PIN"); renderView("journal", true); }
+            try { await journalSetup(a); toast("Journal created and locked"); renderView("journal", true); }
             catch (e) { console.error(e); toast("Encryption isn't available in this browser"); btn.disabled = false; }
           };
           wrap.append(p1, p2, btn);
         } else {
           wrap.appendChild(h('<p style="font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px">Journal is locked</p>'));
-          wrap.appendChild(h('<p class="bp-muted">Entries are encrypted on this device. A wrong PIN cannot open them, and a forgotten PIN cannot be recovered.</p>'));
-          const p1 = h('<input class="bp-input" type="password" inputmode="numeric" placeholder="PIN" maxlength="32"/>');
+          wrap.appendChild(h('<p class="bp-muted">Entries are encrypted on this device. A wrong PIN or passphrase cannot open them, and a forgotten one cannot be recovered.</p>'));
+          const p1 = h('<input class="bp-input" type="password" placeholder="PIN or passphrase" maxlength="64"/>');
           const btn = h('<button class="bp-btn primary block" style="margin-top:10px">Unlock</button>');
           const go = async () => { btn.disabled = true; const ok = await journalUnlock(p1.value); btn.disabled = false; if (ok) renderView("journal", true); else { toast("Wrong PIN"); p1.value = ""; p1.focus(); } };
           btn.onclick = go; p1.onkeydown = e => { if (e.key === "Enter") go(); };
@@ -1124,7 +1137,7 @@
     try { wireDiff(); } catch (e) { console.warn("plus diff", e); }
     try { wireHistory(); } catch (e) { console.warn("plus history", e); }
     try { wireTtsBar(); } catch (e) { console.warn("plus tts", e); }
-    window.BibleyPlus = { open: openPlus, dayRecap, monthRecap, dueCount, _test: { lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash } };
+    window.BibleyPlus = { open: openPlus, close: closePlus, dayRecap, monthRecap, dueCount, _test: { lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
