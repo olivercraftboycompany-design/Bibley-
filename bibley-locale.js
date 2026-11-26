@@ -3,6 +3,57 @@
   'use strict';
   const key = 'bibley_ui_locale_v1';
   const entries = {
+    "Clear all bookmarks and highlights?": "¿Quitar todos los marcadores y resaltados?",
+    "Generating…": "Generando…",
+    "Free AI — no signup, no key": "IA gratuita — sin registro ni clave",
+    "Assistant": "Asistente",
+    "Study": "Estudio",
+    "Clear All Marks": "Quitar todas las marcas",
+    "Remove": "Quitar",
+    "Bookmarked chapter": "Capítulo guardado",
+    "No highlights yet. Tap a verse then choose a color in Verse tab.": "Aún no hay resaltados. Toca un versículo y elige un color en la pestaña Versículo.",
+    "No bookmarks yet. Tap Bookmark in header to save a chapter, or tap verses and choose Bookmark.": "Aún no hay marcadores. Toca Marcador en la cabecera para guardar un capítulo, o toca un versículo y elige Marcador.",
+    "Loading study tools...": "Cargando herramientas de estudio...",
+    "Ask a question and get answers grounded in scripture with references.": "Haz una pregunta y recibe respuestas basadas en la Biblia con referencias.",
+    "Loading conversations…": "Cargando conversaciones…",
+    "Let both panes finish loading, then reopen this tab.": "Espera a que se carguen ambos paneles y vuelve a abrir esta pestaña.",
+    "Turn on Compare (top toolbar) to compare two translations side by side.": "Activa Comparar (barra superior) para ver dos traducciones en paralelo.",
+    "Copied!": "¡Copiado!",
+    "Copy as Text": "Copiar como texto",
+    "Discussion Questions": "Preguntas para conversar",
+    "Illustration idea:": "Idea para una ilustración:",
+    "Outline": "Bosquejo",
+    "Big Idea": "Idea principal",
+    "Generate Outline": "Generar bosquejo",
+    "Regenerate Outline": "Volver a generar el bosquejo",
+    "Long (~45 min)": "Largo (~45 min)",
+    "Medium (~25 min)": "Medio (~25 min)",
+    "Short (~10 min)": "Breve (~10 min)",
+    "Children's lesson": "Lección para niños",
+    "Small group / bible study": "Grupo pequeño / estudio bíblico",
+    "Youth / teens": "Jóvenes / adolescentes",
+    "General congregation": "Congregación general",
+    "Length": "Duración",
+    "Audience": "Público",
+    "Build an Outline": "Crear un bosquejo",
+    "Load a chapter to build an outline from it.": "Carga un capítulo para crear un bosquejo.",
+    "Purple highlight": "Resaltado morado",
+    "Pink highlight": "Resaltado rosa",
+    "Blue highlight": "Resaltado azul",
+    "Green highlight": "Resaltado verde",
+    "Yellow highlight": "Resaltado amarillo",
+    "Application": "Aplicación",
+    "In Context": "En contexto",
+    "Verse Summary": "Resumen del versículo",
+    "Explore this verse: explain, cross-refs, background": "Explorar este versículo: explicación, referencias y contexto",
+    "Select a verse by tapping it to see summary and highlighting.": "Toca un versículo para ver su resumen y resaltarlo.",
+    "Try Again": "Volver a intentar",
+    "Summarize this chapter": "Resumir este capítulo",
+    "overview, key points and structure.": "resumen, puntos clave y estructura.",
+    "Load a chapter to see summary": "Carga un capítulo para ver su resumen",
+    "↻ Regenerate": "↻ Volver a generar",
+    "Structure": "Estructura",
+    "Key Points": "Puntos clave",
     "Days with journal entries":"Días con entradas en el diario",
     "Waiting for both translations to load…":"Esperando a que se carguen ambas traducciones…",
     "Word comparison is unavailable until both translations have this chapter.":"La comparación de palabras no está disponible hasta que ambas traducciones tengan este capítulo.",
@@ -1215,7 +1266,7 @@
   const text = original => locale === 'es' ? (Object.hasOwn(entries, original) ? entries[original] : original) : original;
   const apply = () => {
     // Only trusted, fixed labels in the app shell; never touch any user or Bible text.
-    const roots = '.bn-cback,.bn-book .bn-dot,.bn-empty button,#aiEnginePill,#laiMenu .lai-t,#laiMenu small,.bs-root[data-page=aiengine] .bs-note,.ai-mname,.ai-use,.ai-msub,.ai-mdesc,.ai-mst,.ai-btns button,#bcCall,#bcCall button,#bcCall .bc-ctrl>span,#bcState,#bcBar,#bcBar button,#bcBarState,#bcOpenBtn,#bcOpenBtn span,.bc-who,#bcMsg p,#bcMsg button,.fx-selbar,.fx-selbar-x,.fx-selbar .fx-sw,.fx-selbar .fx-act i,#drawer .drawer-head small,#installDrawerBtn,#ssScopeLabel,#drawer .chapter-picker>div:first-child,.rp-search-input,#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.bp-drawer-mic,.bp-diff-toggle,.bp-tts-bar .t-label,.bp-tts-bar button,.bp-tts-bar option,.bp-tts-bar select,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
+    const roots = '[data-locale-ui],.bn-cback,.bn-book .bn-dot,.bn-empty button,#aiEnginePill,#laiMenu .lai-t,#laiMenu small,.bs-root[data-page=aiengine] .bs-note,.ai-mname,.ai-use,.ai-msub,.ai-mdesc,.ai-mst,.ai-btns button,#bcCall,#bcCall button,#bcCall .bc-ctrl>span,#bcState,#bcBar,#bcBar button,#bcBarState,#bcOpenBtn,#bcOpenBtn span,.bc-who,#bcMsg p,#bcMsg button,.fx-selbar,.fx-selbar-x,.fx-selbar .fx-sw,.fx-selbar .fx-act i,#drawer .drawer-head small,#installDrawerBtn,#ssScopeLabel,#drawer .chapter-picker>div:first-child,.rp-search-input,#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.bp-drawer-mic,.bp-diff-toggle,.bp-tts-bar .t-label,.bp-tts-bar button,.bp-tts-bar option,.bp-tts-bar select,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
     document.querySelectorAll(roots + ',.bs-fl>span,.bs-seg button,.bs-th,.bs-font>span,.bs-ac,.bs-acname,.bs-mini,.bs-lock,.bs-t>small,.bs-dockpv>span,.bs-mode-edit,.bs-times>label,.bs-acct-l,.bs-acct-l>i,.bs-acct-form input,.bs-acct-go,.bs-reset,.bs-pv-btn,.bs-pv-chip,.bs-preview .fx-eyebrow,.bs-mode-hero b,.bs-mode-hero small,.bs-mode-hero~.fx-btn,.bs-root [data-act=resetlayout],.bs-tclr,.bs-acct-pw button,.bs-root[data-page=account] .ai-btns button,.bs-root[data-page=account] .bs-acb').forEach(el => {
       // Chat titles, message snippets and remembered facts can equal UI words.
       if (el.closest('.bs-hrow,.bs-mline,.bs-chat,[data-locale-user]')) return;
