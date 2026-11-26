@@ -1113,16 +1113,17 @@
   }
   let searchIndexBuild = null; // in-flight build state, if any
 
+  window.addEventListener("bibley:localechange", () => updateSsScopeLabel());
   function updateSsScopeLabel(){
     const idx=getSearchIndex();
     const version=panes.a.version;
     const built = idx.version===version ? Object.keys(idx.chapters||{}).length : 0;
     const total = BOOKS.reduce((sum,b)=> sum+b[2], 0);
     if(built>=total){
-      ssScopeLabel.textContent = `Searching the whole Bible (${versionName(version)})`;
+      ssScopeLabel.textContent = (window.BibleyLocale?.text("Searching the whole Bible ({version})") || "Searching the whole Bible ({version})").replace("{version}",versionName(version));
       ssWholeBibleBtn.textContent = "Rebuild index";
     } else if(built>0){
-      ssScopeLabel.textContent = `Whole Bible: ${built}/${total} chapters downloaded (${versionName(version)})`;
+      ssScopeLabel.textContent = (window.BibleyLocale?.text("Whole Bible: {done}/{total} chapters downloaded ({version})") || "Whole Bible: {done}/{total} chapters downloaded ({version})").replace("{done}",built).replace("{total}",total).replace("{version}",versionName(version));
       ssWholeBibleBtn.textContent = "Continue download";
     } else {
       ssScopeLabel.textContent = "Searching chapters you've viewed";

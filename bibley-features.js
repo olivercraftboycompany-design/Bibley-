@@ -24,7 +24,9 @@
   const vKey = (b, c, v) => BOOKS[b][0] + "-" + c + "-" + v;
   const refOf = (b, c, v) => BOOKS[b][1] + " " + c + (v ? ":" + v : "");
   const vname = id => { try { return C.versionName(id); } catch { return String(id).toUpperCase(); } };
+  const tr = value => window.BibleyLocale?.text(value) ?? value;
   function toast(msg, ms) {
+    msg = tr(msg);
     if (typeof window.bibleyToast === "function") { window.bibleyToast(msg, ms); return; }
     let t = document.querySelector(".fx-toast"); if (!t) { t = document.createElement("div"); t.className = "fx-toast"; document.body.appendChild(t); }
     t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms || 2600);
@@ -339,11 +341,12 @@
     });
     return selBar;
   }
+  window.addEventListener("bibley:localechange", () => { if (sel) renderSelBar(); });
   function renderSelBar() {
     const t = selTarget(); if (!t) { clearSel(); return; }
     ensureSelBar();
     const vs = selList(), n = vs.length;
-    selBar.querySelector(".t b").textContent = n + " selected";
+    selBar.querySelector(".t b").textContent = tr(n === 1 ? "1 verse selected" : "{n} verses selected").replace("{n}",n);
     selBar.querySelector(".t span").textContent = t.ref + " \u00b7 " + vname(t.version);
     const colors = new Set(vs.map(v => { const hl = C.getHighlights()[v.key]; return hl ? hl.color : null; }));
     const one = colors.size === 1 ? [...colors][0] : undefined;

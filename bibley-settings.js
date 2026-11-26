@@ -716,9 +716,9 @@
     const c = L.getConfig(), s0 = L.status(), local = c.mode === "local", MS = L.MODELS || [];
     const be = (v, t, sub) => '<button type="button" class="bs-row bs-pick' + (c.backend === v ? " on" : "") + '" data-act="be-' + v + '"><span class="bs-t">' + esc(t) + "<small>" + esc(sub) + '</small></span><span class="bs-check">' + (c.backend === v ? "\u2713" : "") + "</span></button>";
     const card = (m, i) => { const on = local && c.modelId === m.id;
-      return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">Model ' + (i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
-        '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " parameters \u00b7 " + esc(m.tag) + " \u00b7 " + esc(m.size) + "</div>" +
-        '<p class="ai-mdesc">' + esc(m.desc) + ' Full King James verse lookup built in.</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
+      return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">' + tr("Model {n}").replace("{n}", i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
+        '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " " + tr("parameters") + " \u00b7 " + esc(tr(m.tag)) + " \u00b7 " + esc(m.size) + "</div>" +
+        '<p class="ai-mdesc">' + esc(tr(m.desc)) + ' ' + esc(tr("Full King James verse lookup built in.")) + '</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
         '<div class="ai-mst">Checking\u2026</div><div class="ai-prog" hidden><i></i></div><div class="ai-btns">' +
         (on ? "" : '<button type="button" class="fx-btn small primary" data-act="use-' + m.id + '">Use this model</button>') +
         '<button type="button" class="fx-btn small' + (on ? " primary" : "") + '" data-act="dl-' + m.id + '">Download &amp; Load</button><button type="button" class="fx-btn small" data-act="test-' + m.id + '">Test</button><button type="button" class="fx-btn small" data-act="clear-' + m.id + '">Clear</button></div></div>'; };
@@ -727,39 +727,39 @@
         group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
         '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>'
       : 
-        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
+        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: tr("Model {n}").replace("{n}", i + 1) + ": " + m.name + " \u00b7 " + m.model, s: tr(m.tag) + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
     const capEl = el.querySelector(".ai-caps");
     const paint = s => {
       if (!el.isConnected) return;
       el.querySelectorAll(".ai-model").forEach(box => {
         const id = box.dataset.model, stEl = box.querySelector(".ai-mst"), bar = box.querySelector(".ai-prog"), mine = s.model === id;
-        if (mine && s.state === "loading") { stEl.textContent = (s.text || "Downloading\u2026").slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
+        if (mine && s.state === "loading") { stEl.textContent = (L.uiText ? L.uiText(s.text || "Downloading\u2026") : tr(s.text || "Downloading\u2026")).slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
         bar.hidden = true;
-        if (mine && s.state === "ready") { stEl.textContent = "\u2713 Loaded in memory and ready (" + (s.backend === "webgpu" ? "WebGPU" : "CPU") + ")"; return; }
-        if (mine && s.state === "error") { stEl.textContent = "Couldn't load: " + String(s.error || "").slice(0, 120); return; }
-        L.isCached(id).then(y => { if (el.isConnected && !(L.status().model === id && L.status().state !== "idle")) stEl.textContent = y ? "\u2713 Downloaded \u00b7 ready offline" : "Not downloaded yet"; });
+        if (mine && s.state === "ready") { stEl.textContent = tr("✓ Loaded in memory and ready ({backend})").replace("{backend}", s.backend === "webgpu" ? "WebGPU" : "CPU"); return; }
+        if (mine && s.state === "error") { stEl.textContent = tr("Couldn't load: {error}").replace("{error}", String(s.error || "").slice(0,120)); return; }
+        L.isCached(id).then(y => { if (el.isConnected && !(L.status().model === id && L.status().state !== "idle")) stEl.textContent = tr(y ? "\u2713 Downloaded \u00b7 ready offline" : "Not downloaded yet"); });
       });
     };
     if (local) {
       paint(s0);
       const un = L.on(s => { if (!el.isConnected) { un(); return; } paint(s); });
-      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : "") + (k.webgpu && !k.f16 ? " \u00b7 Model 2 runs on CPU here (no shader-f16)" : ""); });
+      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = tr(k.label.replace(" (f16)", "")) + (k.f16 && k.webgpu ? " (f16)" : "") + (k.mobile ? tr(" \u00b7 phone") : "") + (k.webgpu && !k.f16 ? tr(" \u00b7 Model 2 runs on CPU here (no shader-f16)") : ""); });
     }
     const nm = id => (L.modelInfo(id) || {}).name || "the model";
     wire(el, {
-      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? L.label() + " is on" : "Cloud AI is on"); rerender(); } },
+      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? tr("{model} is on").replace("{model}",L.label()) : "Cloud AI is on"); rerender(); } },
       act: a => {
         if (a.indexOf("be-") === 0) { L.setConfig({ backend: a.slice(3) }); rerender(); return; }
         const m = a.match(/^(use|dl|test|clear)-(.+)$/); if (!m) return; const [, op, id] = m;
-        if (op === "use") { L.setConfig({ mode: "local", modelId: id }); const s = L.status(); if (s.model && s.model !== id) L.unload(); toast(L.label() + " is on"); rerender(); return; }
+        if (op === "use") { L.setConfig({ mode: "local", modelId: id }); const s = L.status(); if (s.model && s.model !== id) L.unload(); toast(tr("{model} is on").replace("{model}",L.label())); rerender(); return; }
         if (op === "dl" || op === "test") {
           if (L.getConfig().modelId !== id || !L.isLocal()) { L.setConfig({ mode: "local", modelId: id }); rerender(); }
-          const run = op === "dl" ? L.loadModel(null, id).then(() => toast(nm(id) + " is ready on this device"))
+          const run = op === "dl" ? L.loadModel(null, id).then(() => toast(tr("{model} is ready on this device").replace("{model}",nm(id))))
             : L.generate("What does John 3:16 say?", { modelId: id }).then(r => toast(nm(id) + " test \u2713 " + r.text.replace(/\s+/g, " ").slice(0, 110) + "\u2026", 6000));
-          run.catch(e => toast("Couldn't load " + nm(id) + ": " + String(e && e.message || e).slice(0, 80), 4000));
+          run.catch(e => toast(tr("Couldn't load {model}: {error}").replace("{model}",nm(id)).replace("{error}", String(e && e.message || e).slice(0,80)), 4000));
           return;
         }
-        if (op === "clear" && confirm("Remove " + nm(id) + " from this device? You can download it again any time.")) L.clearCache(id).then(() => { toast(nm(id) + " removed"); rerender(); });
+        if (op === "clear" && confirm(tr("Remove {model} from this device? You can download it again any time.").replace("{model}",nm(id)))) L.clearCache(id).then(() => { toast(tr("{model} removed").replace("{model}",nm(id))); rerender(); });
       }
     });
   } };

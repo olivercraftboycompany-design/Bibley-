@@ -932,19 +932,173 @@
 });
   Object.assign(entries, {"Page copied":"Página copiada"});
   Object.assign(entries, {"The account service returned an invalid response. Please try again.":"El servicio de cuentas devolvió una respuesta no válida. Inténtalo de nuevo."});
+  // AI engine, voice-call chrome and fixed reader controls only.
+  Object.assign(entries, {
+    "AI engine": "Motor de IA",
+    "Cloud AI": "IA en la nube",
+    "Cloud AI (Fast)": "IA en la nube (rápida)",
+    "On-Device AI": "IA en el dispositivo",
+    "On-device models": "Modelos en el dispositivo",
+    "Device backend": "Procesador del dispositivo",
+    "Auto (WebGPU if available, else CPU)": "Automático (WebGPU si está disponible; si no, CPU)",
+    "Fastest, on devices with WebGPU": "Más rápido en dispositivos con WebGPU",
+    "Works in almost any browser, slower": "Funciona en casi cualquier navegador, más lento",
+    "The AI engine switcher is still loading.": "El selector del motor de IA aún está cargando.",
+    "In use": "En uso",
+    "Use this model": "Usar este modelo",
+    "Download & Load": "Descargar y cargar",
+    "Test": "Probar",
+    "Clear": "Borrar",
+    "Checking…": "Comprobando…",
+    "Detected: checking this device…": "Detectado: comprobando este dispositivo…",
+    "Not downloaded yet": "Aún no se ha descargado",
+    "✓ Downloaded · ready offline": "✓ Descargado · disponible sin conexión",
+    "Fast & Light": "Rápido y ligero",
+    "Deeper Study": "Estudio más profundo",
+    "Quick answers with real KJV quotes. Light enough for most phones.": "Respuestas rápidas con citas reales de la KJV. Ligero para la mayoría de los teléfonos.",
+    "Google's Gemma 3: fuller, more careful explanations of the verses it finds. Best on newer devices.": "Gemma 3 de Google: explicaciones más completas de los versículos encontrados. Mejor en dispositivos recientes.",
+    "Full King James verse lookup built in.": "Incluye búsqueda de versículos de toda la King James.",
+    "Model {n}": "Modelo {n}",
+    "parameters": "parámetros",
+    "Fast, needs internet": "Rápida, necesita internet",
+    "AI Engine settings…": "Ajustes del motor de IA…",
+    "Download, test, backend": "Descarga, prueba y procesador",
+    "On-device AI. Tap to switch": "IA en el dispositivo. Toca para cambiar",
+    "Tap to switch the AI engine": "Toca para cambiar el motor de IA",
+    "KJV verse lookup": "Búsqueda de versículos KJV",
+    "{model} is on": "{model} está activado",
+    "Cloud AI is on": "La IA en la nube está activada",
+    "{model} is ready on this device": "{model} está listo en este dispositivo",
+    "Couldn't load {model}: {error}": "No se pudo cargar {model}: {error}",
+    "Remove {model} from this device? You can download it again any time.": "¿Eliminar {model} de este dispositivo? Puedes volver a descargarlo cuando quieras.",
+    "{model} removed": "{model} eliminado",
+    "{model} is on. It downloads once, the first time you ask.": "{model} está activado. Se descarga una vez, la primera vez que preguntas.",
+    "✓ Loaded in memory and ready ({backend})": "✓ Cargado en memoria y listo ({backend})",
+    "Couldn't load: {error}": "No se pudo cargar: {error}",
+    "Detected: WebGPU available": "Detectado: WebGPU disponible",
+    "Detected: CPU mode (WebGPU not available in this browser)": "Detectado: modo CPU (WebGPU no está disponible en este navegador)",
+    "Detected: this browser can't run on-device AI": "Detectado: este navegador no puede ejecutar IA en el dispositivo",
+    " · phone": " · teléfono",
+    " · Model 2 runs on CPU here (no shader-f16)": " · El modelo 2 funciona con CPU aquí (sin shader-f16)",
+    "Starting...": "Iniciando...",
+    "Downloading…": "Descargando…",
+    "Loading WebLLM...": "Cargando WebLLM...",
+    "Loading the CPU engine...": "Cargando el motor CPU...",
+    "Opening the King James Bible...": "Abriendo la Biblia King James...",
+    "Downloading {model} ({name})... {done} of {total} MB": "Descargando {model} ({name})... {done} de {total} MB",
+    "Call": "Llamar",
+    "Call Bibley": "Llamar a Bibley",
+    "Call with Bibley": "Llamada con Bibley",
+    "Minimize call": "Minimizar llamada",
+    "Minimize": "Minimizar",
+    "Hang up": "Colgar",
+    "Mute": "Silenciar",
+    "Unmute": "Activar micrófono",
+    "Return to call": "Volver a la llamada",
+    "You": "Tú",
+    "Connecting...": "Conectando...",
+    "Listening...": "Escuchando...",
+    "Thinking...": "Pensando...",
+    "Working...": "Procesando...",
+    "Speaking... tap to interrupt": "Hablando... toca para interrumpir",
+    "Muted": "Micrófono silenciado",
+    "Offline": "Sin conexión",
+    "Can't use the mic here": "No se puede usar el micrófono aquí",
+    "Microphone is off": "El micrófono está desactivado",
+    "Taking a break": "En pausa",
+    "One moment...": "Un momento...",
+    "You're offline. The call picks back up when you're connected.": "Estás sin conexión. La llamada continuará cuando te conectes.",
+    "This version of the Bibley app can't use the microphone yet. Update the app to 2.2 or newer to call Bibley.": "Esta versión de Bibley aún no puede usar el micrófono. Actualiza a la versión 2.2 o posterior para llamar a Bibley.",
+    "This browser can't record your voice. Try Chrome, Edge or Safari.": "Este navegador no puede grabar tu voz. Prueba Chrome, Edge o Safari.",
+    "You're offline. Connect to the internet to call Bibley.": "Estás sin conexión. Conéctate a internet para llamar a Bibley.",
+    "Bibley needs the microphone to hear you. Allow it when your phone asks, or turn it on in Settings > Apps > Bibley > Permissions > Microphone.": "Bibley necesita el micrófono para escucharte. Permítelo cuando te lo pida el teléfono o actívalo en Ajustes > Aplicaciones > Bibley > Permisos > Micrófono.",
+    "Bibley needs the microphone to hear you. Allow it for this site (tap the lock or info icon next to the address), then try again.": "Bibley necesita el micrófono para escucharte. Permítelo para este sitio (toca el candado o el icono de información junto a la dirección) y vuelve a intentarlo.",
+    "No microphone was found on this device.": "No se encontró ningún micrófono en este dispositivo.",
+    "Another app is using the microphone. Close it and try again.": "Otra aplicación está usando el micrófono. Ciérrala y vuelve a intentarlo.",
+    "Couldn't start the microphone ({error}).": "No se pudo iniciar el micrófono ({error}).",
+    "That was a long one. Try asking in a shorter sentence.": "Fue un mensaje largo. Prueba con una frase más corta.",
+    "Bibley has talked a lot today and needs a rest. Try calling again tomorrow, or type in the Chatbot tab.": "Bibley ha hablado mucho hoy y necesita descansar. Vuelve a llamar mañana o escribe en la pestaña Chatbot.",
+    "Lots of questions right now. Bibley will listen again in {n} seconds.": "Hay muchas preguntas ahora mismo. Bibley volverá a escuchar en {n} segundos.",
+    "Didn't catch that because of a connection problem. Say it again.": "No se pudo entender por un problema de conexión. Dilo otra vez.",
+    "The Books": "Los libros",
+    "66 books": "66 libros",
+    "Install Bibley app": "Instalar la aplicación Bibley",
+    "Searching chapters you've viewed": "Buscando en los capítulos que has visto",
+    "Chapters": "Capítulos",
+    "Searching the whole Bible ({version})": "Buscando en toda la Biblia ({version})",
+    "Whole Bible: {done}/{total} chapters downloaded ({version})": "Toda la Biblia: {done}/{total} capítulos descargados ({version})",
+    "Selected verses": "Versículos seleccionados",
+    "Clear selection": "Borrar selección",
+    "Highlight colour": "Color de resaltado",
+    "Remove highlight": "Quitar resaltado",
+    "No highlight": "Sin resaltado",
+    "Image": "Imagen",
+    "Note": "Nota",
+    "Edit note": "Editar nota",
+    "Original words": "Palabras originales",
+    "Linked verses": "Versículos relacionados",
+    "Explain": "Explicar",
+    "{n} selected": "{n} seleccionados",
+    "Verse bookmarked": "Versículo guardado",
+    "Bookmark removed": "Marcador eliminado",
+    "Copied (sharing isn't available here)": "Copiado (no se puede compartir aquí)",
+    "Notebook is still loading": "El cuaderno aún está cargando",
+    "Still loading": "Aún cargando",
+    "Bookmark": "Marcador",
+    "Bookmarked": "Guardado",
+    "Prev": "Anterior",
+    "Next": "Siguiente",
+    "yellow highlight": "Resaltado amarillo",
+    "yellow": "Amarillo",
+    "green highlight": "Resaltado verde",
+    "green": "Verde",
+    "blue highlight": "Resaltado azul",
+    "blue": "Azul",
+    "pink highlight": "Resaltado rosa",
+    "pink": "Rosa",
+    "purple highlight": "Resaltado morado",
+    "purple": "Morado",
+    "Try again": "Intentar de nuevo",
+    "AI Engine": "Motor de IA",
+    "Search verse text...": "Buscar texto de versículos...",
+    "Search books": "Buscar libros",
+    "Share": "Compartir",
+    "Memorize": "Memorizar",
+    "Saved": "Guardado"
+});
+  Object.assign(entries, {
+    "Reading {reference}": "Leyendo {reference}",
+    "No book matches “{query}”.": "Ningún libro coincide con «{query}».",
+    "Search verse text instead": "Buscar texto de versículos",
+    " chapter": " capítulo",
+    " chapters": " capítulos",
+    "Law": "Ley",
+    "Poetry & Wisdom": "Poesía y sabiduría",
+    "Prophets": "Profetas",
+    "Major prophets": "Profetas mayores",
+    "Minor prophets": "Profetas menores",
+    "Gospels": "Evangelios",
+    "Letters": "Cartas",
+    "Paul's letters": "Cartas de Pablo",
+    "General letters": "Cartas generales",
+    "Prophecy": "Profecía",
+    "Back to books": "Volver a los libros"
+});
+  Object.assign(entries, {"1 verse selected":"1 versículo seleccionado","{n} verses selected":"{n} versículos seleccionados"});
+  Object.assign(entries, {"Historical books":"Libros históricos","Type a word or phrase, like shepherd or love your neighbour. Tap a result to open it.":"Escribe una palabra o frase, como pastor o ama a tu prójimo. Toca un resultado para abrirlo."});
   const englishBySpanish = Object.fromEntries(Object.entries(entries).map(([en, es]) => [es, en]));
   let locale = 'en';
   try { if (localStorage.getItem(key) === 'es') locale = 'es'; } catch {}
   const text = original => locale === 'es' ? (Object.hasOwn(entries, original) ? entries[original] : original) : original;
   const apply = () => {
     // Only trusted, fixed labels in the app shell; never touch any user or Bible text.
-    const roots = '#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.bp-drawer-mic,.bp-diff-toggle,.bp-tts-bar .t-label,.bp-tts-bar button,.bp-tts-bar option,.bp-tts-bar select,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
+    const roots = '.bn-cback,.bn-book .bn-dot,.bn-empty button,#aiEnginePill,#laiMenu .lai-t,#laiMenu small,.bs-root[data-page=aiengine] .bs-note,.ai-mname,.ai-use,.ai-msub,.ai-mdesc,.ai-mst,.ai-btns button,#bcCall,#bcCall button,#bcCall .bc-ctrl>span,#bcState,#bcBar,#bcBar button,#bcBarState,#bcOpenBtn,#bcOpenBtn span,.bc-who,#bcMsg p,#bcMsg button,.fx-selbar,.fx-selbar-x,.fx-selbar .fx-sw,.fx-selbar .fx-act i,#drawer .drawer-head small,#installDrawerBtn,#ssScopeLabel,#drawer .chapter-picker>div:first-child,.rp-search-input,#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.bp-drawer-mic,.bp-diff-toggle,.bp-tts-bar .t-label,.bp-tts-bar button,.bp-tts-bar option,.bp-tts-bar select,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
     document.querySelectorAll(roots + ',.bs-fl>span,.bs-seg button,.bs-th,.bs-font>span,.bs-ac,.bs-acname,.bs-mini,.bs-lock,.bs-t>small,.bs-dockpv>span,.bs-mode-edit,.bs-times>label,.bs-acct-l,.bs-acct-l>i,.bs-acct-form input,.bs-acct-go,.bs-reset,.bs-pv-btn,.bs-pv-chip,.bs-preview .fx-eyebrow,.bs-mode-hero b,.bs-mode-hero small,.bs-mode-hero~.fx-btn,.bs-root [data-act=resetlayout],.bs-tclr,.bs-acct-pw button,.bs-root[data-page=account] .ai-btns button,.bs-root[data-page=account] .bs-acb').forEach(el => {
       // Chat titles, message snippets and remembered facts can equal UI words.
       if (el.closest('.bs-hrow,.bs-mline,.bs-chat,[data-locale-user]')) return;
       const nodes = el.matches('.fx-dock button') ? [...(el.querySelector('span')?.childNodes || [])] : [...el.childNodes];
       for (const n of nodes) if (n.nodeType === 3) {
-        const value = n.nodeValue.trim(), en = originals.get(n) || (Object.hasOwn(entries, value) ? value : (el.closest('.bs-root') ? englishBySpanish[value] : undefined)) || value;
+        const value = n.nodeValue.trim(), en = originals.get(n) || (Object.hasOwn(entries, value) ? value : englishBySpanish[value]) || value;
         if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           originals.set(n,en); const changed = n.nodeValue.replace(value, text(en));
           if (n.nodeValue !== changed) n.nodeValue = changed;
@@ -954,7 +1108,8 @@
       const attrs = originalAttrs.get(el) || {};
       for (const attr of ['aria-label','title','placeholder']) {
         const value = el.getAttribute(attr); if (!value) continue;
-        const en = attrs[attr] || (Object.hasOwn(entries, value) ? value : (el.closest('.bs-root') ? englishBySpanish[value] : undefined)) || value;
+        const prior = attrs[attr];
+        const en = prior && (value === prior || value === entries[prior]) ? prior : (Object.hasOwn(entries, value) ? value : englishBySpanish[value]) || value;
         if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           attrs[attr]=en; if (value !== text(en)) el.setAttribute(attr,text(en));
           if (locale === 'es') el.lang = 'es'; else el.removeAttribute('lang');
@@ -973,7 +1128,7 @@
     apply();
     let scheduled = false;
     new MutationObserver(records => {
-      if (locale !== 'es' || scheduled || !records.some(r => r.target instanceof Element && !r.target.closest('.verses-text'))) return;
+      if (locale !== 'es' || scheduled || !records.some(r => r.target instanceof Element && !r.target.closest('.verses-text,.bc-txt'))) return;
       scheduled = true; requestAnimationFrame(() => { scheduled = false; apply(); });
     }).observe(document.body,{subtree:true,childList:true});
   };
