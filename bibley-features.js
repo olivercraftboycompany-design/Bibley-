@@ -150,6 +150,8 @@
   }
   function openSheet(view, title, render) {
     ensureSheet();
+    // one sheet at a time: close the Plus sheet (bibley-plus.js) if it is open
+    try { if (window.BibleyPlus && window.BibleyPlus.close) window.BibleyPlus.close(); } catch {}
     if (onSheetClose) { const f = onSheetClose; onSheetClose = null; try { f(); } catch {} }
     sheetView = view; sheet.dataset.view = view; sheetTitle.textContent = title;
     sheetBody.innerHTML = ""; sheetBody.scrollTop = 0; render(sheetBody);
