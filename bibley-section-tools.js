@@ -273,31 +273,31 @@
       const d = prayAll();
       const active = d.items.filter(p => !p.answered);
       const answered = d.items.filter(p => p.answered);
-      const addCard = h('<div class="bp-card"><div class="bp-eyebrow">New prayer</div><input class="bp-input" placeholder="What are you praying for?" maxlength="120"/><textarea class="bp-textarea" placeholder="Details (optional)" style="margin-top:8px"></textarea><button class="bp-btn primary block">Add prayer</button></div>');
+      const addCard = h('<div class="bp-card"><div class="bp-eyebrow">' + esc(tr("New prayer")) + '</div><input class="bp-input" placeholder="' + esc(tr("What are you praying for?")) + '" maxlength="120"/><textarea class="bp-textarea" placeholder="' + esc(tr("Details (optional)")) + '" style="margin-top:8px"></textarea><button class="bp-btn primary block">' + esc(tr("Add prayer")) + '</button></div>');
       const [inp, ta, btn] = [addCard.querySelector("input"), addCard.querySelector("textarea"), addCard.querySelector("button")];
       btn.onclick = () => {
-        const title = inp.value.trim(); if (!title) { toast("Give the prayer a short title"); return; }
+        const title = inp.value.trim(); if (!title) { toast(tr("Give the prayer a short title")); return; }
         const dd = prayAll(); dd.items.unshift({ id: "p" + Date.now().toString(36), title, detail: ta.value.trim(), added: Date.now(), answered: 0 });
-        praySave(dd); logEvent("prayer", 1); toast("Prayer added"); renderView("prayers", true);
+        praySave(dd); logEvent("prayer", 1); toast(tr("Prayer added")); renderView("prayers", true);
       };
       body.appendChild(addCard);
-      body.appendChild(h('<p class="bp-muted">Private: your prayers live on this device and in your Bibley account when signed in. They are never public.</p>'));
+      body.appendChild(h('<p class="bp-muted">' + esc(tr("Private: your prayers live on this device and in your Bibley account when signed in. They are never public.")) + '</p>'));
       if (active.length) {
-        body.appendChild(h('<div class="bp-eyebrow">Active (' + active.length + ')</div>'));
+        body.appendChild(h('<div class="bp-eyebrow">' + esc(tr("Active")) + ' (' + active.length + ')</div>'));
         active.forEach(p => body.appendChild(prayerCard(p)));
       }
       if (answered.length) {
-        body.appendChild(h('<div class="bp-eyebrow">Answered (' + answered.length + ')</div>'));
+        body.appendChild(h('<div class="bp-eyebrow">' + esc(tr("Answered")) + ' (' + answered.length + ')</div>'));
         answered.forEach(p => body.appendChild(prayerCard(p)));
       }
-      body.appendChild(h('<div class="bp-eyebrow">Guided prayers</div>'));
+      body.appendChild(h('<div class="bp-eyebrow">' + esc(tr("Guided prayers")) + '</div>'));
       GUIDED.forEach(g => {
         const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.pray + '</span><span>' + esc(g.name) + '<span class="mi-sub">' + esc(g.ref) + '</span></span><span class="mi-arrow">&#8250;</span></button>');
         b.onclick = () => {
           openPanel("guided-prayer", g.name, panel => {
           const card = h('<div class="bp-card gold"><p class="bp-muted" style="margin:0 0 8px">' + esc(g.ref) + '</p><div class="bp-guided">' + esc(g.text) + '</div></div>');
-          const use = h('<button class="bp-btn block">Save as a prayer request</button>');
-          use.onclick = () => { const dd = prayAll(); dd.items.unshift({ id: "p" + Date.now().toString(36), title: g.name + " prayer", detail: g.ref, added: Date.now(), answered: 0 }); praySave(dd); logEvent("prayer", 1); toast("Added to your prayer list"); renderView("prayers", true); };
+          const use = h('<button class="bp-btn block">' + esc(tr("Save as a prayer request")) + '</button>');
+          use.onclick = () => { const dd = prayAll(); dd.items.unshift({ id: "p" + Date.now().toString(36), title: g.name + " prayer", detail: g.ref, added: Date.now(), answered: 0 }); praySave(dd); logEvent("prayer", 1); toast(tr("Added to your prayer list")); renderView("prayers", true); };
           panel.append(card, use);
           }, () => renderView("prayers"));
         };
@@ -306,19 +306,19 @@
     }
   };
   function prayerCard(p) {
-    const card = h('<div class="bp-prayer' + (p.answered ? " answered" : "") + '"><b>' + esc(p.title) + '</b>' + (p.detail ? '<p>' + esc(p.detail) + '</p>' : "") + '<div class="pr-meta">Added ' + esc(tsDay(p.added) || "") + (p.answered ? " \u00b7 answered " + esc(tsDay(p.answered) || "") : "") + '</div><div class="bp-row" style="margin-top:8px"></div></div>');
+    const card = h('<div class="bp-prayer' + (p.answered ? " answered" : "") + '"><b>' + esc(p.title) + '</b>' + (p.detail ? '<p>' + esc(p.detail) + '</p>' : "") + '<div class="pr-meta">' + esc(tr("Added")) + ' ' + esc(tsDay(p.added) || "") + (p.answered ? " \u00b7 " + esc(tr("answered")) + " " + esc(tsDay(p.answered) || "") : "") + '</div><div class="bp-row" style="margin-top:8px"></div></div>');
     const row = card.querySelector(".bp-row");
     if (!p.answered) {
-      const ans = h('<button class="bp-btn small primary">Mark answered</button>');
-      ans.onclick = () => { const d = prayAll(); const it = d.items.find(x => x.id === p.id); if (it) { it.answered = Date.now(); praySave(d); logEvent("prayer_answered", 1); toast("Marked as answered \u2728"); renderView("prayers", true); } };
+      const ans = h('<button class="bp-btn small primary">' + esc(tr("Mark answered")) + '</button>');
+      ans.onclick = () => { const d = prayAll(); const it = d.items.find(x => x.id === p.id); if (it) { it.answered = Date.now(); praySave(d); logEvent("prayer_answered", 1); toast(tr("Marked as answered ✨")); renderView("prayers", true); } };
       row.appendChild(ans);
     } else {
-      const re = h('<button class="bp-btn small">Make active again</button>');
+      const re = h('<button class="bp-btn small">' + esc(tr("Make active again")) + '</button>');
       re.onclick = () => { const d = prayAll(); const it = d.items.find(x => x.id === p.id); if (it) { it.answered = 0; praySave(d); renderView("prayers", true); } };
       row.appendChild(re);
     }
-    const del = h('<button class="bp-btn small danger">Delete</button>');
-    del.onclick = () => { if (!confirm("Delete this prayer? (goes to Trash for 30 days)")) return; const d = prayAll(); const i = d.items.findIndex(x => x.id === p.id); if (i >= 0) { pushTrash("prayer", p.title, { key: K.PRAY, id: p.id, data: d.items[i] }); d.items.splice(i, 1); praySave(d); renderView("prayers", true); } };
+    const del = h('<button class="bp-btn small danger">' + esc(tr("Delete")) + '</button>');
+    del.onclick = () => { if (!confirm(tr("Delete this prayer? (goes to Trash for 30 days)"))) return; const d = prayAll(); const i = d.items.findIndex(x => x.id === p.id); if (i >= 0) { pushTrash("prayer", p.title, { key: K.PRAY, id: p.id, data: d.items[i] }); d.items.splice(i, 1); praySave(d); renderView("prayers", true); } };
     row.appendChild(del);
     return card;
   }
@@ -428,7 +428,7 @@
       };
       body.appendChild(card);
       jEntries.forEach(e => {
-        const el = h('<div class="bp-j-entry"><div class="je-date">' + esc(e.d) + '</div><div class="je-prompt">' + esc(e.prompt || "") + '</div><div class="je-text">' + esc(e.text) + '</div><div class="bp-row" style="margin-top:6px"><button class="bp-btn small danger">Delete</button></div></div>');
+        const el = h('<div class="bp-j-entry"><div class="je-date">' + esc(e.d) + '</div><div class="je-prompt">' + esc(e.prompt || "") + '</div><div class="je-text">' + esc(e.text) + '</div><div class="bp-row" style="margin-top:6px"><button class="bp-btn small danger">' + esc(tr("Delete")) + '</button></div></div>');
         el.querySelector("button").onclick = async () => {
           if (sv.disabled || !confirm("Delete this journal entry? This cannot be undone.")) return;
           const epoch = jEpoch, next = jEntries.filter(x => x.id !== e.id); sv.disabled = true;
@@ -862,13 +862,13 @@
         body.appendChild(b);
       });
       body.appendChild(h('<div class="bp-eyebrow">Trash (' + trashAll().length + ')</div>'));
-      const tr = trashAll();
-      if (!tr.length) body.appendChild(h('<p class="bp-muted">Deleted notes, saved verses, memory verses and prayers land here and can be restored within 30 days.</p>'));
-      tr.slice(0, 30).forEach(e => {
+      const deleted = trashAll();
+      if (!deleted.length) body.appendChild(h('<p class="bp-muted">Deleted notes, saved verses, memory verses and prayers land here and can be restored within 30 days.</p>'));
+      deleted.slice(0, 30).forEach(e => {
         const row = h('<div class="bp-trash-row"><div class="tr-info"><div class="tr-kind">' + esc(e.kind) + '</div><div class="tr-label">' + esc(e.label) + '</div><div class="lr-sub bp-muted">' + esc(tsDay(e.deletedAt) || "") + '</div></div></div>');
         const re = h('<button class="bp-btn small">Restore</button>');
         re.onclick = () => { toast(restoreTrash(e) ? "Restored" : "Couldn't restore"); renderView("tools", true); };
-        const del = h('<button class="bp-btn small danger">Delete</button>');
+        const del = h('<button class="bp-btn small danger">' + esc(tr("Delete")) + '</button>');
         del.onclick = () => { if (confirm("Delete forever?")) { save(K.TRASH, trashAll().filter(x => x.id !== e.id)); renderView("tools", true); } };
         row.append(re, del);
         body.appendChild(row);
@@ -914,7 +914,7 @@
   VIEWS.lexicon = {
     title: "Strong’s word study",
     render(body) {
-      const form = h('<form class="bp-card"><label class="bp-eyebrow" for="bp-lex-q">Strong’s number, original word, or transliteration</label><div class="bp-row"><input id="bp-lex-q" class="bp-input" type="search" placeholder="e.g. G26, agape, H1" required maxlength="72"><button class="bp-btn primary" type="submit">Look up</button></div></form>');
+      const form = h('<form class="bp-card"><label class="bp-eyebrow" for="bp-lex-q">' + esc(tr("Strong’s number, original word, or transliteration")) + '</label><div class="bp-row"><input id="bp-lex-q" class="bp-input" type="search" placeholder="' + esc(tr("e.g. G26, agape, H1")) + '" required maxlength="72"><button class="bp-btn primary" type="submit">' + esc(tr("Look up")) + '</button></div></form>');
       const input = form.querySelector('input');
       const results = h('<div role="status" aria-live="polite"></div>');
       let seq = 0;
@@ -922,7 +922,7 @@
         e.preventDefault();
         const q = input.value.trim(); if (!q) return;
         const n = ++seq, id = q.match(/^([gh])\s*0*(\d+)$/i);
-        results.textContent = "Looking up…";
+        results.textContent = tr("Looking up…");
         try {
           const langs = id ? [id[1].toLowerCase() === 'g' ? 'greek' : 'hebrew'] : ['hebrew', 'greek'];
           const data = await Promise.all(langs.map(getLexicon));
@@ -932,13 +932,13 @@
           const code = id ? id[1].toUpperCase() + Number(id[2]) : null;
           const found = code ? (data[0][code] ? [[code,data[0][code]]] : []) : data.flatMap(d => Object.entries(d)).filter(([,e]) => fields(e).some(t => t.startsWith(needle))).sort((a,b) => +fields(b[1]).includes(needle) - +fields(a[1]).includes(needle));
           results.replaceChildren();
-          if (!found.length) { results.textContent = "No matching Strong’s entries."; return; }
+          if (!found.length) { results.textContent = tr("No matching Strong’s entries."); return; }
           for (const [k, e] of found.slice(0, 30)) {
             const card = h('<article class="bp-card"><div class="bp-eyebrow">' + esc(k) + (k[0] === 'G' ? ' · Greek' : ' · Hebrew / Aramaic') + '</div><h3><bdi>' + esc(e.lemma || '') + '</bdi></h3><p>' + esc([e.xlit || e.translit, e.pron].filter(Boolean).join(' · ')) + '</p><p>' + esc(e.strongs_def || '') + '</p>' + (e.kjv_def ? '<p class="bp-muted">KJV: ' + esc(e.kjv_def) + '</p>' : '') + '</article>');
             results.append(card);
           }
-          if (found.length > 30) results.prepend(h('<p class="bp-muted">Showing 30 matches. Type more of the word to narrow the results.</p>'));
-        } catch { if (n === seq && results.isConnected) results.textContent = "Couldn’t load the dictionary in this browser. Try again online."; }
+          if (found.length > 30) results.prepend(h('<p class="bp-muted">' + esc(tr("Showing 30 matches. Type more of the word to narrow the results.")) + '</p>'));
+        } catch { if (n === seq && results.isConnected) results.textContent = tr("Couldn’t load the dictionary in this browser. Try again online."); }
       };
       body.append(form, results, h('<p class="bp-muted">Dictionary entries with transliteration, not a verse-by-verse interlinear. <a href="./study-data/README.md" target="_blank" rel="noopener">Open Scriptures credits</a></p>'));
     }
@@ -949,8 +949,8 @@
   function openReferences(bookIdx, chapter, verse) {
     const book = BOOKS[bookIdx]?.[1].replaceAll(" ", "");
     if (!availableRefs(bookIdx)) return;
-    openPanel("references", "Cross-references · " + refOf(bookIdx, chapter, verse), async body => {
-      body.append(h('<p class="bp-muted" role="status">Loading cross-references…</p>'));
+    openPanel("references", tr("Cross-references") + " · " + refOf(bookIdx, chapter, verse), async body => {
+      body.append(h('<p class="bp-muted" role="status">' + esc(tr("Loading cross-references…")) + '</p>'));
       try {
         const legacy = bookIdx < 15 ? fetch("./crossrefs/bsb/" + book + ".json").then(r => r.ok ? r.json() : null).catch(() => null) : null;
         const linked = await getStudyFile("linked/" + (bookIdx + 1));
@@ -958,8 +958,8 @@
         if (!body.isConnected) return;
         body.replaceChildren();
         const voted = linked?.[chapter]?.[verse] || [];
-        const groups = [...(historical || []), ...(voted.length ? [["Related passages · OpenBible.info", voted]] : [])];
-        if (!groups.length) { body.append(h('<p class="bp-muted">No linked passages are listed for this verse.</p>')); return; }
+        const groups = [...(historical || []), ...(voted.length ? [[tr("Related passages · OpenBible.info"), voted]] : [])];
+        if (!groups.length) { body.append(h('<p class="bp-muted">' + esc(tr("No linked passages are listed for this verse.")) + '</p>')); return; }
         const label = r => {
           const [b, c, v, endC, endV] = r;
           if (![b, c, v].every(Number.isInteger) || b < 1 || !BOOKS[b-1] || c < 1 || v < 1) return null;
@@ -967,7 +967,7 @@
         };
         const rendered = new Set();
         for (const [phrase, refs] of groups) {
-          const card = h('<div class="bp-card"><div class="bp-eyebrow">' + esc(phrase || "Related passages") + '</div><div class="bp-chips"></div></div>');
+          const card = h('<div class="bp-card"><div class="bp-eyebrow">' + esc(phrase || tr("Related passages")) + '</div><div class="bp-chips"></div></div>');
           for (const entry of refs) {
             const parts = Array.isArray(entry[0]) ? entry : [entry];
             for (const r of parts) {
@@ -981,23 +981,23 @@
           if (card.lastElementChild.children.length) body.append(card);
         }
         body.append(h('<p class="bp-muted">OpenBible.info, CC BY 4.0. Up to 24 vote-ranked suggestions; relevance and verse numbering can vary. Berean links also appear where bundled.</p>'));
-      } catch { if (body.isConnected) body.replaceChildren(h('<p class="bp-muted" role="status">Couldn’t load linked passages. Try again online.</p>')); }
+      } catch { if (body.isConnected) body.replaceChildren(h('<p class="bp-muted" role="status">' + esc(tr("Couldn’t load linked passages. Try again online.")) + '</p>')); }
     }, null);
   }
 
   function openVerseWords(b, c, v) {
     if (!availableRefs(b)) return;
-    openPanel("verse-words", "Original words · " + refOf(b,c,v), async body => {
-      const source = h('<button type="button" class="bp-btn primary block">Hebrew &amp; Greek interlinear</button>');
+    openPanel("verse-words", tr("Original words") + " · " + refOf(b,c,v), async body => {
+      const source = h('<button type="button" class="bp-btn primary block">' + esc(tr("Hebrew & Greek interlinear")) + '</button>');
       source.onclick = () => openInterlinear(b, c, v);
-      const tagged = h('<div role="region" aria-label="World English Bible tags">Loading tagged words…</div>');
+      const tagged = h('<div role="region" aria-label="' + esc(tr("World English Bible tags")) + '">' + esc(tr("Loading tagged words…")) + '</div>');
       body.append(source, tagged);
       try {
         const [book, entries] = await Promise.all([getStudyFile("web-words/" + (b + 1)), getLexicon(b < 39 ? "hebrew" : "greek")]);
         if (!body.isConnected) return;
         tagged.replaceChildren(h('<p class="bp-muted">English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.</p>'));
         const words = book?.[c]?.[v]?.[0] || [];
-        if (!words.length) tagged.append(h('<p>No tagged words are available for this verse.</p>'));
+        if (!words.length) tagged.append(h('<p>' + esc(tr("No tagged words are available for this verse.")) + '</p>'));
         for (const [word, codes] of words) {
           const entry = h('<details class="bp-card"><summary>' + esc(word) + ' · ' + esc(codes.join(", ")) + '</summary></details>');
           for (const code of codes) {
@@ -1007,21 +1007,21 @@
           }
           tagged.append(entry);
         }
-      } catch { if (body.isConnected) tagged.textContent = "Couldn’t load tagged words. Try again online."; }
+      } catch { if (body.isConnected) tagged.textContent = tr("Couldn’t load tagged words. Try again online."); }
     }, null);
   }
 
   function openInterlinear(b, c, v) {
     const greek = b >= 39;
-    openPanel("interlinear", (greek ? "Greek" : "Hebrew") + " interlinear · " + refOf(b,c,v), async body => {
+    openPanel("interlinear", tr(greek ? "Greek interlinear" : "Hebrew interlinear") + " · " + refOf(b,c,v), async body => {
       body.append(h('<p class="bp-muted">Source-order words and English glosses from <a href="https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c" target="_blank" rel="noopener noreferrer">STEPBible Data (CC BY 4.0)</a>. ' + (greek ? 'Greek rows tagged NA28.' : 'Main Hebrew and Aramaic readings.') + ' This is not an alignment to the selected Bible translation; verse numbers can differ.</p>'));
-      const result = h('<div role="status">Loading interlinear…</div>');
+      const result = h('<div role="status">' + esc(tr("Loading interlinear…")) + '</div>');
       body.append(result);
       try {
         const book = await getStudyFile("interlinear/" + (b + 1));
         if (!result.isConnected) return;
         const words = book?.[c]?.[v];
-        if (!words?.length) { result.textContent = "No source words for this verse number."; return; }
+        if (!words?.length) { result.textContent = tr("No source words for this verse number."); return; }
         const tokens = h('<ol class="bp-card bp-interlinear"></ol>');
         tokens.setAttribute("aria-label", tr("Interlinear words"));
         tokens.dir = greek ? 'ltr' : 'rtl';
@@ -1034,7 +1034,7 @@
           tokens.append(token);
         }
         result.replaceWith(tokens);
-      } catch { if (result.isConnected) result.textContent = "Couldn’t load the interlinear. Try again online."; }
+      } catch { if (result.isConnected) result.textContent = tr("Couldn’t load the interlinear. Try again online."); }
     }, () => openVerseWords(b, c, v));
   }
 
@@ -1122,9 +1122,9 @@
     render(body) {
       const {bookIdx, chapter} = C.panes.a;
       const id = STUDY_BOOK_IDS[bookIdx];
-      if (!id) { body.textContent = "This book is not covered by the bundled outline and commentary sources."; return; }
-      const source = h('<select class="bp-input" aria-label="Commentary source"><option value="matthew-henry">Matthew Henry</option><option value="jamieson-fausset-brown">Jamieson, Fausset &amp; Brown</option></select>');
-      const intro = h('<div role="status"></div>'), outline = h('<details class="bp-card"><summary>Book outline · chapter headings</summary></details>');
+      if (!id) { body.textContent = tr("This book is not covered by the bundled outline and commentary sources."); return; }
+      const source = h('<select class="bp-input" aria-label="' + esc(tr("Commentary source")) + '"><option value="matthew-henry">Matthew Henry</option><option value="jamieson-fausset-brown">Jamieson, Fausset &amp; Brown</option></select>');
+      const intro = h('<div role="status"></div>'), outline = h('<details class="bp-card"><summary>' + esc(tr("Book outline · chapter headings")) + '</summary></details>');
       const content = h('<div role="status"></div>');
       body.append(h('<h3>' + esc(refOf(bookIdx, chapter)) + '</h3>'), outline, source, intro, content,
         h('<p class="bp-muted">Headings: Berean Standard Bible. Public-domain historical commentaries via the Free Use Bible API; introductions reflect the cited author’s interpretation.</p>'));
@@ -1132,19 +1132,19 @@
       outline.addEventListener('toggle', async () => {
         if (!outline.open || loadedOutline) return;
         loadedOutline = true;
-        const result = h('<div class="bp-study-prose">Loading chapter headings…</div>'); outline.append(result);
+        const result = h('<div class="bp-study-prose">' + esc(tr("Loading chapter headings…")) + '</div>'); outline.append(result);
         try {
           const r = await fetch('./sections.json'); if (!r.ok) throw Error();
           const chapters = (await r.json()).b?.[bookIdx] || [];
           result.replaceChildren();
-          if (!chapters.length) result.textContent = 'No headings are available for this book.';
+          if (!chapters.length) result.textContent = tr("No headings are available for this book.");
           chapters.forEach((rows, i) => {
             if (!rows.length) return;
             const row = h('<div class="bp-card"><button type="button" class="bp-chip">Chapter ' + (i+1) + '</button><div class="bp-study-prose"></div></div>');
             row.firstElementChild.onclick = () => { closeTool(); C.goTo(bookIdx, i+1); };
             row.lastElementChild.textContent = rows.map(v => v[0] + '. ' + v[1]).join('\n'); result.append(row);
           });
-        } catch { result.textContent = 'Couldn’t load headings online.'; loadedOutline = false; outline.addEventListener('toggle', () => { if (!outline.open) result.remove(); }, {once:true}); }
+        } catch { result.textContent = tr("Couldn’t load headings online."); loadedOutline = false; outline.addEventListener('toggle', () => { if (!outline.open) result.remove(); }, {once:true}); }
       });
       let request = 0;
       const draw = async () => {
@@ -1153,7 +1153,7 @@
         try {
           const r = await fetch('https://bible.helloao.org/api/c/' + source.value + '/' + id + '/' + chapter + '.json', {signal: AbortSignal.timeout(14000)});
           if (n !== request || !body.isConnected) return;
-          if (r.status === 404) { content.textContent = 'This source has no entry for this chapter.'; return; }
+          if (r.status === 404) { content.textContent = tr("This source has no entry for this chapter."); return; }
           if (!r.ok) throw Error();
           const result = await r.json(); if (n !== request || !body.isConnected) return;
           const addIntro = (title, value) => {
@@ -1165,14 +1165,14 @@
           addIntro('Chapter introduction', result.chapter?.introduction);
           const rows = (result.chapter?.content || []).filter(row => Array.isArray(row.content) && row.content.some(p => typeof p === 'string'));
           content.replaceChildren();
-          if (!rows.length) content.textContent = 'No commentary text is listed for this chapter.';
+          if (!rows.length) content.textContent = tr("No commentary text is listed for this chapter.");
           for (const row of rows) {
             const p = h('<div class="bp-card"><div class="bp-eyebrow"></div><div class="bp-study-prose"></div></div>');
             p.firstElementChild.textContent = row.number ? 'Verse ' + row.number : name;
             p.lastElementChild.textContent = row.content.filter(t => typeof t === 'string').join('\n\n').trim();
             content.append(p);
           }
-        } catch { if (n === request && body.isConnected) content.textContent = 'Couldn’t load this commentary. Try again online.'; }
+        } catch { if (n === request && body.isConnected) content.textContent = tr("Couldn’t load this commentary. Try again online."); }
       };
       source.onchange = draw; draw();
     }
@@ -1180,8 +1180,8 @@
   VIEWS.dictionary = {
     title: "Easton’s Bible dictionary",
     async render(body) {
-      const input = h('<input aria-label="Search people, places or terms" class="bp-input" type="search" placeholder="e.g. Nicodemus, Zion, covenant">');
-      const results = h('<div role="status">Loading the dictionary…</div>');
+      const input = h('<input aria-label="' + esc(tr("Search people, places or terms")) + '" class="bp-input" type="search" placeholder="' + esc(tr("e.g. Nicodemus, Zion, covenant")) + '">');
+      const results = h('<div role="status">' + esc(tr("Loading the dictionary…")) + '</div>');
       body.append(input, results, h('<p class="bp-muted">Easton’s Illustrated Bible Dictionary, third edition (1897), public domain. This is a historical reference work.</p>'));
       try {
         const entries = Object.entries(await getStudyFile('eastons')).map(([term, defs]) => [term, defs, lexNorm(term)]);
@@ -1189,9 +1189,9 @@
         const draw = () => {
           const q = lexNorm(input.value.trim());
           results.replaceChildren();
-          if (!q) { results.textContent = 'Search by a person, place or topic.'; return; }
+          if (!q) { results.textContent = tr("Search by a person, place or topic."); return; }
           const hits = entries.filter(([, , term]) => term.includes(q)).sort((a,b) => +b[2].startsWith(q) - +a[2].startsWith(q)).slice(0,30);
-          if (!hits.length) results.textContent = 'No matching entries.';
+          if (!hits.length) results.textContent = tr("No matching entries.");
           for (const [term, defs] of hits) {
             const row = h('<details class="bp-card"><summary></summary></details>'); row.firstElementChild.textContent = term;
             row.open = hits.length === 1;
@@ -1200,14 +1200,14 @@
           }
         };
         input.oninput = draw; draw();
-      } catch { if (body.isConnected) results.textContent = 'Couldn’t load the dictionary. Try again online.'; }
+      } catch { if (body.isConnected) results.textContent = tr("Couldn’t load the dictionary. Try again online."); }
     }
   };
   VIEWS.maps = {
     title: "Bible places map",
     async render(body) {
-      const input = h('<input class="bp-input" aria-label="Find a Bible place" type="search" placeholder="e.g. Jerusalem">');
-      const results = h('<div class="bp-chips" role="status">Loading places…</div>');
+      const input = h('<input class="bp-input" aria-label="' + esc(tr("Find a Bible place")) + '" type="search" placeholder="' + esc(tr("e.g. Jerusalem")) + '">');
+      const results = h('<div class="bp-chips" role="status">' + esc(tr("Loading places…")) + '</div>');
       const map = h('<div></div>');
       body.append(input, results, map, h('<p class="bp-muted">Possible locations from OpenBible.info (CC BY 4.0), using Wikimedia-sourced points. Ancient identifications may be uncertain; the pin is not a proven site.</p>'));
       try {
@@ -1234,11 +1234,11 @@
           const q = lexNorm(input.value.trim());
           results.replaceChildren(); map.replaceChildren();
           const hits = q ? sites.filter(p => lexNorm(p[0]).includes(q)).slice(0,25) : sites.filter(p => ['Jerusalem','Nazareth','Capernaum','Bethlehem','Rome'].includes(p[0]));
-          if (!hits.length) results.textContent = 'No mapped places match.';
+          if (!hits.length) results.textContent = tr("No mapped places match.");
           for (const p of hits) { const b = h('<button class="bp-chip" type="button"></button>'); b.textContent = p[0]; b.onclick = () => mapFor(p); results.append(b); }
         };
         input.oninput = draw; draw();
-      } catch { if (body.isConnected) results.textContent = 'Couldn’t load places. Try again online.'; }
+      } catch { if (body.isConnected) results.textContent = tr("Couldn’t load places. Try again online."); }
     }
   };
 
@@ -1263,9 +1263,9 @@
     return {
       title: timeline ? 'Bible timeline' : 'Bible character profiles',
       async render(body) {
-        const form = h('<div class="bp-row"><input type="search" class="bp-input" aria-label="Search ' + (timeline ? 'events or participants' : 'Bible characters') + '" placeholder="' + (timeline ? 'e.g. Exodus' : 'e.g. Aaron') + '"></div>');
-        const input = form.firstElementChild, results = h('<div role="status">Loading study data…</div>');
-        const count = h('<div class="bp-row"><button class="bp-chip" type="button">Previous</button><span class="bp-muted"></span><button class="bp-chip" type="button">Next</button></div>');
+        const form = h('<div class="bp-row"><input type="search" class="bp-input" aria-label="' + esc(tr(timeline ? "Search events or participants" : "Search Bible characters")) + '" placeholder="' + esc(tr(timeline ? "e.g. Exodus" : "e.g. Aaron")) + '"></div>');
+        const input = form.firstElementChild, results = h('<div role="status">' + esc(tr("Loading study data…")) + '</div>');
+        const count = h('<div class="bp-row"><button class="bp-chip" type="button">' + esc(tr("Previous")) + '</button><span class="bp-muted"></span><button class="bp-chip" type="button">' + esc(tr("Next")) + '</button></div>');
         const [prev,next] = count.querySelectorAll('button');
         body.append(form, results, count, h('<p class="bp-muted">Adapted from <a href="https://github.com/robertrouse/theographic-bible-metadata" target="_blank" rel="noopener">Theographic Bible Metadata</a> (CC BY-SA 4.0). ' + (timeline ? 'Dates shown are estimates from this dataset’s traditional chronology, not a consensus historical chronology.' : 'Where included, descriptions are historical dictionary entries. References follow KJV numbering.') + '</p>'));
         let page = 0;
@@ -1282,12 +1282,12 @@
               details.append(recordLinks(timeline ? row[2] : row[3]));
               results.append(details);
             }
-            if (!all.length) results.textContent = 'No matches found.';
+            if (!all.length) results.textContent = tr("No matches found.");
             count.querySelector('span').textContent = all.length ? (page*size+1)+'–'+Math.min(all.length,(page+1)*size)+' of '+all.length : '';
             prev.disabled = !page; next.disabled = (page+1)*size >= all.length;
           };
           input.oninput = () => { page=0; draw(); }; prev.onclick = () => { page--; draw(); }; next.onclick = () => { page++; draw(); }; draw();
-        } catch { if (body.isConnected) results.textContent = 'Couldn’t load the study data. Try again online.'; }
+        } catch { if (body.isConnected) results.textContent = tr("Couldn’t load the study data. Try again online."); }
       }
     };
   }

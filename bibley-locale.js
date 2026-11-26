@@ -3,6 +3,76 @@
   'use strict';
   const key = 'bibley_ui_locale_v1';
   const entries = {
+    "New prayer":"Nueva oración",
+    "What are you praying for?":"¿Por qué estás orando?",
+    "Details (optional)":"Detalles (opcional)",
+    "Add prayer":"Añadir oración",
+    "Give the prayer a short title":"Ponle un título breve a la oración",
+    "Prayer added":"Oración añadida",
+    "Private: your prayers live on this device and in your Bibley account when signed in. They are never public.":"Privado: tus oraciones se guardan en este dispositivo y en tu cuenta de Bibley al iniciar sesión. No son públicas.",
+    "Active":"Activas",
+    "Answered":"Respondidas",
+    "Save as a prayer request":"Guardar como petición de oración",
+    "Added to your prayer list":"Añadida a tu lista de oraciones",
+    "Added":"Añadida",
+    "answered":"respondida",
+    "Mark answered":"Marcar como respondida",
+    "Marked as answered ✨":"Marcada como respondida",
+    "Make active again":"Volver a marcar como activa",
+    "Delete":"Eliminar",
+    "Delete this prayer? (goes to Trash for 30 days)":"¿Eliminar esta oración? (irá a la papelera durante 30 días)",
+    "Strong’s number, original word, or transliteration":"Número de Strong, palabra original o transliteración",
+    "e.g. G26, agape, H1":"p. ej., G26, agape, H1",
+    "Looking up…":"Buscando…",
+    "No matching Strong’s entries.":"No se encontraron entradas de Strong.",
+    "Showing 30 matches. Type more of the word to narrow the results.":"Se muestran 30 coincidencias. Escribe más letras para acotar la búsqueda.",
+    "Couldn’t load the dictionary in this browser. Try again online.":"No se pudo cargar el diccionario en este navegador. Vuelve a intentarlo con conexión.",
+    "Cross-references":"Referencias cruzadas",
+    "Loading cross-references…":"Cargando referencias cruzadas…",
+    "Related passages · OpenBible.info":"Pasajes relacionados · OpenBible.info",
+    "No linked passages are listed for this verse.":"No hay pasajes relacionados con este versículo.",
+    "Related passages":"Pasajes relacionados",
+    "Couldn’t load linked passages. Try again online.":"No se pudieron cargar los pasajes relacionados. Vuelve a intentarlo con conexión.",
+    "World English Bible tags":"Etiquetas de la World English Bible",
+    "Loading tagged words…":"Cargando palabras etiquetadas…",
+    "No tagged words are available for this verse.":"No hay palabras etiquetadas para este versículo.",
+    "Couldn’t load tagged words. Try again online.":"No se pudieron cargar las palabras etiquetadas. Vuelve a intentarlo con conexión.",
+    "Greek interlinear":"Interlineal griego",
+    "Hebrew interlinear":"Interlineal hebreo",
+    "Loading interlinear…":"Cargando el interlineal…",
+    "No source words for this verse number.":"No hay palabras originales disponibles para este número de versículo.",
+    "Couldn’t load the interlinear. Try again online.":"No se pudo cargar el interlineal. Vuelve a intentarlo con conexión.",
+    "Commentaries & book outline":"Comentarios y bosquejo del libro",
+    "Commentary source":"Fuente del comentario",
+    "Book outline · chapter headings":"Bosquejo del libro · encabezados de capítulos",
+    "Loading chapter headings…":"Cargando encabezados de capítulos…",
+    "This book is not covered by the bundled outline and commentary sources.":"Las fuentes incluidas no ofrecen bosquejos ni comentarios para este libro.",
+    "No headings are available for this book.":"No hay encabezados disponibles para este libro.",
+    "Couldn’t load headings online.":"No se pudieron cargar los encabezados.",
+    "This source has no entry for this chapter.":"Esta fuente no tiene una entrada para este capítulo.",
+    "No commentary text is listed for this chapter.":"No hay comentario para este capítulo.",
+    "Couldn’t load this commentary. Try again online.":"No se pudo cargar el comentario. Vuelve a intentarlo con conexión.",
+    "Easton’s Bible dictionary":"Diccionario bíblico de Easton",
+    "Search people, places or terms":"Buscar personas, lugares o términos",
+    "e.g. Nicodemus, Zion, covenant":"p. ej., Nicodemus, Zion, covenant",
+    "Loading the dictionary…":"Cargando el diccionario…",
+    "Search by a person, place or topic.":"Busca una persona, un lugar o un tema.",
+    "No matching entries.":"No se encontraron entradas.",
+    "Couldn’t load the dictionary. Try again online.":"No se pudo cargar el diccionario. Vuelve a intentarlo con conexión.",
+    "Find a Bible place":"Buscar un lugar bíblico",
+    "e.g. Jerusalem":"p. ej., Jerusalem",
+    "Loading places…":"Cargando lugares…",
+    "No mapped places match.":"No se encontraron lugares en el mapa.",
+    "Couldn’t load places. Try again online.":"No se pudieron cargar los lugares. Vuelve a intentarlo con conexión.",
+    "Bible character profiles":"Perfiles de personajes bíblicos",
+    "Search events or participants":"Buscar acontecimientos o participantes",
+    "Search Bible characters":"Buscar personajes bíblicos",
+    "e.g. Exodus":"p. ej., Exodus",
+    "e.g. Aaron":"p. ej., Aaron",
+    "Previous":"Anterior",
+    "Loading study data…":"Cargando datos de estudio…",
+    "No matches found.":"No se encontraron coincidencias.",
+    "Couldn’t load the study data. Try again online.":"No se pudieron cargar los datos de estudio. Vuelve a intentarlo con conexión.",
     "Bibley recap":"Resumen de Bibley",
     "Reading plan days completed":"Días del plan de lectura completados",
     "Notes written":"Notas escritas",
@@ -80,7 +150,7 @@
   };
   let locale = 'en';
   try { if (localStorage.getItem(key) === 'es') locale = 'es'; } catch {}
-  const text = original => locale === 'es' ? entries[original] || original : original;
+  const text = original => locale === 'es' ? (Object.hasOwn(entries, original) ? entries[original] : original) : original;
   const apply = () => {
     // Only trusted, fixed labels in the app shell; never touch any user or Bible text.
     const roots = '#openNavBtn,#openAiBtn,#closeNavBtn,#bnSearchBtn,#bnMoreBtn,#closeAiBtn,.tts-btn,.prev-btn,.next-btn,.ai-tab,.fx-dock button,.bn-tabs button,#drawer .drawer-head .title,.bn-sback,#ssWholeBibleBtn,.bp-red-toggle,.chapter-heading .right button,.bs-title,.bs-gl,.bs-t,.bs-search input,.bn-menu [role=menuitem] span,#bookSearch,#scriptureSearch,.ai-action-btn[data-act],.bp-native-actions button,.fx-sheet .fx-sheet-title,.fx-sheet .fx-close,.fx-sheet .bp-section-back';
@@ -88,7 +158,7 @@
       const nodes = el.matches('.fx-dock button') ? [...(el.querySelector('span')?.childNodes || [])] : [...el.childNodes];
       for (const n of nodes) if (n.nodeType === 3) {
         const value = n.nodeValue.trim(), en = originals.get(n) || value;
-        if (entries[en] && (value === en || value === entries[en])) {
+        if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           originals.set(n,en); const changed = n.nodeValue.replace(value, text(en));
           if (n.nodeValue !== changed) n.nodeValue = changed;
           if (locale === 'es') el.lang = 'es'; else el.removeAttribute('lang');
@@ -98,7 +168,7 @@
       for (const attr of ['aria-label','title','placeholder']) {
         const value = el.getAttribute(attr); if (!value) continue;
         const en = attrs[attr] || value;
-        if (entries[en] && (value === en || value === entries[en])) {
+        if (Object.hasOwn(entries, en) && (value === en || value === entries[en])) {
           attrs[attr]=en; if (value !== text(en)) el.setAttribute(attr,text(en));
           if (locale === 'es') el.lang = 'es'; else el.removeAttribute('lang');
         }
