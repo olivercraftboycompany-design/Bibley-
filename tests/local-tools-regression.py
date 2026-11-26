@@ -23,7 +23,7 @@ with sync_playwright() as p:
     open_tool=lambda name:page.evaluate('(v)=>BibleyTools.open(v)',name)
     # A one-chapter book requested over thirty days never makes empty days.
     open_tool('plan-builder')
-    sheet.locator('select').select_option('64-64') # Jude
+    sheet.get_by_label('What to read',exact=True).select_option('64-64') # Jude
     sheet.locator('input[type=number]').fill('30')
     expect(sheet.locator('.bp-day-list')).to_contain_text('1 chapters over 1 days')
     button('Start this plan').click()
