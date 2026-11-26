@@ -616,20 +616,28 @@
   const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
   /* ---------- v6.8: Account & Cloud Sync (bibley-sync.js, the site's SQLite database) ---------- */
   let acctTab = "in", acctPw = false, acctBusy = false;
-  const ago = t => { if (!t) return "never"; const d = Math.round((Date.now() - t) / 1000); if (d < 45) return "just now"; if (d < 3600) return Math.round(d / 60) + " min ago"; if (d < 86400) return Math.round(d / 3600) + " h ago"; return new Date(t).toLocaleDateString(); };
-  const syncWord = s => s.state === "syncing" ? "Syncing\u2026" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in";
+  const ago = t => {
+    if (!t) return tr("never");
+    const d = Math.max(0, Math.round((Date.now() - t) / 1000));
+    if (d < 45) return tr("just now");
+    if (d < 3600) return tr("{n} min ago").replace("{n}", Math.round(d / 60));
+    if (d < 86400) return tr("{n} h ago").replace("{n}", Math.round(d / 3600));
+    return new Date(t).toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : undefined);
+  };
+  const syncWord = s => tr(s.state === "syncing" ? "Syncing…" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in");
+  const syncDetail = x => x.state === "syncing" ? tr("Syncing…") : x.state === "offline" ? tr("Offline · will sync when you're back online") : x.state === "error" ? tr("Couldn't sync: {error}").replace("{error}", String(x.error || "")) : tr("{n} items synced · last synced {time}").replace("{n}", x.keys || 0).replace("{time}", ago(x.lastSync));
   function acctSub() {
-    const B = window.BibleySync; if (!B) return "Loading\u2026";
+    const B = window.BibleySync; if (!B) return tr("Loading…");
     const s = B.status();
-    return s.signedIn ? "Signed in as @" + s.user.username + " \u00b7 " + syncWord(s) : "Not signed in \u00b7 Sync notes & highlights across devices";
+    return s.signedIn ? tr("Signed in as @{username} · {status}").replace("{username}", s.user.username).replace("{status}", syncWord(s)) : tr("Not signed in · Sync notes & highlights across devices");
   }
   function acctBadge() {
     const B = window.BibleySync, s = B ? B.status() : null;
-    return '<span class="bs-tag bs-acb' + (s && s.signedIn ? " on" : "") + '">' + (s && s.signedIn ? esc(syncWord(s)) : "Sign in") + "</span>";
+    return '<span class="bs-tag bs-acb' + (s && s.signedIn ? " on" : "") + '\">' + esc(s && s.signedIn ? syncWord(s) : tr("Sign in")) + "</span>";
   }
   PAGES.account = { title: "Account & Cloud Sync", render(el) {
     const B = window.BibleySync;
-    if (!B) { el.innerHTML = '<p class="bs-note">Account & Cloud Sync is still loading.</p>'; return; }
+    if (!B) { el.innerHTML = '<p class="bs-note">' + esc(tr('Account & Cloud Sync is still loading.')) + '</p>'; return; }
     const s = B.status();
     if (!s.signedIn) {
       const up = acctTab === "up";
@@ -652,15 +660,15 @@
         acctBusy = true; go.disabled = true; go.textContent = tr(up ? "Creating account\u2026" : "Signing in\u2026"); err.hidden = true;
         (up ? B.register(u, pw, dn) : B.login(u, pw)).then(st2 => {
           acctBusy = false; acctPw = false;
-          toast((up ? "Account created" : "Signed in") + " \u00b7 " + (st2.state === "ok" ? "Synced \u2713" : "will sync when online"));
+          toast(tr(up ? "Account created" : "Signed in") + " · " + tr(st2.state === "ok" ? "Synced ✓" : "will sync when online"));
           if (el.isConnected) rerender();
-        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = up ? "Create Account" : "Sign In"; err.textContent = String(x && x.message || x); err.hidden = false; });
+        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = tr(up ? "Create Account" : "Sign In"); err.textContent = String(x && x.message || x); err.hidden = false; });
       };
       wire(el, { seg: (k, v) => { if (k === "acctab") { acctTab = v; rerender(); } } });
       return;
     }
     const u = s.user;
-    el.innerHTML = group("", '<div class="bs-row bs-static" data-anchor="acct"><span class="bs-ic">' + IC.user + '</span><span class="bs-t">' + esc(u.display_name || u.username) + "<small>@" + esc(u.username) + "</small></span>" + acctBadge() + "</div>" +
+    el.innerHTML = group("", '<div class="bs-row bs-static" data-anchor="acct"><span class="bs-ic">' + IC.user + '</span><span class="bs-t" data-locale-user>' + esc(u.display_name || u.username) + "<small>@" + esc(u.username) + "</small></span>" + acctBadge() + "</div>" +
         '<div class="bs-row bs-static"><span class="bs-ic">' + IC.sync + '</span><span class="bs-t">Cloud Sync<small class="acct-st"></small></span></div>' +
         '<div class="ai-btns"><button type="button" class="fx-btn small primary" data-act="syncnow">Sync Now</button></div>') +
       group("", swRow("autosync", "Auto-sync", "Sync when Bibley opens and as you study", s.auto, "autosync")) +
@@ -669,14 +677,14 @@
         row({ ic: IC.back, t: "Sign Out", s: "Your data stays on this device", act: "out" }) +
         row({ ic: IC.trash, t: "Delete Account", s: "Removes your account and its cloud data", act: "del" }));
     const stEl = el.querySelector(".acct-st");
-    const paint = x => { if (!stEl.isConnected) return; stEl.textContent = (x.state === "syncing" ? "Syncing\u2026" : x.state === "offline" ? "Offline \u00b7 will sync when you're back online" : x.state === "error" ? "Couldn't sync: " + x.error : (x.keys || 0) + " items synced \u00b7 last synced " + ago(x.lastSync)); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
+    const paint = x => { if (!stEl.isConnected) return; stEl.textContent = syncDetail(x); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
     paint(s);
     const un = B.on(x => { if (!el.isConnected) { un(); return; } if (!x.signedIn) { rerender(); return; } paint(x); });
     B.me().then(() => paint(B.status())).catch(() => {});
     const pwf = el.querySelector(".bs-acct-pw");
     if (pwf) pwf.onsubmit = e => {
       e.preventDefault(); const er = pwf.querySelector(".bs-acct-err");
-      if (pwf.nw.value.length < 6) { er.textContent = "New password must be at least 6 characters"; er.hidden = false; return; }
+      if (pwf.nw.value.length < 6) { er.textContent = tr("New password must be at least 6 characters"); er.hidden = false; return; }
       B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = String(x && x.message || x); er.hidden = false; });
     };
     wire(el, {
@@ -684,10 +692,10 @@
       act: a => {
         if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast("Couldn't sync: " + String(x && x.message || x).slice(0, 80), 4000));
         if (a === "pw") { acctPw = !acctPw; rerender(); }
-        if (a === "out" && confirm("Sign out of @" + u.username + "? Everything stays on this device.")) B.logout().then(() => { toast("Signed out"); rerender(); });
+        if (a === "out" && confirm(tr("Sign out of @{username}? Everything stays on this device.").replace("{username}",u.username))) B.logout().then(() => { toast("Signed out"); rerender(); });
         if (a === "del") {
-          if (!confirm("Delete the account @" + u.username + " and all of its cloud data? Your data on this device stays.")) return;
-          const pw = prompt("Type your password to delete @" + u.username + ":"); if (!pw) return;
+          if (!confirm(tr("Delete the account @{username} and all of its cloud data? Your data on this device stays.").replace("{username}",u.username))) return;
+          const pw = prompt(tr("Type your password to delete @{username}:").replace("{username}",u.username)); if (!pw) return;
           B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast("Couldn't delete: " + String(x && x.message || x).slice(0, 80), 4000));
         }
       }
@@ -753,13 +761,13 @@
   const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
-    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is fast and light. Bibley 2.2 (Google Gemma 3 1B, about 600-880 MB) gives fuller, more careful answers and is best on newer devices.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
+    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is the lighter option. Bibley 2.2 (Gemma 3 1B, about 600-880 MB) needs more resources. Compatibility and answer quality depend on the device; answers can contain errors.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
     ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI, Bibley 2.1 or Bibley 2.2 without opening Settings.", "switcher pill cloud local engine", ""],
     ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed", "aiengine"],
-    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
-    ["ai", "Real KJV verse lookup", "Both models look up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
+    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Downloaded files can stay saved for offline use if the browser allows it. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
+    ["ai", "Real KJV verse lookup", "Both models include King James verse lookup by reference, keywords and topics across all 31,102 verses. Check quotes and answers against the Bible text.", "kjv bible verse lookup quotes topics search grounding", ""],
     ["ai", "Referenced Verses chips", "Under an AI answer, tap a Referenced Verses chip to jump straight to that verse in the reader.", "chips references tap jump", ""],
-    ["ai", "Cloud AI", "Cloud AI answers instantly with Bibley's online AI and needs internet. In the chat, \u2713 marks a verse reference that was checked as real and \u26a0 one that doesn't exist.", "cloud online internet fast check verify", "aiengine"],
+    ["ai", "Cloud AI", "Cloud AI needs internet. In the chat, \u2713 marks a verse reference checked as real and \u26a0 one that does not exist. That check does not guarantee the interpretation is correct.", "cloud online internet fast check verify", "aiengine"],
     ["ai", "What Bibley remembers", "Bibley keeps a few short lines from your chats (like your name) to pick up where you left off. On a call, say \u201cforget that\u201d or \u201cforget everything\u201d. Edit it any time.", "memory remember forget call chat history", "memory"],
     ["nb", "Full-page Study Notebook", "Tap Notes in the bottom bar or Notebook on any verse. On a phone, switch notebooks with the pills under the header; on a computer use the sidebar.", "notebook notes open full page pills sidebar", ""],
     ["nb", "AI Grammar Fix", "In a note, tap Grammar to fix spelling, punctuation and grammar. Select text first to check just that part. Your voice, Markdown and quoted Bible verses are kept, and you review the changes before applying. Undo reverts them.", "grammar spelling punctuation ai fix correct proofread", ""],
@@ -775,32 +783,33 @@
     ["read", "Listen to a chapter", "Tap the speaker on a chapter to hear it read aloud. The voice comes from your device's text-to-speech; change the speed in Audio.", "audio listen read aloud tts speaker voice speed", "audio"],
     ["read", "Reading plans & streaks", "Pick a plan, then tap \u201cMark chapter read\u201d at the end of a chapter. When every chapter for the day is read, the day checks itself off and your streak grows.", "plans streak mark read daily", "study"],
     ["read", "Verse feed", "Scroll the verse feed for one verse at a time, like a stream. Like and save the ones that speak to you.", "scroll feed verses like", ""],
-    ["read", "Compare translations", "Open two panes on the same chapter to compare Bible versions side by side. Red letters aren't offered: the texts Bibley uses don't mark the words of Jesus.", "compare translations versions parallel kjv web esv red letter", "reading"],
+    ["read", "Compare translations", "Open two panes on the same chapter to compare Bible versions with word-level differences. Optional red letters are available for source-marked words of Jesus in the World English Bible (WEB), not every translation.", "compare translations versions parallel kjv web esv red letter", "reading"],
     ["lb", "157 Lost Books", "Lost Books holds 118 full public-domain texts (Apocrypha, Pseudepigrapha, Apostolic Fathers, New Testament Apocrypha, Gnostic texts) plus 39 Lost to History reference guides.", "lost books apocrypha enoch gnostic pseudepigrapha count", ""],
     ["lb", "Lost to History entries", "Books with an orange Lost to History badge no longer survive: they are reference guides (where they're cited and what's known), not ancient text.", "lost to history reference badge cited", ""],
     ["lb", "Find a book fast", "Use the shelf filters and search inside Lost Books to find any title, group or translator.", "shelf filter search lost books", ""],
     ["lb", "Passkey lock", "Lost Books opens with a passkey you set, so only you can open it on this device.", "passkey lock password lost books", ""],
     ["acct", "Sync across devices", "Sign in with a username and password to sync highlights, notes, bookmarks, the Study Notebook, plans, streaks, memory verses and settings across the web and the Android app. Chats stay on the device.", "account sync cloud sign in login android web devices", "account"],
-    ["acct", "Signing in is safe", "Notes already on your device are merged into your account, never wiped. Passwords are stored only as salted hashes. Usernames are 3-24 letters, numbers, _ or -.", "merge safe password hash username", "account"],
+    ["acct", "Signing in is safe", "Notes on your device are merged into your account when you sign in. Usernames are 3-24 letters, numbers, _ or -. Keep a backup of important data.", "merge safe password hash username", "account"],
     ["acct", "Backup files", "Data & backup exports everything to a file and imports it again, handy for moving to a new phone without an account.", "backup export import restore file json new phone", "data"],
     ["look", "Themes, fonts & text", "Appearance has themes, accent colours, fonts, text size, spacing and corner roundness, with a live preview.", "theme dark light sepia font size accent appearance", "appearance"],
     ["look", "Modes", "One tap changes the whole app (Focus, Night, Simple, Study, Prayer, Low data, Accessibility). Turn a mode off and everything goes back. Night can start at sunset, worked out from your time zone.", "modes night focus simple study prayer accessibility sunset schedule", "modes"],
-    ["look", "Offline Bibles", "Translations download the first time you open them and then work offline. On-device AI models work offline once downloaded too.", "offline download bible translations no internet", ""],
+    ["look", "Offline Bibles", "Translations download the first time you open them and can work offline if saved. On-device AI also needs a prior download and a compatible device.", "offline download bible translations no internet", ""],
     ["look", "Widgets", "In the Android app, add Verse of the Day or Bibley Quick from Settings, or long-press your home screen, tap Widgets and drag Bibley out.", "widgets home screen android", NAT ? "widgets" : ""],
     ["look", "Time with God", "A calm screen with today's verse and a prayer timer. In the Android app your phone's Do Not Disturb can switch on for the session.", "time with god prayer timer do not disturb focus", "device"]
   ];
   let tipCat = "all", tipQ = "";
   PAGES.tips = { title: "Tips", render(el) {
     el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search tips and features" aria-label="Search tips" value="' + esc(tipQ) + '"><button type="button" class="bs-tclr" aria-label="Clear search"' + (tipQ ? "" : " hidden") + ">" + IC.close + '</button></div><div class="bs-tchips" role="tablist">' +
-      TIP_CATS.map(c => '<button type="button" class="bs-tchip' + (tipCat === c[0] ? " on" : "") + '" data-cat="' + c[0] + '">' + esc(c[1]) + "</button>").join("") + '</div><div class="bs-tcount" aria-live="polite"></div><div class="bs-tips"></div>';
+      TIP_CATS.map(c => '<button type="button" class="bs-tchip' + (tipCat === c[0] ? " on" : "") + '" data-cat="' + c[0] + '">' + esc(tr(c[1])) + "</button>").join("") + '</div><div class="bs-tcount" aria-live="polite"></div><div class="bs-tips"></div>';
     const inp = el.querySelector("input"), clr = el.querySelector(".bs-tclr"), box = el.querySelector(".bs-tips"), cnt = el.querySelector(".bs-tcount");
     const mark = (t, ws) => { let h = esc(t); ws.forEach(w => { if (w.length > 1) h = h.replace(new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?![^<]*>)", "gi"), "<mark>$1</mark>"); }); return h; };
     const draw = () => {
-      const ws = tipQ.toLowerCase().split(/\s+/).filter(Boolean), cn = c => (TIP_CATS.find(x => x[0] === c) || [])[1];
-      const hits = TIPS.filter(t => (tipCat === "all" || t[0] === tipCat) && ws.every(w => (t[1] + " " + t[2] + " " + t[3] + " " + cn(t[0])).toLowerCase().includes(w)));
-      cnt.textContent = hits.length + (hits.length === 1 ? " tip" : " tips");
-      box.innerHTML = hits.length ? hits.map(t => '<article class="bs-tip"><div class="bs-tip-h"><b>' + mark(t[1], ws) + '</b><span class="bs-tip-c">' + esc(cn(t[0])) + "</span></div><p>" + mark(t[2], ws) + "</p>" + (t[4] ? '<button type="button" class="bs-tip-go" data-go="' + t[4] + '">Open ' + esc(PG_NAMES[t[4]] || PAGES[t[4]].title) + IC.chev + "</button>" : "") + "</article>").join("")
-        : '<div class="bs-empty">No tips match \u201c' + esc(tipQ) + "\u201d</div>";
+      const norm = v => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const ws = norm(tipQ).split(/\s+/).filter(Boolean), cn = c => (TIP_CATS.find(x => x[0] === c) || [])[1];
+      const hits = TIPS.filter(t => (tipCat === "all" || t[0] === tipCat) && ws.every(w => norm(t[1] + " " + tr(t[1]) + " " + t[2] + " " + tr(t[2]) + " " + t[3] + " " + tr(cn(t[0]))).includes(w)));
+      cnt.textContent = hits.length + " " + tr(hits.length === 1 ? "tip" : "tips");
+      box.innerHTML = hits.length ? hits.map(t => '<article class="bs-tip"><div class="bs-tip-h"><b>' + mark(tr(t[1]), ws) + '</b><span class="bs-tip-c">' + esc(tr(cn(t[0]))) + "</span></div><p>" + mark(tr(t[2]), ws) + "</p>" + (t[4] ? '<button type="button" class="bs-tip-go" data-go="' + t[4] + '">' + esc(tr('Open')) + ' ' + esc(tr(PG_NAMES[t[4]] || PAGES[t[4]].title)) + IC.chev + "</button>" : "") + "</article>").join("")
+        : '<div class="bs-empty">' + esc(tr('No tips match')) + ' \u201c' + esc(tipQ) + "\u201d</div>";
       box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => nav(b.dataset.go));
     };
     inp.oninput = () => { tipQ = inp.value; clr.hidden = !tipQ; draw(); };
@@ -884,11 +893,8 @@
   } };
 
   PAGES.privacy = { title: "Privacy", render(el) {
-    el.innerHTML = '<div class="bs-card bs-prose"><p><b>On this phone.</b> Your highlights, notes, notebook, plans and settings are saved on this device. No tracking. If you sign in, they also sync to your Bibley account.</p>' +
-      "<p><b>Study AI.</b> When you ask the Study AI something, your question and the verses around it are sent to the AI service to write the answer.</p>" +
-      "<p><b>Chats and memory.</b> Your chats, calls and what Bibley remembers about you are saved only on this phone. The last few turns and the short memory are sent with each question so Bibley can remember. You can delete them in Settings anytime.</p>" +
-      "<p><b>Bibles.</b> Some translations load from the internet the first time you open them, then work offline.</p>" +
-      "<p><b>Your ESV key</b> (if you added one) is kept on this phone and only sent to api.esv.org.</p></div>" +
+    const blocks = [["On this phone.", "Your highlights, notes, notebook, plans and settings are saved on this device. If you sign in, they also sync to your Bibley account."], ["Study AI.", "When you use cloud AI, your question and the verses around it are sent to the AI service to write the answer. On-device models process answers locally after download."], ["Chats and memory.", "Your chats, calls and what Bibley remembers about you are saved on this device. The last few turns and short memory are included with each AI question; cloud AI sends that context to the service. You can delete them in Settings."], ["Bibles.", "Some translations load from the internet the first time you open them, then work offline if cached."], ["Your ESV key", "If you added one, it is kept on this device and sent to api.esv.org for ESV requests."], ["Reflection journal.", "The reflection journal is encrypted on this device with your PIN or passphrase. Unlocked Markdown, CSV and print/PDF exports are not encrypted. Close print previews when finished and keep exported files private."]];
+    el.innerHTML = '<div class="bs-card bs-prose">' + blocks.map(([title, body]) => '<p><b>' + esc(tr(title)) + '</b> ' + esc(tr(body)) + '</p>').join('') + '</div>' +
       group("", row({ ic: IC.data, t: "Data & backup", s: "Export everything as a file", go: "data" }));
     wire(el, {});
   } };
@@ -998,6 +1004,6 @@
     }
   });
   const isOpen = () => !!(root && root.classList.contains("open"));
-  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, setTtsRate: tts => setS({ tts }), ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
+  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, setTtsRate: tts => setS({ tts }), ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { syncWord, syncDetail, ago, S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
   logp("info", "ready");
 })();
