@@ -3,6 +3,21 @@
   'use strict';
   const key = 'bibley_ui_locale_v1';
   const entries = {
+    "Aligned English words · ULT":"Palabras inglesas alineadas · ULT",
+    "ULT v92 source edition only. These English word groups are explicitly aligned by the publisher to Hebrew, Aramaic or Greek. They are not aligned to the translation in your reader; source numbering can differ. Punctuation is omitted.":"Solo edición fuente ULT v92. El editor alinea explícitamente estos grupos de palabras inglesas con el hebreo, arameo o griego. No están alineados con la traducción del lector; la numeración puede variar. Se omite la puntuación.",
+    "The original work by unfoldingWord is available here":"La obra original de unfoldingWord está disponible aquí",
+    "Credits and extraction details":"Créditos y detalles de extracción",
+    "This book is not supplied in the ULT v92 source release. No alignment is inferred from another edition.":"Este libro no está incluido en la edición fuente ULT v92. No se infiere una alineación de otra edición.",
+    "Loading aligned words…":"Cargando palabras alineadas…",
+    "No verified alignment is available for this source verse. No nearby verse is substituted.":"No hay alineación verificada para este versículo fuente. No se sustituye por un versículo cercano.",
+    "Aligned word groups":"Grupos de palabras alineadas",
+    "No English word in this group":"Sin palabra inglesa en este grupo",
+    "No alignment supplied for these English words":"No se proporciona alineación para estas palabras inglesas",
+    "Occurrence":"Aparición",
+    "Couldn’t load aligned words. Try again online.":"No se pudieron cargar las palabras alineadas. Inténtalo con conexión.",
+    "Show more linked passages":"Mostrar más pasajes relacionados",
+    "Source verse numbering may differ from your selected translation. Links open the same reference numbers, not a verified verse mapping.":"La numeración fuente puede diferir de la traducción elegida. Los enlaces abren las mismas referencias numéricas, no una correspondencia verificada.",
+
     "Clean":"Limpio",
     "Parchment":"Pergamino",
     "Lined":"Rayado",

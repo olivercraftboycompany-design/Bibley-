@@ -1077,7 +1077,7 @@
         const linked = await getStudyFile("linked/" + (bookIdx + 1));
         const historical = bookIdx < 15 ? (await legacy)?.[chapter]?.[verse] : null;
         if (!body.isConnected) return;
-        body.replaceChildren();
+        body.replaceChildren(h('<p class="bp-muted">' + esc(tr("Source verse numbering may differ from your selected translation. Links open the same reference numbers, not a verified verse mapping.")) + '</p>'));
         const voted = linked?.[chapter]?.[verse] || [];
         const groups = [...(historical || []), ...(voted.length ? [[tr("Related passages · OpenBible.info"), voted]] : [])];
         if (!groups.length) { body.append(h('<p class="bp-muted">' + esc(tr("No linked passages are listed for this verse.")) + '</p>')); return; }
@@ -1089,7 +1089,10 @@
         const rendered = new Set();
         for (const [phrase, refs] of groups) {
           const card = h('<div class="bp-card"><div class="bp-eyebrow">' + esc(phrase || tr("Related passages")) + '</div><div class="bp-chips"></div></div>');
-          for (const entry of refs) {
+          let shown = 0;
+          const more = h('<button type="button" class="bp-btn block"></button>');
+          const appendPage = () => {
+          for (const entry of refs.slice(shown, shown + 24)) {
             const parts = Array.isArray(entry[0]) ? entry : [entry];
             for (const r of parts) {
               const t = label(r); if (!t || (refs === voted && rendered.has(t))) continue;
@@ -1099,9 +1102,14 @@
               card.lastElementChild.append(button);
             }
           }
-          if (card.lastElementChild.children.length) body.append(card);
+          shown += 24;
+          more.textContent = tr("Show more linked passages") + " (" + Math.min(shown,refs.length) + "/" + refs.length + ")";
+          more.style.display = shown >= refs.length ? "none" : "";
+          };
+          appendPage(); more.onclick = appendPage;
+          if (card.lastElementChild.children.length) { body.append(card); body.append(more); }
         }
-        body.append(h('<p class="bp-muted">OpenBible.info, CC BY 4.0. Up to 24 vote-ranked suggestions; relevance and verse numbering can vary. Berean links also appear where bundled.</p>'));
+        body.append(h('<p class="bp-muted">OpenBible.info, CC BY 4.0. Full bundled vote-ranked suggestions, 24 at a time; votes do not guarantee relevance. Berean links also appear where bundled.</p>'));
       } catch { if (body.isConnected) body.replaceChildren(h('<p class="bp-muted" role="status">' + esc(tr("Couldn’t load linked passages. Try again online.")) + '</p>')); }
     }, null);
   }
@@ -1112,7 +1120,9 @@
       const source = h('<button type="button" class="bp-btn primary block">' + esc(tr("Hebrew & Greek interlinear")) + '</button>');
       source.onclick = () => openInterlinear(b, c, v);
       const tagged = h('<div role="region" aria-label="' + esc(tr("World English Bible tags")) + '">' + esc(tr("Loading tagged words…")) + '</div>');
-      body.append(source, tagged);
+      const aligned = h('<button type="button" class="bp-btn block">' + esc(tr("Aligned English words · ULT")) + '</button>');
+      aligned.onclick = () => openAlignedWords(b,c,v);
+      body.append(source, aligned, tagged);
       try {
         const [book, entries] = await Promise.all([getStudyFile("web-words/" + (b + 1)), getLexicon(b < 39 ? "hebrew" : "greek")]);
         if (!body.isConnected) return;
@@ -1132,13 +1142,63 @@
     }, null);
   }
 
+  // Explicit publisher alignment groups, never transferred to a different translation.
+  function openAlignedWords(b, readerChapter, readerVerse) {
+    if (!availableRefs(b)) return;
+    openPanel("aligned-words", tr("Aligned English words · ULT") + " · " + BOOKS[b][1], async body => {
+      body.append(h('<p class="bp-muted">' + esc(tr("ULT v92 source edition only. These English word groups are explicitly aligned by the publisher to Hebrew, Aramaic or Greek. They are not aligned to the translation in your reader; source numbering can differ. Punctuation is omitted.")) + '</p>'));
+      body.append(h('<p class="bp-muted"><a href="https://git.door43.org/unfoldingWord/en_ult/src/tag/v92" target="_blank" rel="noopener noreferrer">' + esc(tr("The original work by unfoldingWord is available here")) + '</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a> · <a href="./study-data/README.md" target="_blank" rel="noopener noreferrer">' + esc(tr("Credits and extraction details")) + '</a></p>'));
+      if ([12,13,22,23,25].includes(b)) { body.append(h('<p role="status">' + esc(tr("This book is not supplied in the ULT v92 source release. No alignment is inferred from another edition.")) + '</p>')); return; }
+      const result = h('<div role="status">' + esc(tr("Loading aligned words…")) + '</div>'); body.append(result);
+      try {
+        const data = await getStudyFile("ult-aligned/" + (b+1));
+        if (!result.isConnected) return;
+        let c = String(readerChapter), v = String(readerVerse);
+        const controls = h('<div class="bp-form bp-source-navigation"><label>' + esc(tr("Source chapter")) + '<select aria-label="' + esc(tr("Source chapter")) + '"></select></label><label>' + esc(tr("Source verse")) + '<select aria-label="' + esc(tr("Source verse")) + '"></select></label></div>');
+        const [chapterSelect,verseSelect] = controls.querySelectorAll("select");
+        const ref = h('<p class="bp-source-reference" aria-live="polite"></p>');
+        const keys = object => Object.keys(object || {}).sort((a,b)=>parseInt(a)-parseInt(b) || a.localeCompare(b));
+        const populate = (select, values, chosen) => {
+          select.replaceChildren();
+          for (const value of values.includes(chosen) ? values : [chosen,...values]) {
+            const opt = document.createElement("option"); opt.value=value;
+            opt.textContent=value + (values.includes(value) ? "" : " · " + tr("Not available in this source")); select.append(opt);
+          }
+          select.value=chosen;
+        };
+        const draw = () => {
+          ref.textContent = "ULT v92 · " + BOOKS[b][1] + " " + c + ":" + v;
+          const groups=data?.[c]?.[v]; result.replaceChildren();
+          if (!groups?.length) { result.textContent=tr("No verified alignment is available for this source verse. No nearby verse is substituted."); return; }
+          const list=h('<ol class="bp-alignment-list" aria-label="' + esc(tr("Aligned word groups")) + '"></ol>');
+          for (const [targets,sources] of groups) {
+            const card=h('<li class="bp-card"><div class="bp-aligned-target">' + esc(targets.join(" ") || tr("No English word in this group")) + '</div></li>');
+            if (!sources.length) card.append(h('<p class="bp-muted">' + esc(tr("No alignment supplied for these English words")) + '</p>'));
+            for (const [word,lemma,code,morph,occurrence,total] of sources) {
+              const lang=morph.startsWith("Ar") ? "arc" : b < 39 ? "he" : "grc";
+              card.append(h('<div class="bp-aligned-source"><bdi class="bp-source-word" lang="' + lang + '">' + esc(word) + '</bdi> <bdi>' + esc(lemma) + '</bdi><div class="bp-muted"><bdi>' + esc(code) + '</bdi> · <bdi>' + esc(morph) + '</bdi> · ' + esc(tr("Occurrence")) + ' ' + esc(occurrence) + '/' + esc(total) + '</div></div>'));
+            }
+            list.append(card);
+          }
+          result.append(list);
+        };
+        populate(chapterSelect,keys(data),c); populate(verseSelect,keys(data[c]),v);
+        chapterSelect.onchange=()=>{c=chapterSelect.value; v=keys(data[c])[0] || "1";populate(verseSelect,keys(data[c]),v);draw();};
+        verseSelect.onchange=()=>{v=verseSelect.value;draw();};
+        body.insertBefore(controls,result);body.insertBefore(ref,result);draw();
+      } catch { if(result.isConnected) result.textContent=tr("Couldn’t load aligned words. Try again online."); }
+    }, () => openVerseWords(b,readerChapter,readerVerse));
+  }
+
   function openInterlinear(b, c, v) {
     if (!availableRefs(b)) return;
     const greek = b >= 39, readerChapter = c, readerVerse = v;
     openPanel("interlinear", tr(greek ? "Greek interlinear" : "Hebrew interlinear") + " · " + BOOKS[b][1], async body => {
       const credits = h('<p class="bp-muted"></p>');
       credits.append(document.createTextNode(tr("Source-order words and English glosses from") + " "), h('<a href="https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c" target="_blank" rel="noopener noreferrer">STEPBible Data (CC BY 4.0)</a>'), document.createTextNode(". " + tr(greek ? "Greek rows tagged NA28." : "Main Hebrew and Aramaic readings.") + " " + tr("English-reference numbering from the source. This is not word alignment to your selected translation; chapter and verse numbers can differ.")));
-      body.append(credits);
+      const aligned = h('<button type="button" class="bp-btn block">' + esc(tr("Aligned English words · ULT")) + '</button>');
+      aligned.onclick = () => openAlignedWords(b,readerChapter,readerVerse);
+      body.append(credits, aligned);
       const result = h('<div role="status">' + esc(tr("Loading interlinear…")) + '</div>');
       body.append(result);
       try {
@@ -1693,7 +1753,7 @@
     try { wireRedLetters(); } catch (e) { console.warn("Bibley red letters", e); }
     try { wireHistory(); } catch (e) { console.warn("Bibley reading history", e); }
     try { wireTtsBar(); } catch (e) { console.warn("Bibley read-aloud controls", e); }
-    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, openVerseWords, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { rangeChapters, lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
+    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, openVerseWords, openAlignedWords, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { rangeChapters, lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
