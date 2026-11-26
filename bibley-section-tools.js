@@ -983,13 +983,16 @@
   function openVerseWords(b, c, v) {
     if (!availableRefs(b)) return;
     openPanel("verse-words", "Original words · " + refOf(b,c,v), async body => {
-      body.textContent = "Loading tagged words…";
+      const source = h('<button type="button" class="bp-btn primary block">Hebrew &amp; Greek interlinear</button>');
+      source.onclick = () => openInterlinear(b, c, v);
+      const tagged = h('<div role="region" aria-label="World English Bible tags">Loading tagged words…</div>');
+      body.append(source, tagged);
       try {
         const [book, entries] = await Promise.all([getStudyFile("web-words/" + (b + 1)), getLexicon(b < 39 ? "hebrew" : "greek")]);
         if (!body.isConnected) return;
-        body.replaceChildren(h('<p class="bp-muted">English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.</p>'));
+        tagged.replaceChildren(h('<p class="bp-muted">English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.</p>'));
         const words = book?.[c]?.[v]?.[0] || [];
-        if (!words.length) body.append(h('<p>No tagged words are available for this verse.</p>'));
+        if (!words.length) tagged.append(h('<p>No tagged words are available for this verse.</p>'));
         for (const [word, codes] of words) {
           const entry = h('<details class="bp-card"><summary>' + esc(word) + ' · ' + esc(codes.join(", ")) + '</summary></details>');
           for (const code of codes) {
@@ -997,10 +1000,36 @@
             if (!info) continue;
             entry.append(h('<p><bdi>' + esc(info.lemma || '') + '</bdi> · ' + esc(info.xlit || info.translit || '') + '</p>'), h('<p>' + esc(info.strongs_def || '') + '</p>'));
           }
-          body.append(entry);
+          tagged.append(entry);
         }
-      } catch { if (body.isConnected) body.textContent = "Couldn’t load tagged words. Try again online."; }
+      } catch { if (body.isConnected) tagged.textContent = "Couldn’t load tagged words. Try again online."; }
     }, null);
+  }
+
+  function openInterlinear(b, c, v) {
+    const greek = b >= 39;
+    openPanel("interlinear", (greek ? "Greek" : "Hebrew") + " interlinear · " + refOf(b,c,v), async body => {
+      body.append(h('<p class="bp-muted">Source-order words and English glosses from <a href="https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c" target="_blank" rel="noopener noreferrer">STEPBible Data (CC BY 4.0)</a>. ' + (greek ? 'Greek rows tagged NA28.' : 'Main Hebrew and Aramaic readings.') + ' This is not an alignment to the selected Bible translation; verse numbers can differ.</p>'));
+      const result = h('<div role="status">Loading interlinear…</div>');
+      body.append(result);
+      try {
+        const book = await getStudyFile("interlinear/" + (b + 1));
+        if (!result.isConnected) return;
+        const words = book?.[c]?.[v];
+        if (!words?.length) { result.textContent = "No source words for this verse number."; return; }
+        const tokens = h('<ol class="bp-card bp-interlinear" aria-label="Interlinear words"></ol>');
+        tokens.dir = greek ? 'ltr' : 'rtl';
+        for (const [word, translit, gloss, codes, morphology] of words) {
+          const token = h('<li><bdi class="bp-source-word" lang="' + (greek ? 'grc' : 'he') + '">' + esc(word) + '</bdi><bdi class="bp-muted">' + esc(translit) + '</bdi><bdi>' + esc(gloss) + '</bdi></li>');
+          if (codes.length || morphology) {
+            const hint = h('<bdi class="bp-muted bp-morphology">' + esc([...codes, morphology].filter(Boolean).join(' · ')) + '</bdi>');
+            token.append(hint);
+          }
+          tokens.append(token);
+        }
+        result.replaceWith(tokens);
+      } catch { if (result.isConnected) result.textContent = "Couldn’t load the interlinear. Try again online."; }
+    }, () => openVerseWords(b, c, v));
   }
 
   // Match entire source-marked runs to the existing WEB reader text. Never replace its text or

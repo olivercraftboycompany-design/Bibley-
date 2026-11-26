@@ -9,7 +9,7 @@ Features are placed in the matching reader and study sections. There is no separ
 | My Bible → Personal study | Encrypted reflection journal with a PIN or passphrase; locks when closed or hidden and after the lock timeout. Export unlocked entries only via explicit, unencrypted downloads. Export notes, bookmarks, highlights and prayers; use Trash to restore recently deleted verse notes, study notes, saved verses, memory verses or prayers. |
 | Reader → Compare / More | Word-level highlighting and a percentage difference when comparing the same chapter; reading back/forward controls; print chapter or Save as PDF from the browser print dialog; optional red letters for the World English Bible (matching source-marked passages). |
 | Books → Search | Whole-Bible search in the bundled translations, with testament and book filters, recent searches, voice search on supported browsers, and a random verse in the current translation. |
-| Study → Explore | Strong’s Hebrew/Greek dictionary; Easton’s Bible dictionary; two historical commentaries, sourced book introductions and clickable chapter outlines; searchable timeline and character profiles; interactive maps of possible Bible locations. From a verse, Linked verses covers all 66 Protestant books; Original words shows WEB publisher-tagged English words with Strong’s lemmas, transliterations and definitions. |
+| Study → Explore | Strong’s Hebrew/Greek dictionary; Easton’s Bible dictionary; two historical commentaries, sourced book introductions and clickable chapter outlines; searchable timeline and character profiles; interactive maps of possible Bible locations. From a verse, Linked verses covers all 66 Protestant books; Original words shows WEB publisher tags, plus a STEPBible source-order Greek/Hebrew/Aramaic interlinear with word-by-word transliterations, English glosses and morphology. |
 | Settings → Language / Idioma | Switch primary navigation and common actions between English and Spanish. Scripture stays in the selected translation, and some detailed views remain in English. |
 | Read aloud | Speed and sleep timer controls while reading; retains the existing synced verse highlighting. |
 | Plans → Your own pace | Custom and seasonal reading plans (Advent, Lent, Holy Week and Easter); catch-up and skip-day. |
@@ -20,6 +20,6 @@ Account sign-up, sign-in and cross-device sync already live in **Settings → Ac
 ## Not included
 
 - Sharing prayers with friends, friends list, group plans/discussions, public verse notes and church hub. These need backend access rules, opt-in sharing, and moderation. Private notes and prayers have not been made public.
-- Complete UI localization and a Greek/Hebrew interlinear with the original verse in source order. The WEB tags do not automatically align other translations. The new study datasets are limited to the 66-book Protestant canon; other supported editions remain readable.
+- Complete UI localization and word alignment to the selected translation. WEB tags and optional red letters are specific to the WEB. The new study datasets are limited to the 66-book Protestant canon; other supported editions remain readable.
 
 Strong’s data credits are in [study-data](study-data/README.md). Browser smoke tests are in `tests/section-tools-smoke.py` and `tests/study-resources-smoke.py`.

@@ -152,3 +152,6 @@ button.bp-vrow span { display: block; margin-top: 4px; }
 .bp-study-prose { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.6; }
 .verses-text span.bp-jesus { padding: 0; border-radius: 0; }
 .verses-text span.bp-jesus:hover { background: transparent; }
+.bp-interlinear{display:flex;flex-wrap:wrap;gap:.55rem;align-items:stretch;list-style:none;margin:0;padding:.6rem}
+.bp-interlinear li{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.18rem;border:1px solid var(--fx-line, rgba(128,128,128,.35));border-radius:10px;padding:.4rem .55rem;max-width:100%;overflow-wrap:anywhere;text-align:center}
+.bp-interlinear .bp-source-word{font-size:1.28rem;font-weight:600}.bp-interlinear .bp-morphology{font-size:.72rem}

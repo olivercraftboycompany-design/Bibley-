@@ -15,3 +15,7 @@ These Hebrew and Greek lexicons are from [Open Scriptures/strongs, 0acd2f251c2d3
 - Matthew Henry and Jamieson, Fausset & Brown are public-domain historical commentaries retrieved by chapter from the [Free Use Bible API](https://bible.helloao.org/docs/). Book outlines reuse the bundled public-domain Berean Standard Bible headings.
 
 The reproducible data transforms are in [`scripts/`](../scripts/).
+
+## Source-order Greek, Hebrew and Aramaic
+
+Interlinear words, transliterations, English glosses and morphology are adapted from [STEPBible TAHOT and TAGNT, revision 5de0a47](https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c/Translators%20Amalgamated%20OT%2BNT), by STEPBible/Tyndale House under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The generator saves the main Hebrew/Aramaic rows (L/Q) and rows tagged NA28 for Greek, retains English-reference numbering and source order, and simplifies extended Strong’s codes to base Strong’s where present. Glosses are study aids, not an English translation or an alignment to the active Bible. Variant texts and additional canon books are not included.
