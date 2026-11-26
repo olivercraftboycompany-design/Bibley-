@@ -396,19 +396,13 @@
   });
 
   /* ---------------- quick switcher in the AI panel (Cloud AI / Model 1 / Model 2) ---------------- */
-  function tr(s) { return window.BibleyLocale ? window.BibleyLocale.text(s) : s; }
-  // Translate app-owned progress, leaving third-party engine diagnostics verbatim.
-  function uiText(value) {
-    var m = String(value || "").match(/^Downloading (.+) \((.+)\)\.\.\. (\d+) of (\d+) MB$/);
-    return m ? tr("Downloading {model} ({name})... {done} of {total} MB").replace("{model}",m[1]).replace("{name}",m[2]).replace("{done}",m[3]).replace("{total}",m[4]) : tr(value);
-  }
-  function label(cfg) { cfg = cfg || getConfig(); if (cfg.mode !== "local") return tr("Cloud AI"); var mi = modelInfo(cfg.modelId); return mi.name + " \u00b7 " + mi.family + " " + mi.params; }
+  function label(cfg) { cfg = cfg || getConfig(); if (cfg.mode !== "local") return "Cloud AI"; var mi = modelInfo(cfg.modelId); return mi.name + " \u00b7 " + mi.family + " " + mi.params; }
   function pill() {
     var b = document.getElementById("aiEnginePill"); if (!b) return;
     var cfg = getConfig(), local = cfg.mode === "local";
     b.textContent = label(cfg) + " \u25be";
     b.classList.toggle("local", local); b.classList.toggle("loading", local && st.state === "loading");
-    b.title = local ? (st.state === "loading" ? uiText(st.text) : tr("On-device AI. Tap to switch")) : tr("Tap to switch the AI engine");
+    b.title = local ? (st.state === "loading" ? st.text : "On-device AI. Tap to switch") : "Tap to switch the AI engine";
     b.setAttribute("aria-haspopup", "menu");
   }
   function closeMenu() { var m = document.getElementById("laiMenu"); if (m) m.remove(); document.removeEventListener("click", outside, true); }
@@ -416,23 +410,22 @@
   function choose(v) {
     if (v === "settings") { closeMenu(); if (window.BibleySettings) window.BibleySettings.open("aiengine"); return; }
     var c = v === "cloud" ? setConfig({ mode: "cloud" }) : setConfig({ mode: "local", modelId: v }); closeMenu();
-    var t = window.BibleyFX && window.BibleyFX.ui && window.BibleyFX.ui.toast; if (t) t(c.mode === "local" ? tr("{model} is on. It downloads once, the first time you ask.").replace("{model}", label(c)) : tr("Cloud AI is on"));
+    var t = window.BibleyFX && window.BibleyFX.ui && window.BibleyFX.ui.toast; if (t) t(c.mode === "local" ? label(c) + " is on. It downloads once, the first time you ask." : "Cloud AI is on");
     if (c.mode === "local" && eng && eng.model !== c.modelId) unload();
   }
   function openMenu(b) {
     if (document.getElementById("laiMenu")) { closeMenu(); return; }
     var cfg = getConfig(), r = b.getBoundingClientRect(), m = document.createElement("div");
     m.id = "laiMenu"; m.className = "lai-menu"; m.setAttribute("role", "menu");
-    var opt = function (v, t, s, on, fam) { return '<button type="button" role="menuitemradio" aria-checked="' + on + '" class="lai-opt' + (on ? " on" : "") + '" data-v="' + v + '"><span class="lai-t">' + escH(tr(t)) + (fam ? ' <em class="lai-fam ' + fam.toLowerCase() + '">' + fam + "</em>" : "") + "<small>" + escH(tr(s)) + '</small></span><span class="lai-ck">' + (on ? "\u2713" : "") + "</span></button>"; };
+    var opt = function (v, t, s, on, fam) { return '<button type="button" role="menuitemradio" aria-checked="' + on + '" class="lai-opt' + (on ? " on" : "") + '" data-v="' + v + '"><span class="lai-t">' + escH(t) + (fam ? ' <em class="lai-fam ' + fam.toLowerCase() + '">' + fam + "</em>" : "") + "<small>" + escH(s) + '</small></span><span class="lai-ck">' + (on ? "\u2713" : "") + "</span></button>"; };
     m.innerHTML = opt("cloud", "Cloud AI", "Fast, needs internet", cfg.mode !== "local") +
-      MODELS.map(function (mi, i) { return opt(mi.id, tr("Model {n}").replace("{n}", i + 1) + ": " + mi.name + " \u00b7 " + mi.model, tr(mi.tag) + " \u00b7 " + mi.size.split(" / ")[0] + " \u00b7 " + tr("KJV verse lookup"), cfg.mode === "local" && cfg.modelId === mi.id, mi.family); }).join("") +
+      MODELS.map(function (mi, i) { return opt(mi.id, "Model " + (i + 1) + ": " + mi.name + " \u00b7 " + mi.model, mi.tag + " \u00b7 " + mi.size.split(" / ")[0] + " \u00b7 KJV verse lookup", cfg.mode === "local" && cfg.modelId === mi.id, mi.family); }).join("") +
       '<button type="button" class="lai-opt lai-set" data-v="settings"><span class="lai-t">AI Engine settings\u2026<small>Download, test, backend</small></span></button>';
     document.body.appendChild(m);
     var W = Math.min(330, innerWidth - 16); m.style.width = W + "px"; m.style.left = Math.max(8, Math.min(r.right - W, innerWidth - W - 8)) + "px"; m.style.top = (r.bottom + 6) + "px";
     m.addEventListener("click", function (e) { var o = e.target.closest(".lai-opt"); if (o) { e.stopPropagation(); choose(o.dataset.v); } });
     setTimeout(function () { document.addEventListener("click", outside, true); }, 0);
   }
-  window.addEventListener("bibley:localechange", function () { pill(); if (document.getElementById("laiMenu")) { closeMenu(); var b = document.getElementById("aiEnginePill"); if (b) openMenu(b); } });
   function mountPill() {
     var b = document.getElementById("aiEnginePill"); if (!b || b.dataset.wired) return pill(); b.dataset.wired = "1";
     b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openMenu(b); });
@@ -451,7 +444,7 @@
 
   var api = { version: "7.0", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
     MODELS: MODELS.map(function (m) { return { id: m.id, name: m.name, family: m.family, model: m.model, params: m.params, tag: m.tag, size: m.size, desc: m.desc, webgpu: [m.webgpu.f16, m.webgpu.f32].filter(Boolean), cpu: m.cpu, dtype: m.dtype }; }),
-    modelInfo: function (id) { var m = modelInfo(id); return api.MODELS.filter(function (x) { return x.id === m.id; })[0]; }, label: label, uiText: uiText,
+    modelInfo: function (id) { var m = modelInfo(id); return api.MODELS.filter(function (x) { return x.id === m.id; })[0]; }, label: label,
     getConfig: getConfig, setConfig: setConfig, isLocal: function () { return getConfig().mode === "local"; }, detectCapabilities: detectCapabilities,
     loadModel: loadModel, generate: generate, ask: generate, retrieve: retrieve, clearCache: clearCache, isCached: isCached, status: status, unload: unload,
     on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },

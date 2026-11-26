@@ -24,9 +24,7 @@
   const vKey = (b, c, v) => BOOKS[b][0] + "-" + c + "-" + v;
   const refOf = (b, c, v) => BOOKS[b][1] + " " + c + (v ? ":" + v : "");
   const vname = id => { try { return C.versionName(id); } catch { return String(id).toUpperCase(); } };
-  const tr = value => window.BibleyLocale?.text(value) ?? value;
   function toast(msg, ms) {
-    msg = tr(msg);
     if (typeof window.bibleyToast === "function") { window.bibleyToast(msg, ms); return; }
     let t = document.querySelector(".fx-toast"); if (!t) { t = document.createElement("div"); t.className = "fx-toast"; document.body.appendChild(t); }
     t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms || 2600);
@@ -52,21 +50,20 @@
   /* ================= data helpers ================= */
   const notes = () => load(K.NOTES, {});
   const vbms = () => load(K.VBM, {});
-  function trashRecord(kind, key, id, data) { if (data) window.BibleyTools?.pushTrash(kind, data.ref, { key, id, data }); }
   function setHighlight(v, color) {
     if (!color) C.removeHighlight(v.key);
     else C.saveHighlight(v.key, { color, text: v.text, ref: refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, bookName: BOOKS[v.bookIdx][1], added: Date.now() });
   }
   function setNote(v, text) {
     const all = notes(); text = String(text || "").trim();
-    if (!text) { trashRecord("Verse note", K.NOTES, v.key, all[v.key]); delete all[v.key]; }
+    if (!text) delete all[v.key];
     else { all[v.key] = { text, ref: v.ref || refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, verseText: v.text, version: v.version, updated: Date.now(), added: (all[v.key] && all[v.key].added) || Date.now() };
       if (v.verses && v.verses.length > 1) { all[v.key].verses = v.verses.slice(); all[v.key].verseEnd = v.verses[v.verses.length - 1]; } }
     save(K.NOTES, all);
   }
   function toggleVbm(v) {
     const all = vbms(); let on;
-    if (all[v.key]) { trashRecord("Saved verse", K.VBM, v.key, all[v.key]); delete all[v.key]; on = false; }
+    if (all[v.key]) { delete all[v.key]; on = false; }
     else { all[v.key] = { ref: v.ref || refOf(v.bookIdx, v.chapter, v.verseNum), bookIdx: v.bookIdx, chapter: v.chapter, verseNum: v.verseNum, text: v.text, version: v.version, added: Date.now() }; on = true;
       if (v.verses && v.verses.length > 1) { all[v.key].verses = v.verses.slice(); all[v.key].verseEnd = v.verses[v.verses.length - 1]; all[v.key].range = true; } }
     save(K.VBM, all); return on;
@@ -173,10 +170,10 @@
   // v5.1: jumpTo(b, c, v, verses) opens the chapter, scrolls the verse to just under the top of the
   // reader (clear of the header) and pulses it ~1.8s; with a verses array (a range bookmark) the
   // first verse is scrolled to and every verse in the range pulses. Works when the chapter is already open.
-  function jumpTo(b, c, v, verses, version) {
+  function jumpTo(b, c, v, verses) {
     closeSheet(); C.closeAi && C.closeAi();
     pendingJump = v ? { b, c, v, verses: (verses && verses.length) ? verses.slice() : null, at: Date.now() } : null;
-    C.goTo(b, c, version);
+    C.goTo(b, c);
     // already-open chapter: the reader may not re-render, so run the jump once the verse is on screen
     if (pendingJump) setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && verseSpan(b, c, v)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 80);
   }
@@ -299,8 +296,6 @@
         <button type="button" class="fx-act" data-a="img"><span class="e">${SVG_IMG}</span><i>Image</i></button>
         <button type="button" class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span><i>Memorize</i></button>
         <button type="button" class="fx-act" data-a="ai"><span class="e"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg></span><i>Explain</i></button>
-        <button type="button" class="fx-act" data-a="words" hidden><span class="e">${ICON.study}</span><i>Original words</i></button>
-        <button type="button" class="fx-act" data-a="xref" hidden><span class="e">${ICON.study}</span><i>Linked verses</i></button>
         <button type="button" class="fx-act" data-a="study"><span class="e">${ICON.study}</span><i>Study</i></button>
         <button type="button" class="fx-act" data-a="snb"><span class="e"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v16H8a2 2 0 0 1-2-2V3zM6 17.5A2 2 0 0 1 8 16h11M10 8h5M10 11.5h5"/></svg></span><i>Notebook</i></button>
       </div></div>`);
@@ -332,8 +327,6 @@
     act("mem", () => { const t = selTarget(); if (t) openMemorize({ key: t.key, text: t.text, ref: t.ref, version: t.version, bookIdx: t.bookIdx, chapter: t.chapter, verseNum: t.verseNum }); });
     act("snb", () => { const t = selTarget(); if (!t) return; clearSel(); if (window.BibleyStudyNB) window.BibleyStudyNB.newFromVerse(t); else toast("Notebook is still loading"); });
     act("ai", () => { const t = selTarget(); if (!t) return; if (!window.BibleyVerseAI) { toast("Still loading"); return; } clearSel(); window.BibleyVerseAI.open(t, "explain"); });
-    act("words", () => { const t = selTarget(); if (!t?.single) return; clearSel(); window.BibleyTools?.openVerseWords(t.bookIdx, t.chapter, t.verseNum); });
-    act("xref", () => { const t = selTarget(); if (!t?.single) return; clearSel(); window.BibleyTools?.openReferences(t.bookIdx, t.chapter, t.verseNum); });
     act("study", () => {
       const t = selTarget(); if (!t) return; clearSel();
       if (t.single) C.studyVerse(t);
@@ -341,19 +334,16 @@
     });
     return selBar;
   }
-  window.addEventListener("bibley:localechange", () => { if (sel) renderSelBar(); });
   function renderSelBar() {
     const t = selTarget(); if (!t) { clearSel(); return; }
     ensureSelBar();
     const vs = selList(), n = vs.length;
-    selBar.querySelector(".t b").textContent = tr(n === 1 ? "1 verse selected" : "{n} verses selected").replace("{n}",n);
+    selBar.querySelector(".t b").textContent = n + " selected";
     selBar.querySelector(".t span").textContent = t.ref + " \u00b7 " + vname(t.version);
     const colors = new Set(vs.map(v => { const hl = C.getHighlights()[v.key]; return hl ? hl.color : null; }));
     const one = colors.size === 1 ? [...colors][0] : undefined;
     selBar.querySelectorAll(".fx-sw").forEach(b => b.classList.toggle("on", !!one && b.dataset.c === one));
     const note = notes()[t.key], bm = !!vbms()[t.key];
-    selBar.querySelector('[data-a="words"]').hidden = !(t.single && window.BibleyTools?.availableRefs(t.bookIdx));
-    selBar.querySelector('[data-a="xref"]').hidden = !(t.single && window.BibleyTools?.availableRefs(t.bookIdx));
     const nb = selBar.querySelector('[data-a="note"]'); nb.classList.toggle("on", !!note); nb.querySelector("i").textContent = note ? "Edit note" : "Note";
     const bb = selBar.querySelector('[data-a="bm"]'); bb.classList.toggle("on", bm); bb.querySelector("i").textContent = bm ? "Saved" : "Bookmark";
     document.body.classList.add("fx-selecting");
@@ -409,13 +399,6 @@
     (C.getBookmarks() || []).forEach(x => { if (BOOKS[x.bookIdx]) out.push({ type: "chapter", b: x.bookIdx, c: x.chapter, ref: refOf(x.bookIdx, x.chapter), text: "Bookmarked chapter", bm: true, t: x.added || 0, order: x.bookIdx * 1e6 + x.chapter * 1e3 }); });
     return out;
   }
-  function sectionActions(host, title, links, back) {
-    if (!window.BibleyTools) return;
-    const card = h(`<div class="fx-card"><div class="fx-eyebrow">${esc(title)}</div><div class="fx-row bp-native-actions" style="margin-top:8px"></div></div>`);
-    const row = card.querySelector(".fx-row");
-    links.forEach(([view, label]) => { const button = h(`<button type="button" class="fx-btn small">${esc(label)}</button>`); button.onclick = () => window.BibleyTools.open(view, back); row.append(button); });
-    host.append(card);
-  }
   function myBible() {
     openSheet("mybible", "My Bible", body => {
       const all = myBibleItems();
@@ -426,7 +409,6 @@
         <div class="fx-card" style="margin-top:14px"><div class="fx-eyebrow">Backup</div><p class="fx-muted" style="margin:6px 0 10px">Save or restore a backup file.</p>
           <div class="fx-row"><button class="fx-btn small" data-a="export">${IC.download}Export backup</button><button class="fx-btn small" data-a="import">${IC.upload}Import backup</button><input type="file" accept="application/json,.json" hidden></div></div></div>`);
       body.append(top);
-      sectionActions(body, "Personal study", [["journal", "Reflection journal"], ["tools", "Exports & trash"]], myBible);
       const input = top.querySelector("input[type=search]"), list = top.querySelector(".fx-list");
       const draw = () => {
         const q = mbQuery.trim().toLowerCase();
@@ -465,7 +447,7 @@
     } else {
       const label = [it.color && "highlight", it.note && "note", it.bm && "bookmark"].filter(Boolean).join(" + ");
       if (!confirm(`Remove the ${label} on ${it.ref}?`)) return;
-      C.removeHighlight(it.key); const n = notes(); trashRecord("Verse note", K.NOTES, it.key, n[it.key]); delete n[it.key]; save(K.NOTES, n); const m = vbms(); trashRecord("Saved verse", K.VBM, it.key, m[it.key]); delete m[it.key]; save(K.VBM, m);
+      C.removeHighlight(it.key); const n = notes(); delete n[it.key]; save(K.NOTES, n); const m = vbms(); delete m[it.key]; save(K.VBM, m);
     }
     C.rerender(); C.refreshLists(); toast("Removed");
   }
@@ -527,7 +509,6 @@
   function plansSheet() {
     openSheet("plans", "Reading plans", body => {
       body.append(h(`<div class="fx-card">${streakCard()}</div>`));
-      sectionActions(body, "Your own pace", [["plans", "Custom & seasonal plans"]], plansSheet);
       const st = planState();
       if (st) { const c = h(`<div class="fx-card gold">${todayPlanHtml(st)}</div>`); body.append(c); wirePlanCard(c); }
       body.append(h(`<div class="fx-eyebrow" style="margin:6px 0 10px">${st ? "Switch plan" : "Pick a plan"}</div>`));
@@ -591,8 +572,6 @@
     const hr = new Date().getHours(); const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
     openSheet("today", greet, body => {
       const v = h(`<div class="fx-card gold fx-votd"></div>`); body.append(v); votdCard(v);
-      sectionActions(body, "Your activity", [["recap-day", "Daily recap"], ["recap-month", "Monthly recap"]], todaySheet);
-      sectionActions(body, "Prayer & reflection", [["prayers", "Prayer list"], ["journal", "Reflection journal"]], todaySheet);
       // v5.5: Daily Dose of Wisdom (bibley-wisdom.js fills this slot; if it is still loading it fills it when it arrives).
       const wz = h(`<div class="fx-wis-slot"></div>`); body.append(wz); if (window.BibleyWisdom) window.BibleyWisdom.render(wz);
       const pos = lastPos();
@@ -767,7 +746,7 @@
   /* ================= public hooks ================= */
   window.BibleyFX = {
     onVerseTap(v, span) { onVerseTap(v, span); },
-    jumpToVerse: (b, c, v, verses, version) => jumpTo(b, c, v, verses, version),
+    jumpToVerse: (b, c, v, verses) => jumpTo(b, c, v, verses),
     clearSelection: () => clearSel(),
     redecorate: () => decorateAll(),
     // v6.3: used by Call Bibley voice control (bibley-call.js); same keys and functions as the verse menu

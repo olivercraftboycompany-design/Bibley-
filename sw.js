@@ -8,14 +8,14 @@
    - AI requests (POST) are never touched, and neither are the On-Device AI downloads
      (jsDelivr, Hugging Face, GitHub): other sites are only handled for Bible text and fonts.
    - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
-const VERSION = 'bibley-v49-study-interface-locale';
+const VERSION = 'bibley-v31-plus-removed';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
 const TEXT_LIMIT = 1500;                    // chapters kept (oldest trimmed)
 
 const SHELL = [
-  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-section-tools.js', './bibley-locale.js', './bibley-section-tools.css', './bibley-notes.js', './bibley-notes.css', './bibley-studynb.js', './bibley-studynb.css', './bibley-device.js', './bibley-device.css', './bibley-settings.js', './bibley-settings.css', './bibley-nav.js', './bibley-nav.css', './bibley-ui16.css', './bibley-ai.js', './bibley-local-ai.js', './bibley-sync.js', './bibley-call.js', './bibley-memory.js', './bibley-call.css', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './bibley-study.js', './bibley-wisdom.js', './bibley-wisdom.css', './bibley-scroll.js', './bibley-scroll.css', './bibley-sections.js', './bibley-sections.css', './bibley-focus.js', './bibley-focus.css', './sections.json', './manifest.json',
+  './', './index.html', './pwa.js', './bibley-features.js', './bibley-features.css', './bibley-notes.js', './bibley-notes.css', './bibley-studynb.js', './bibley-studynb.css', './bibley-device.js', './bibley-device.css', './bibley-settings.js', './bibley-settings.css', './bibley-nav.js', './bibley-nav.css', './bibley-ui16.css', './bibley-ai.js', './bibley-local-ai.js', './bibley-sync.js', './bibley-call.js', './bibley-memory.js', './bibley-call.css', './bibley-studio.js', './bibley-studio.css', './lostbooks.js', './lostbooks.css', './bibley-study.js', './bibley-wisdom.js', './bibley-wisdom.css', './bibley-scroll.js', './bibley-scroll.css', './bibley-sections.js', './bibley-sections.css', './bibley-focus.js', './bibley-focus.css', './sections.json', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-192.png', './icons/maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
@@ -104,8 +104,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;                       // AI calls etc. go straight to the network
   const url = new URL(req.url);
-  // Search URLs contain user queries; do not cache them. Chapter caching is unchanged.
-  if (url.hostname === 'bolls.life' && url.pathname.startsWith('/v2/find/')) return;
   if (TEXT_HOSTS.includes(url.hostname)) { e.respondWith(bibleText(e)); return; }
   if (FONT_HOSTS.includes(url.hostname)) { e.respondWith(fonts(req)); return; }
   if (url.origin !== self.location.origin) return;

@@ -33,8 +33,6 @@
   };
   var HANG = '<path d="M3.2 13.6c4.9-4.4 12.7-4.4 17.6 0l-1.9 2.6-3.4-1.2v-2.3a10.6 10.6 0 0 0-7 0V15l-3.4 1.2z" fill="currentColor" stroke="none"/>';
 
-  function tr(s) { return window.BibleyLocale ? window.BibleyLocale.text(s) : s; }
-  window.addEventListener("bibley:localechange", function () { if (S) { setState(S.state, S.stateLabel || "Connecting..."); if (S.messageText) showMsg(S.messageText,S.messageRetry,S.messageValues); } });
   var S = null; // live call state
 
   function $(id) { return document.getElementById(id); }
@@ -80,19 +78,17 @@
   }
   function setState(st, label) {
     if (!S) return;
-    S.state = st; S.stateLabel = label;
+    S.state = st;
     S.el.setAttribute("data-state", st);
-    $("bcState").textContent = tr(label);
-    var bs = $("bcBarState"); if (bs) bs.textContent = tr(label);
+    $("bcState").textContent = label;
+    var bs = $("bcBarState"); if (bs) bs.textContent = label;
     var bb = $("bcBar"); if (bb) bb.setAttribute("data-state", st);
   }
-  function showMsg(text, retry, values) {
+  function showMsg(text, retry) {
     var m = $("bcMsg"); if (!m) return;
-    if (!text) { m.hidden = true; m.innerHTML = ""; if (S) S.messageText = ""; return; }
-    if (S) { S.messageText = text; S.messageRetry = retry; S.messageValues = values; }
-    var message = tr(text); Object.keys(values || {}).forEach(function (key) { message = message.replace("{" + key + "}", String(values[key])); });
+    if (!text) { m.hidden = true; m.innerHTML = ""; return; }
     m.hidden = false;
-    m.innerHTML = "<p>" + esc(message) + "</p>" + (retry ? '<button type="button" id="bcRetry">' + esc(tr(retry)) + "</button>" : "");
+    m.innerHTML = "<p>" + esc(text) + "</p>" + (retry ? '<button type="button" id="bcRetry">' + esc(retry) + "</button>" : "");
     var b = $("bcRetry"); if (b) b.addEventListener("click", function (e) { e.stopPropagation(); showMsg(""); startMic(); });
   }
   function cap(who, text, live) {
@@ -159,7 +155,7 @@
         showMsg(window.AndroidApp ? "Bibley needs the microphone to hear you. Allow it when your phone asks, or turn it on in Settings > Apps > Bibley > Permissions > Microphone." : "Bibley needs the microphone to hear you. Allow it for this site (tap the lock or info icon next to the address), then try again.", "Try again");
       else if (name === "NotFoundError" || name === "DevicesNotFoundError") showMsg("No microphone was found on this device.", "Try again");
       else if (name === "NotReadableError") showMsg("Another app is using the microphone. Close it and try again.", "Try again");
-      else showMsg("Couldn't start the microphone ({error}).", "Try again", {error: name || "error"});
+      else showMsg("Couldn't start the microphone (" + (name || "error") + ").", "Try again");
       return;
     }
     if (!S) return;
@@ -248,7 +244,6 @@
     if (!S) return;
     S.muted = !S.muted;
     var b = $("bcMute"); b.setAttribute("aria-pressed", S.muted ? "true" : "false"); b.innerHTML = sv(S.muted ? IC.micOff : IC.mic, 26);
-    b.setAttribute("aria-label", S.muted ? "Unmute" : "Mute");
     $("bcMuteLbl").textContent = S.muted ? "Unmute" : "Mute";
     var bm = $("bcBarMute"); if (bm) { bm.setAttribute("aria-pressed", S.muted ? "true" : "false"); bm.setAttribute("aria-label", S.muted ? "Unmute" : "Mute"); bm.innerHTML = sv(S.muted ? IC.micOff : IC.mic, 20); }
     if (S.stream) S.stream.getAudioTracks().forEach(function (t) { t.enabled = !S.muted; });
@@ -353,7 +348,7 @@
       var wait = code === "rate_limited" && e.scope === "ip_minute" ? Math.max(5, Math.min(60, e.retry || 30)) : 30;
       if (code === "daily_cap" || e.scope === "ip_day") { setState("paused", "Taking a break"); showMsg("Bibley has talked a lot today and needs a rest. Try calling again tomorrow, or type in the Chatbot tab."); return; }
       setState("paused", "One moment...");
-      showMsg("Lots of questions right now. Bibley will listen again in {n} seconds.", null, {n: wait});
+      showMsg("Lots of questions right now. Bibley will listen again in " + wait + " seconds.");
       var gen = S.gen;
       setTimeout(function () { if (S && gen === S.gen && !S.muted) { showMsg(""); listen(); } }, wait * 1000);
       return;

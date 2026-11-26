@@ -1,58 +1,60 @@
-# Bibley feature status
+# Bibley feature roadmap
 
-Features are placed in the matching reader and study sections. There is no separate Plus tab.
+Oliver's feature list (sent 2026-11-26), tracked here. Status:
 
-| Section | Available in this update |
-| --- | --- |
-| Today → Your activity | Daily recap with date navigation and copy; copyable monthly recap with reading counts, active days, longest streak, most-read books and study totals. Recaps use records available on the device, including any synced records. They are not a historical audit, and don't reconstruct activity that was never recorded. |
-| Today → Prayer & reflection | Private active/answered prayer requests, guided prayers and access to the reflection journal. Prayers can sync to the signed-in Bibley account; they are not shared publicly. |
-| My Bible → Personal study | Encrypted reflection journal with a PIN or passphrase; locks when closed or hidden and after the lock timeout. Export unlocked entries only via explicit, unencrypted Markdown/CSV downloads or a separate print/PDF preview; a print preview remains open until you close it. Export notes, bookmarks, highlights and prayers; use Trash (all retained entries, up to 100 for 30 days) to restore recently deleted verse notes, study notes, saved verses, memory verses or prayers. |
-| Reader → Compare / More | Word-level highlighting and a percentage difference for verses paired by matching number; missing or ambiguous verse numbers are excluded, and equivalent numbering across translations is not guaranteed; reading back/forward controls; print chapter or Save as PDF from the browser print dialog; optional red letters for the World English Bible (matching source-marked passages). |
-| Books → Search | Search the bundled translations locally or select an online bolls.life edition (including NABRE and NRSV Catholic Edition) for phrase search. Both use testament/book filters in the 66-book reader and open the result in the searched translation. Online queries are sent to bolls.life, with more results loaded on request. Recent searches, voice search in the interface language on supported browsers, and a random verse in the current translation remain available. |
-| Study → Explore | Strong’s Hebrew/Greek dictionary; Easton’s Bible dictionary; two historical commentaries, sourced book introductions and clickable chapter outlines; searchable timeline and character profiles; interactive maps of possible Bible locations. From a verse, Linked verses covers all 66 Protestant books; Original words shows WEB publisher tags, plus a STEPBible source-order Greek/Hebrew/Aramaic interlinear with word-by-word transliterations, English glosses and morphology. Independent source-chapter/verse selectors browse the dataset’s English-reference numbering without changing the reader or claiming translation alignment. Missing references remain visibly unavailable, not substituted. Deuterocanon study notes add public-domain WEB Classic publisher introductions where supplied and 747 footnotes across 213 source chapters in 15 book units, with independent book/chapter selection and links to that source edition. This includes Greek Esther/Daniel and Baruch 6, not a claimed alignment to another translation or a complete commentary. |
-| Settings → Language / Idioma | Switch primary navigation, common actions, daily/monthly recaps, and controls in prayer, study, reflection journal, memory practice, plan builder, search, exports/trash and read-aloud views, plus appearance, reading, navigation, mode and account-form controls in Settings. All 35 help articles, help categories and privacy sections, plus account/sync status labels, support Spanish. Study Notebook navigation, editor/formatting controls, template names/descriptions and newly generated template-body prompts, grammar review/loading/errors, export menus, search, notebook creation/counts/deletion confirmations and save/delete status messages also support Spanish. Classic notebook page navigation, menus, note editing, prompts and confirmations support Spanish; saved page names, titles and content are not translated. Settings and help search accept translated Spanish labels with or without accents. Scripture stays in the selected translation; study reference content, existing note-template text and personal notes stay in their original language. Known account/network errors are localized; arbitrary provider/server messages remain verbatim instead of being guessed or reinterpreted. AI engine/model cards, download/load controls and app-owned progress/status messages, call controls/microphone guidance, verse-selection tools and book-drawer categories/current-reading labels also support Spanish. Third-party model-loader diagnostics remain verbatim. The call UI language does not change its English speech/model prompt or translate captions. Some older views and source reference prose remain untranslated. User chat titles, remembered facts, messages and account identity are excluded from interface translation. |
-| Read aloud | Speed and sleep timer controls while reading; retains the existing synced verse highlighting. |
-| Plans → Your own pace | Custom and seasonal reading plans (Advent, Lent, Holy Week and Easter); catch-up and skip-day. Custom plans accept ordered chapter ranges from multiple books, with reorder/remove controls and overlap deduplication; preset scopes remain available. Every chapter in the full day-by-day schedule can be opened. Saved plans can be resumed without clearing completion history. Plans use the 66-book reader. Short books never create empty reading days. Seasonal suggestions exclude expired windows. |
-| Today → My memory verses → Memory practice | Flashcards, fill-in-the-blank, first-letter and reference quizzes with spaced repetition; a missed card is scheduled for tomorrow. |
+- ✅ **Built** — working in the app now (see the version noted)
+- 🔨 **Existing** — was already in Bibley before this list
+- 🗑 **Removed** — built in 7.2, then removed in 7.2.2 at Oliver's request (2026-11-26); can be restored if he asks
+- 🕓 **Planned** — not built yet; reason noted
 
-Account sign-up, sign-in and cross-device sync already live in **Settings → Account & Cloud Sync**. The version picker already includes Bibles in multiple languages (independent of the UI language). Study already offers AI-generated chapter summaries and outlines. The Study Notebook has its own print/PDF and Markdown options.
+## 1. Database, Accounts & Community
 
-## Not included
+- 🔨 Sign up/in + cloud sync across devices (notes, highlights, bookmarks, settings, streaks) — **Existing since 6.8**: Settings > Account & Cloud Sync, syncs through bibley.sites.tab.bot.
+- 🗑 Prayer list (private, active/answered) + guided prayers — **Removed in 7.2.2** (built in 7.2) (Plus > Prayer list). Private only; the shared-prayer half is 🕓 pending a deliberate, opt-in design.
+- 🕓 Friends list to share highlights, notes & encouragement — needs a deliberate privacy design on the sync backend; nothing is shared publicly by default.
+- 🕓 Group reading plans + daily discussions — same.
+- 🕓 Public verse notes + Church hub (events, bulletins, sermon outlines, giving links) — public-by-design surface; needs Oliver's explicit choices on moderation and content before anything is built.
 
-- Sharing prayers with friends, friends list, group plans/discussions, public verse notes and church hub. These need backend access rules, opt-in sharing, and moderation. Private notes and prayers have not been made public.
-- Complete UI localization and word alignment to the selected translation. WEB tags and optional red letters are specific to the WEB. The interlinear, automatic cross-references and most study datasets remain limited to the 66-book Protestant canon. A separate source-edition note browser covers 15 WEB Classic deuterocanonical/apocryphal units; canon and numbering vary by tradition. Other supported editions remain readable.
+## 2. Reading & Comparison
 
-Strong’s data credits are in [study-data](study-data/README.md). Browser smoke tests are in `tests/section-tools-smoke.py` and `tests/study-resources-smoke.py`. New print/locale/plans/recovery regressions are in `tests/local-tools-regression.py`.
+- 🗑 Word-level & % diff highlighting between parallel translations — **Removed in 7.2.2** (built in 7.2): open Compare, tap "Diff" in the second pane's toolbar; changed words are underlined and the pane shows "% different".
+- 🕓 Red-letter mode (words of Jesus) — the bundled translations carry no red-letter markup; needs a licensed words-of-Jesus dataset.
+- 🗑 Back/forward chapter history — **Removed in 7.2.2** (built in 7.2): ‹ › buttons in the reading toolbar retrace the chapters you visited.
+- 🕓 Multi-language Bibles + multi-language UI — large content + translation project.
+- 🗑 Print-friendly reading & study view — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Print this chapter (browser "Save as PDF" works from the same view).
 
-A local [community persistence foundation](backend/README.md) is available for future integration with the account host; it does not enable any public endpoints or in-app sharing.
+## 3. Study & Original Languages
 
-Settings translation and data-boundary regressions are in `tests/settings-locale-regression.py`.
+- 🕓 Strong's Concordance + Greek/Hebrew interlinear, transliteration & word study — needs bundled Strong's/lexicon data (public-domain sources identified; size and quality review pending).
+- 🕓 Cross-references + public-domain commentaries & Bible dictionary — same data-bundling work (Treasury of Scripture Knowledge and public-domain commentaries are candidates).
+- 🕓 Book intros, outlines, timelines, character profiles & interactive Bible maps — content to write/source; maps need artwork. 🔨 Chapter summaries, key points, structure, verse context and outlines already exist in the Study assistant.
 
-Help/privacy and account-status translation regressions are in `tests/help-locale-regression.py`. Notebook UI/data-boundary tests run at phone and desktop sizes in `tests/notebook-locale-regression.py`.
+## 4. Search, Audio & Journaling
 
-New-template scaffolding, opt-in grammar feedback, transport-error accuracy and classic notebook content-boundary tests run at phone and desktop sizes in `tests/notebook-language-regression.py`. Interface language does not translate existing notes or the text submitted for grammar review; suggested grammar edits still require Apply Changes.
+- 🗑 Filtered search (book/testament/version) — **Removed in 7.2.2** (built in 7.2): Plus > Search+ searches the whole Bible in any bundled translation, filtered by testament or book.
+- 🗑 Saved search history — **Removed in 7.2.2** (built in 7.2): recent searches appear as chips in Search+; clearable.
+- 🗑 Voice search — **Removed in 7.2.2** (built in 7.2): mic button in the Books drawer search and in Search+ (Chrome/Edge).
+- 🗑 Random verse picker — **Removed in 7.2.2** (built in 7.2): Books drawer > Random verse, or Plus > Tools.
+- 🔨 Synced verse highlighting while listening — already existed; read-aloud highlights the current verse and follows along.
+- 🗑 TTS sleep timer + speed controls — **Removed in 7.2.2** (built in 7.2): a bar appears while reading aloud with a sleep timer (5–60 min) and speed control.
+- 🗑 Trash/recovery for deleted notes — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Trash restores deleted notes, saved verses, memory verses and prayers for 30 days.
+- 🗑 Journal PIN lock + reflection log — **Removed in 7.2.2** (built in 7.2): Plus > Journal. Entries are AES-GCM encrypted with a key derived from the PIN or passphrase (PBKDF2, 250k rounds); only ciphertext plus a last-modified timestamp is stored or synced, and the PIN is never stored. The app says plainly: a short numeric PIN can be brute-forced by someone who gets the data (use a longer passphrase), a forgotten PIN means no recovery, and encryption can't protect against malicious software on the device itself. Locks automatically (10 min idle, tab hide, or sheet close).
+- 🗑 PDF / Markdown / CSV export — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Export Markdown / Export CSV / Print (Save as PDF).
 
-Engine/call/reader locale regression checks are in `tests/engine-call-locale-regression.py`, including phone/desktop language round-trips, microphone-denial guidance, unchanged captions/scripture and escaped provider errors. These use synthetic microphone/API states and do not prove real-device calls or local model compatibility.
+## 5. Plans & Memorization
 
-Ordered chapter-range creation, overlap handling, invalid-range validation, every-day chapter links, saved-plan resume, and the WEB Classic source-note browser are tested on phone and desktop by `tests/plans-canon-regression.py`. Source notes remain separate from the reader and do not change its selected translation.
+- 🗑 Flashcards, fill-in-the-blank & first-letter memorization + reference quiz — **Removed in 7.2.2** (built in 7.2): Plus > Memory practice (works with the existing Memorize verse list).
+- 🗑 Spaced repetition — **Removed in 7.2.2** (built in 7.2): reviews are scheduled by how well you know each verse; due count shows on the Plus menu.
+- 🗑 Custom reading-plan builder — **Removed in 7.2.2** (built in 7.2): Plus > Reading plans+ > Build a custom plan (choose books and pace).
+- 🗑 Catch-up & skip-day — **Removed in 7.2.2** (built in 7.2): behind-schedule banner with Catch up; Skip this day on the current reading.
+- 🗑 Seasonal plans (Advent, Lent, Easter/Holy Week) — **Removed in 7.2.2** (built in 7.2): dates are computed each year (e.g. Lent starts Ash Wednesday).
+- 🗑 Daily recap — **Removed in 7.2.2** (built in 7.2): Plus > Daily recap (reading, notes, highlights, saved verses, prayers, memory, journal, streak; copyable).
+- 🗑 Monthly recap — **Removed in 7.2.2** (built in 7.2): Plus > Monthly recap (chapters, active days, best streak, top books, prayers, memory; browsable by month).
 
-## Source alignment and complete linked-passage lists
+Recaps only count activity recorded on the device; they don't invent history for days with no records.
 
-- Original words and the source-order interlinear now link to a separate ULT v92 word-alignment view. Explicit publisher-supplied English-to-original-language groups retain many-to-many relationships, morphology, lemmas, original forms and source codes. 25,408 source verses from 61 book files; 5 absent books and 2 malformed source verses remain unavailable. No alignment is transferred to the active translation. Source navigation preserves numbering and does not alter the reader.
-- All 344,781 unique OpenBible suggestions are retained (20,968 more than the earlier capped files), browsable 24 at a time. Votes rank suggestions, not guaranteed relevance; coverage still excludes deuterocanon and does not resolve numbering differences.
-- Full ULT release/license attribution, source hashes, extraction and regression tests are included. UI controls support Spanish; source English/Hebrew/Greek/Aramaic remain untranslated.
+Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks.
 
+## Still to do (summary)
 
-## Source supplements (26 November 2026)
-
-- Five missing ULT books now have an explicit, separate development-source option (revision 452a08b): 5,693 verses in 1–2 Chronicles, Isaiah, Jeremiah and Ezekiel. The interface does not mix this snapshot with ULT v92 or the selected Bible. Source selection is a deliberate button, and its label, warning and credits identify the development snapshot.
-- Study → Explore → Deuterocanon linked passages browses 132 exact publisher links from WEB Classic notes, preserving context and distinguishing explicit cross-reference notes from links inside footnotes. No guessed reader/canon/numbering mappings; empty source chapters remain empty.
-- Two malformed alignment verses remain unavailable in both checked source snapshots. Complete deuterocanon cross-reference coverage and cross-edition versification still need appropriate source data. Source licenses, hashes, reproducible transforms and phone/desktop regressions are included.
-
-Reader comparison loading and mismatched-number guards, the stale chapter response fix, and bilingual copyable recaps are tested in `tests/compare-recaps-regression.py`.
-
-Edition search, pagination, unchanged offline searching and translation-correct results are tested in `tests/edition-search-regression.py`. Additional-canon books and chapters are not included in these reader search results.
-
-Device settings and Time with God support the English/Spanish interface setting, including timers, notification guidance and accessible control labels. Scripture quotes, references and saved values retain their source content. `tests/device-focus-locale-regression.py` checks phone/desktop locale round-trips and session persistence with web and simulated Android bridges; real Android permissions and notification delivery are not verified by that test.
-
-Core Study-panel labels now follow the English/Spanish interface setting: chapter and verse summaries, outline audience/length and actions, highlight control titles, and the Marks view. Only explicit fixed-label nodes are translated; AI responses, generated outline titles, scripture, saved snippets, references and audience/length identifiers are preserved. Copying outlines still exports the original generated content. `tests/study-panel-locale-regression.py` checks phone/desktop language switching and unchanged source/generated/saved content using synthetic AI responses, not live AI quality.
+Red-letter data, Strong's/interlinear + word study, cross-references, commentaries/dictionary, book intros/timelines/profiles/maps, multi-language Bibles and UI, and the community features (friends, group plans, public notes, church hub) which will be designed privacy-first and opt-in.

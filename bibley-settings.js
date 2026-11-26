@@ -12,9 +12,7 @@
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
   const APP_VER = "1.9", WEB_VER = "7.1";
-  const ui = FX.ui, esc = ui.esc;
-  const tr = value => window.BibleyLocale?.text(value) ?? value;
-  const toast = value => ui.toast(tr(value));
+  const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
   const NAT = window.BibleyDeviceNative || null;
@@ -340,9 +338,7 @@
     const top = stack[stack.length - 1]; if (!top) return;
     const pg = PAGES[top.page] || PAGES.home;
     root.dataset.page = top.page;
-    root.lang = window.BibleyLocale?.get() || "en";
-    root.querySelector(".bs-title").toggleAttribute("data-locale-user", top.page === "chatview");
-    root.querySelector(".bs-title").textContent = tr(typeof pg.title === "function" ? pg.title() : pg.title);
+    root.querySelector(".bs-title").textContent = typeof pg.title === "function" ? pg.title() : pg.title;
     root.querySelector(".bs-back").style.visibility = stack.length > 1 ? "visible" : "hidden";
     const body = root.querySelector(".bs-body"); body.innerHTML = ""; body.scrollTop = 0;
     const el = document.createElement("div"); el.className = "bs-page"; body.appendChild(el);
@@ -352,12 +348,12 @@
   const rerender = () => { const top = stack[stack.length - 1]; if (top) top.anchor = null; const b = root.querySelector(".bs-body"), y = b.scrollTop; render(); b.scrollTop = y; };
 
   /* ---------- small builders ---------- */
-  const row = (o) => '<button type="button" class="bs-row" data-go="' + (o.go || "") + '"' + (o.anchor ? ' data-anchor="' + o.anchor + '"' : "") + (o.act ? ' data-act="' + o.act + '"' : "") + '><span class="bs-ic">' + o.ic + '</span><span class="bs-t">' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(o.t)) : esc(o.t)) + (o.s ? "<small>" + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(o.s)) : esc(o.s)) + "</small>" : "") + "</span>" + (o.right || IC.chev) + "</button>";
+  const row = (o) => '<button type="button" class="bs-row" data-go="' + (o.go || "") + '"' + (o.anchor ? ' data-anchor="' + o.anchor + '"' : "") + (o.act ? ' data-act="' + o.act + '"' : "") + '><span class="bs-ic">' + o.ic + '</span><span class="bs-t">' + esc(o.t) + (o.s ? "<small>" + esc(o.s) + "</small>" : "") + "</span>" + (o.right || IC.chev) + "</button>";
   const sw = (k, on, dis) => '<label class="dv-sw bs-sw"><input type="checkbox" data-sw="' + k + '"' + (on ? " checked" : "") + (dis ? " disabled" : "") + '><span></span></label>';
-  const swRow = (k, t, sub, on, anchor, ic) => '<div class="bs-row bs-static"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (ic ? '<span class="bs-ic">' + ic + "</span>" : "") + '<span class="bs-t">' + esc(tr(t)) + (sub ? "<small>" + esc(tr(sub)) + "</small>" : "") + "</span>" + sw(k, on) + "</div>";
-  const seg = (k, val, opts) => '<div class="fx-seg bs-seg" data-seg="' + k + '">' + opts.map(([v, l]) => '<button type="button" data-v="' + v + '" class="' + (String(val) === String(v) ? "on" : "") + '">' + esc(tr(l)) + "</button>").join("") + "</div>";
-  const group = (label, inner, anchor) => '<div class="bs-group"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (label ? '<div class="bs-gl">' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(label)) : esc(label)) + "</div>" : "") + '<div class="bs-card">' + inner + "</div></div>";
-  const field = (label, inner, anchor, right) => '<div class="bs-field"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + '><div class="bs-fl"><span>' + (window.BibleyLocale?.text ? esc(window.BibleyLocale.text(label)) : esc(label)) + "</span>" + (right ? "<b>" + right + "</b>" : "") + "</div>" + inner + "</div>";
+  const swRow = (k, t, sub, on, anchor, ic) => '<div class="bs-row bs-static"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (ic ? '<span class="bs-ic">' + ic + "</span>" : "") + '<span class="bs-t">' + esc(t) + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</span>" + sw(k, on) + "</div>";
+  const seg = (k, val, opts) => '<div class="fx-seg bs-seg" data-seg="' + k + '">' + opts.map(([v, l]) => '<button type="button" data-v="' + v + '" class="' + (String(val) === String(v) ? "on" : "") + '">' + l + "</button>").join("") + "</div>";
+  const group = (label, inner, anchor) => '<div class="bs-group"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + ">" + (label ? '<div class="bs-gl">' + esc(label) + "</div>" : "") + '<div class="bs-card">' + inner + "</div></div>";
+  const field = (label, inner, anchor, right) => '<div class="bs-field"' + (anchor ? ' data-anchor="' + anchor + '"' : "") + '><div class="bs-fl"><span>' + esc(label) + "</span>" + (right ? "<b>" + right + "</b>" : "") + "</div>" + inner + "</div>";
   function wire(el, handlers) {
     el.querySelectorAll("[data-go]").forEach(b => { if (b.dataset.go) b.onclick = () => nav(b.dataset.go); });
     el.querySelectorAll("[data-act]").forEach(b => b.onclick = () => handlers.act && handlers.act(b.dataset.act, b));
@@ -367,7 +363,6 @@
 
   /* ---------- search index: every setting, where it lives ---------- */
   const INDEX = [
-    ["Language / Idioma", "navigation idioma español spanish english language", "language", ""],
     ["Tips", "tips help guide guides how to features shortcuts faq tutorial learn search", "tips", ""],
     ["Account & Cloud Sync", "account cloud sync database sql sqlite login log in sign in signin sign up signup register create account username backup restore devices new phone password", "account", "acct"],
     ["Sync now", "sync now cloud backup database refresh", "account", "acct"], ["Auto-sync", "auto sync automatic cloud", "account", "acct"],
@@ -394,7 +389,7 @@
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { language: "Language / Idioma", tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -407,7 +402,6 @@
       group("Account", row({ ic: IC.user, t: "Account & Cloud Sync", s: acctSub(), go: "account", right: acctBadge() + IC.chev })) +
       group("Help", row({ ic: IC.bulb, t: "Tips", s: "Search features, guides & shortcuts", go: "tips" })) +
       group("Look & feel", row({ ic: IC.palette, t: "Appearance", s: th + " \u00b7 " + p.size + "px \u00b7 " + ((FACES.find(f => f[0] === s.face) || (p.font === "sans" ? FACES[3] : FACES[0]))[1]), go: "appearance" }) +
-        row({ ic: IC.layout, t: "Language / Idioma", s: "English / Español", go: "language" }) +
         row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
         row({ ic: IC.layout, t: "Home & navigation", s: "Bottom bar, Today cards", go: "layout" })) +
@@ -424,14 +418,13 @@
       "</div>";
     const inp = el.querySelector("input"), res = el.querySelector(".bs-results"), grp = el.querySelector(".bs-groups");
     inp.oninput = () => {
-      const norm = v => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const q = norm(inp.value.trim());
+      const q = inp.value.trim().toLowerCase();
       if (!q) { res.hidden = true; grp.hidden = false; return; }
       const idx = INDEX.filter(r => NAT || r[2] !== "widgets").concat(fl.unlocked ? [["Tester", "tester labs experimental flags playground debug", "tester", ""]] : []);
-      const hits = idx.filter(([t, k]) => norm(t + " " + tr(t) + " " + k).includes(q));
-      const tw = q.split(/\s+/), th = TIPS.filter(t => tw.every(w => norm(t[1] + " " + tr(t[1]) + " " + t[2] + " " + t[3]).includes(w))).slice(0, 6);
+      const hits = idx.filter(([t, k]) => (t + " " + k).toLowerCase().includes(q));
+      const tw = q.split(/\s+/), th = TIPS.filter(t => tw.every(w => (t[1] + " " + t[2] + " " + t[3]).toLowerCase().includes(w))).slice(0, 6);
       const all = hits.concat(th.map(t => [t[1], "", "tips", "", t]));
-      res.innerHTML = all.length ? '<div class="bs-card">' + all.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(tr(h[0])) + "<small>" + esc(tr(h[4] ? "Tips" : PG_NAMES[h[2]])) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">' + esc(tr('No matching settings')) + ' \u201c' + esc(inp.value) + "\u201d</div>";
+      res.innerHTML = all.length ? '<div class="bs-card">' + all.map((h, i) => '<button type="button" class="bs-row bs-hit" data-i="' + i + '"><span class="bs-t">' + esc(h[0]) + "<small>" + esc(h[4] ? "Tips" : PG_NAMES[h[2]]) + "</small></span>" + IC.chev + "</button>").join("") + "</div>" : '<div class="bs-empty">No settings match \u201c' + esc(inp.value) + "\u201d</div>";
       res.querySelectorAll(".bs-hit").forEach(b => b.onclick = () => { const h = all[+b.dataset.i]; if (h[4]) { tipQ = h[0]; tipCat = "all"; } nav(h[2], h[3]); });
       res.hidden = false; grp.hidden = true;
     };
@@ -439,14 +432,6 @@
       sw: (k, v) => { if (k === "focus" && window.BibleyFocusUI) { window.BibleyFocusUI.set(v, { quiet: true }); rerender(); } } });
     if (window.BibleySync) { const unS = window.BibleySync.on(() => { if (!el.isConnected) { unS(); return; } const r = el.querySelector('[data-go="account"]'); if (r) { const sm = r.querySelector("small"); if (sm) sm.textContent = acctSub(); const b = r.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); } }); }
     if (window.BibleyFocusUI) { const un = window.BibleyFocusUI.subscribe(f => { if (!el.isConnected) { un(); return; } const i = el.querySelector('[data-sw="focus"]'); if (!i || i.checked !== f.on || !!el.querySelector(".bs-bf-ask") !== f.needsAccess) rerender(); }); }
-  } };
-
-  PAGES.language = { title: "Language / Idioma", render(el) {
-    const locale = window.BibleyLocale;
-    el.innerHTML = field("Settings language", '<select class="bs-input" aria-label="Language / Idioma"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option></select>') +
-      '<p class="bs-empty">' + esc(tr("Changes navigation labels. Bible text and other content keep their original language.")) + '</p>';
-    const select = el.querySelector('select'); select.value = locale?.get() || 'en';
-    select.disabled = !locale; select.onchange = () => { locale.set(select.value); };
   } };
 
   PAGES.appearance = { title: "Appearance", render(el) {
@@ -508,7 +493,7 @@
   PAGES.modes = { title: "Modes", render(el) {
     const s = S(), n = s.night;
     el.innerHTML = '<div class="bs-modes">' +
-      MODES.map(m => '<div class="bs-mode' + (s.mode === m.id ? " on" : "") + '" data-anchor="m-' + m.id + '"><button type="button" class="bs-mode-main" data-mode="' + m.id + '"><span class="bs-ic">' + m.ic + '</span><span class="bs-t">' + esc(m.name) + "<small>" + esc(m.sub) + "</small></span></button>" + sw("mode:" + m.id, s.mode === m.id) + '<button type="button" class="bs-mode-edit" data-edit="' + m.id + '" aria-label="' + esc(tr('Customize') + ' ' + tr(m.name)) + '">' + esc(tr('Customize')) + IC.chev + "</button></div>").join("") + "</div>" +
+      MODES.map(m => '<div class="bs-mode' + (s.mode === m.id ? " on" : "") + '" data-anchor="m-' + m.id + '"><button type="button" class="bs-mode-main" data-mode="' + m.id + '"><span class="bs-ic">' + m.ic + '</span><span class="bs-t">' + esc(m.name) + "<small>" + esc(m.sub) + "</small></span></button>" + sw("mode:" + m.id, s.mode === m.id) + '<button type="button" class="bs-mode-edit" data-edit="' + m.id + '" aria-label="Customize ' + esc(m.name) + '">Customize' + IC.chev + "</button></div>").join("") + "</div>" +
       group("Night mode schedule", swRow("sched", "Turn on Night mode automatically", n.on ? (n.type === "sunset" ? "At sunset, about " + fmtMin(sunsetMin(new Date())) + ", until " + fmtMin(toMin(n.end)) : "From " + fmtMin(toMin(n.start)) + " to " + fmtMin(toMin(n.end))) : "Off", n.on, "sched", IC.sunset) +
         '<div class="bs-sched' + (n.on ? "" : " off") + '">' + seg("stype", n.type, [["sunset", "At sunset"], ["time", "At a set time"]]) +
         '<div class="bs-times">' + (n.type === "time" ? '<label>From<input type="time" class="fx-input" data-t="start" value="' + esc(n.start) + '"></label>' : "") + '<label>Until<input type="time" class="fx-input" data-t="end" value="' + esc(n.end) + '"></label></div>' + "</div>", "sched");
@@ -523,7 +508,7 @@
   MODES.forEach(m => {
     PAGES["mode-" + m.id] = { title: m.name + " mode", render(el) {
       const s = S(), o = modeOpts(m.id), on = s.mode === m.id;
-      el.innerHTML = '<div class="bs-mode-hero"><span class="bs-ic big">' + m.ic + '</span><div><b>' + esc(tr(m.name + " mode")) + "</b><small>" + esc(tr(m.sub)) + "</small></div></div>" +
+      el.innerHTML = '<div class="bs-mode-hero"><span class="bs-ic big">' + m.ic + '</span><div><b>' + esc(m.name) + " mode</b><small>" + esc(m.sub) + "</small></div></div>" +
         group("", swRow("on", on ? "On" : "Off", on ? "Turn off to go back to your own settings" : "Turn on to apply these changes", on)) +
         group("What it changes", m.opts.map(op => {
           if (op[3] === "range") return '<div class="bs-row bs-static bs-col"><span class="bs-t">' + esc(op[1]) + '<small class="v-' + op[0] + '">' + o[op[0]] + '%</small></span><input class="fx-range bs-range" type="range" min="0" max="60" step="5" value="' + o[op[0]] + '" data-mrange="' + op[0] + '"></div>';
@@ -616,35 +601,20 @@
   const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
   /* ---------- v6.8: Account & Cloud Sync (bibley-sync.js, the site's SQLite database) ---------- */
   let acctTab = "in", acctPw = false, acctBusy = false;
-  const ago = t => {
-    if (!t) return tr("never");
-    const d = Math.max(0, Math.round((Date.now() - t) / 1000));
-    if (d < 45) return tr("just now");
-    if (d < 3600) return tr("{n} min ago").replace("{n}", Math.round(d / 60));
-    if (d < 86400) return tr("{n} h ago").replace("{n}", Math.round(d / 3600));
-    return new Date(t).toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : undefined);
-  };
-  // Translate only app-defined errors; arbitrary server details stay verbatim.
-  const accountError = value => {
-    const msg = String(value || ""), match = msg.match(/^Server error (\d{3})$/);
-    if (match) return tr("Server error {status}").replace("{status}", match[1]);
-    const known = ["The account service returned an invalid response. Please try again.", "Couldn't reach the account service. Please try again.", "You're offline. Bibley will sync when you're back online."];
-    return known.includes(msg) ? tr(msg) : msg;
-  };
-  const syncWord = s => tr(s.state === "syncing" ? "Syncing…" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in");
-  const syncDetail = x => x.state === "syncing" ? tr("Syncing…") : x.state === "offline" ? tr("Offline · will sync when you're back online") : x.state === "error" ? tr("Couldn't sync: {error}").replace("{error}", accountError(x.error)) : tr("{n} items synced · last synced {time}").replace("{n}", x.keys || 0).replace("{time}", ago(x.lastSync));
+  const ago = t => { if (!t) return "never"; const d = Math.round((Date.now() - t) / 1000); if (d < 45) return "just now"; if (d < 3600) return Math.round(d / 60) + " min ago"; if (d < 86400) return Math.round(d / 3600) + " h ago"; return new Date(t).toLocaleDateString(); };
+  const syncWord = s => s.state === "syncing" ? "Syncing\u2026" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in";
   function acctSub() {
-    const B = window.BibleySync; if (!B) return tr("Loading…");
+    const B = window.BibleySync; if (!B) return "Loading\u2026";
     const s = B.status();
-    return s.signedIn ? tr("Signed in as @{username} · {status}").replace("{username}", s.user.username).replace("{status}", syncWord(s)) : tr("Not signed in · Sync notes & highlights across devices");
+    return s.signedIn ? "Signed in as @" + s.user.username + " \u00b7 " + syncWord(s) : "Not signed in \u00b7 Sync notes & highlights across devices";
   }
   function acctBadge() {
     const B = window.BibleySync, s = B ? B.status() : null;
-    return '<span class="bs-tag bs-acb' + (s && s.signedIn ? " on" : "") + '\">' + esc(s && s.signedIn ? syncWord(s) : tr("Sign in")) + "</span>";
+    return '<span class="bs-tag bs-acb' + (s && s.signedIn ? " on" : "") + '">' + (s && s.signedIn ? esc(syncWord(s)) : "Sign in") + "</span>";
   }
   PAGES.account = { title: "Account & Cloud Sync", render(el) {
     const B = window.BibleySync;
-    if (!B) { el.innerHTML = '<p class="bs-note">' + esc(tr('Account & Cloud Sync is still loading.')) + '</p>'; return; }
+    if (!B) { el.innerHTML = '<p class="bs-note">Account & Cloud Sync is still loading.</p>'; return; }
     const s = B.status();
     if (!s.signedIn) {
       const up = acctTab === "up";
@@ -657,25 +627,25 @@
           '<p class="bs-acct-err" role="alert" hidden></p>' +
           '<button type="submit" class="fx-btn primary block bs-acct-go">' + (up ? "Create Account" : "Sign In") + "</button>" +
         "</form>" +
-        (s.error ? '<p class="bs-note">' + esc(accountError(s.error)) + "</p>" : "");
+        (s.error ? '<p class="bs-note">' + esc(s.error) + "</p>" : "");
       const f = el.querySelector("form"), err = el.querySelector(".bs-acct-err"), go = el.querySelector(".bs-acct-go");
       f.onsubmit = e => {
         e.preventDefault(); if (acctBusy) return;
         const u = f.username.value.trim(), pw = f.password.value, dn = f.display_name ? f.display_name.value.trim() : "";
         const bad = !/^[A-Za-z0-9_-]{3,24}$/.test(u) ? "Username must be 3-24 letters, numbers, _ or -" : pw.length < 6 ? "Password must be at least 6 characters" : "";
-        if (bad) { err.textContent = tr(bad); err.hidden = false; return; }
-        acctBusy = true; go.disabled = true; go.textContent = tr(up ? "Creating account\u2026" : "Signing in\u2026"); err.hidden = true;
+        if (bad) { err.textContent = bad; err.hidden = false; return; }
+        acctBusy = true; go.disabled = true; go.textContent = up ? "Creating account\u2026" : "Signing in\u2026"; err.hidden = true;
         (up ? B.register(u, pw, dn) : B.login(u, pw)).then(st2 => {
           acctBusy = false; acctPw = false;
-          toast(tr(up ? "Account created" : "Signed in") + " · " + tr(st2.state === "ok" ? "Synced ✓" : "will sync when online"));
+          toast((up ? "Account created" : "Signed in") + " \u00b7 " + (st2.state === "ok" ? "Synced \u2713" : "will sync when online"));
           if (el.isConnected) rerender();
-        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = tr(up ? "Create Account" : "Sign In"); err.textContent = accountError(x && x.message || x); err.hidden = false; });
+        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = up ? "Create Account" : "Sign In"; err.textContent = String(x && x.message || x); err.hidden = false; });
       };
       wire(el, { seg: (k, v) => { if (k === "acctab") { acctTab = v; rerender(); } } });
       return;
     }
     const u = s.user;
-    el.innerHTML = group("", '<div class="bs-row bs-static" data-anchor="acct"><span class="bs-ic">' + IC.user + '</span><span class="bs-t" data-locale-user>' + esc(u.display_name || u.username) + "<small>@" + esc(u.username) + "</small></span>" + acctBadge() + "</div>" +
+    el.innerHTML = group("", '<div class="bs-row bs-static" data-anchor="acct"><span class="bs-ic">' + IC.user + '</span><span class="bs-t">' + esc(u.display_name || u.username) + "<small>@" + esc(u.username) + "</small></span>" + acctBadge() + "</div>" +
         '<div class="bs-row bs-static"><span class="bs-ic">' + IC.sync + '</span><span class="bs-t">Cloud Sync<small class="acct-st"></small></span></div>' +
         '<div class="ai-btns"><button type="button" class="fx-btn small primary" data-act="syncnow">Sync Now</button></div>') +
       group("", swRow("autosync", "Auto-sync", "Sync when Bibley opens and as you study", s.auto, "autosync")) +
@@ -684,26 +654,26 @@
         row({ ic: IC.back, t: "Sign Out", s: "Your data stays on this device", act: "out" }) +
         row({ ic: IC.trash, t: "Delete Account", s: "Removes your account and its cloud data", act: "del" }));
     const stEl = el.querySelector(".acct-st");
-    const paint = x => { if (!stEl.isConnected) return; stEl.textContent = syncDetail(x); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
+    const paint = x => { if (!stEl.isConnected) return; stEl.textContent = (x.state === "syncing" ? "Syncing\u2026" : x.state === "offline" ? "Offline \u00b7 will sync when you're back online" : x.state === "error" ? "Couldn't sync: " + x.error : (x.keys || 0) + " items synced \u00b7 last synced " + ago(x.lastSync)); const b = el.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); };
     paint(s);
     const un = B.on(x => { if (!el.isConnected) { un(); return; } if (!x.signedIn) { rerender(); return; } paint(x); });
     B.me().then(() => paint(B.status())).catch(() => {});
     const pwf = el.querySelector(".bs-acct-pw");
     if (pwf) pwf.onsubmit = e => {
       e.preventDefault(); const er = pwf.querySelector(".bs-acct-err");
-      if (pwf.nw.value.length < 6) { er.textContent = tr("New password must be at least 6 characters"); er.hidden = false; return; }
-      B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = accountError(x && x.message || x); er.hidden = false; });
+      if (pwf.nw.value.length < 6) { er.textContent = "New password must be at least 6 characters"; er.hidden = false; return; }
+      B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = String(x && x.message || x); er.hidden = false; });
     };
     wire(el, {
       sw: (k, v) => { if (k === "autosync") { B.setAuto(v); toast(v ? "Auto-sync is on" : "Auto-sync is off"); } },
       act: a => {
-        if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast(tr("Couldn't sync: {error}").replace("{error}", accountError(x && x.message || x).slice(0, 80)), 4000));
+        if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast("Couldn't sync: " + String(x && x.message || x).slice(0, 80), 4000));
         if (a === "pw") { acctPw = !acctPw; rerender(); }
-        if (a === "out" && confirm(tr("Sign out of @{username}? Everything stays on this device.").replace("{username}",u.username))) B.logout().then(() => { toast("Signed out"); rerender(); });
+        if (a === "out" && confirm("Sign out of @" + u.username + "? Everything stays on this device.")) B.logout().then(() => { toast("Signed out"); rerender(); });
         if (a === "del") {
-          if (!confirm(tr("Delete the account @{username} and all of its cloud data? Your data on this device stays.").replace("{username}",u.username))) return;
-          const pw = prompt(tr("Type your password to delete @{username}:").replace("{username}",u.username)); if (!pw) return;
-          B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast(tr("Couldn't delete: {error}").replace("{error}", accountError(x && x.message || x).slice(0, 80)), 4000));
+          if (!confirm("Delete the account @" + u.username + " and all of its cloud data? Your data on this device stays.")) return;
+          const pw = prompt("Type your password to delete @" + u.username + ":"); if (!pw) return;
+          B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast("Couldn't delete: " + String(x && x.message || x).slice(0, 80), 4000));
         }
       }
     });
@@ -716,9 +686,9 @@
     const c = L.getConfig(), s0 = L.status(), local = c.mode === "local", MS = L.MODELS || [];
     const be = (v, t, sub) => '<button type="button" class="bs-row bs-pick' + (c.backend === v ? " on" : "") + '" data-act="be-' + v + '"><span class="bs-t">' + esc(t) + "<small>" + esc(sub) + '</small></span><span class="bs-check">' + (c.backend === v ? "\u2713" : "") + "</span></button>";
     const card = (m, i) => { const on = local && c.modelId === m.id;
-      return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">' + tr("Model {n}").replace("{n}", i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
-        '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " " + tr("parameters") + " \u00b7 " + esc(tr(m.tag)) + " \u00b7 " + esc(m.size) + "</div>" +
-        '<p class="ai-mdesc">' + esc(tr(m.desc)) + ' ' + esc(tr("Full King James verse lookup built in.")) + '</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
+      return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">Model ' + (i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
+        '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " parameters \u00b7 " + esc(m.tag) + " \u00b7 " + esc(m.size) + "</div>" +
+        '<p class="ai-mdesc">' + esc(m.desc) + ' Full King James verse lookup built in.</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
         '<div class="ai-mst">Checking\u2026</div><div class="ai-prog" hidden><i></i></div><div class="ai-btns">' +
         (on ? "" : '<button type="button" class="fx-btn small primary" data-act="use-' + m.id + '">Use this model</button>') +
         '<button type="button" class="fx-btn small' + (on ? " primary" : "") + '" data-act="dl-' + m.id + '">Download &amp; Load</button><button type="button" class="fx-btn small" data-act="test-' + m.id + '">Test</button><button type="button" class="fx-btn small" data-act="clear-' + m.id + '">Clear</button></div></div>'; };
@@ -727,39 +697,39 @@
         group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
         '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>'
       : 
-        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: tr("Model {n}").replace("{n}", i + 1) + ": " + m.name + " \u00b7 " + m.model, s: tr(m.tag) + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
+        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
     const capEl = el.querySelector(".ai-caps");
     const paint = s => {
       if (!el.isConnected) return;
       el.querySelectorAll(".ai-model").forEach(box => {
         const id = box.dataset.model, stEl = box.querySelector(".ai-mst"), bar = box.querySelector(".ai-prog"), mine = s.model === id;
-        if (mine && s.state === "loading") { stEl.textContent = (L.uiText ? L.uiText(s.text || "Downloading\u2026") : tr(s.text || "Downloading\u2026")).slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
+        if (mine && s.state === "loading") { stEl.textContent = (s.text || "Downloading\u2026").slice(0, 90) + " (" + (s.percent || 0) + "%)"; bar.hidden = false; bar.firstChild.style.width = (s.percent || 0) + "%"; return; }
         bar.hidden = true;
-        if (mine && s.state === "ready") { stEl.textContent = tr("✓ Loaded in memory and ready ({backend})").replace("{backend}", s.backend === "webgpu" ? "WebGPU" : "CPU"); return; }
-        if (mine && s.state === "error") { stEl.textContent = tr("Couldn't load: {error}").replace("{error}", String(s.error || "").slice(0,120)); return; }
-        L.isCached(id).then(y => { if (el.isConnected && !(L.status().model === id && L.status().state !== "idle")) stEl.textContent = tr(y ? "\u2713 Downloaded \u00b7 ready offline" : "Not downloaded yet"); });
+        if (mine && s.state === "ready") { stEl.textContent = "\u2713 Loaded in memory and ready (" + (s.backend === "webgpu" ? "WebGPU" : "CPU") + ")"; return; }
+        if (mine && s.state === "error") { stEl.textContent = "Couldn't load: " + String(s.error || "").slice(0, 120); return; }
+        L.isCached(id).then(y => { if (el.isConnected && !(L.status().model === id && L.status().state !== "idle")) stEl.textContent = y ? "\u2713 Downloaded \u00b7 ready offline" : "Not downloaded yet"; });
       });
     };
     if (local) {
       paint(s0);
       const un = L.on(s => { if (!el.isConnected) { un(); return; } paint(s); });
-      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = tr(k.label.replace(" (f16)", "")) + (k.f16 && k.webgpu ? " (f16)" : "") + (k.mobile ? tr(" \u00b7 phone") : "") + (k.webgpu && !k.f16 ? tr(" \u00b7 Model 2 runs on CPU here (no shader-f16)") : ""); });
+      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : "") + (k.webgpu && !k.f16 ? " \u00b7 Model 2 runs on CPU here (no shader-f16)" : ""); });
     }
     const nm = id => (L.modelInfo(id) || {}).name || "the model";
     wire(el, {
-      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? tr("{model} is on").replace("{model}",L.label()) : "Cloud AI is on"); rerender(); } },
+      seg: (k, v) => { if (k === "mode") { L.setConfig({ mode: v }); toast(v === "local" ? L.label() + " is on" : "Cloud AI is on"); rerender(); } },
       act: a => {
         if (a.indexOf("be-") === 0) { L.setConfig({ backend: a.slice(3) }); rerender(); return; }
         const m = a.match(/^(use|dl|test|clear)-(.+)$/); if (!m) return; const [, op, id] = m;
-        if (op === "use") { L.setConfig({ mode: "local", modelId: id }); const s = L.status(); if (s.model && s.model !== id) L.unload(); toast(tr("{model} is on").replace("{model}",L.label())); rerender(); return; }
+        if (op === "use") { L.setConfig({ mode: "local", modelId: id }); const s = L.status(); if (s.model && s.model !== id) L.unload(); toast(L.label() + " is on"); rerender(); return; }
         if (op === "dl" || op === "test") {
           if (L.getConfig().modelId !== id || !L.isLocal()) { L.setConfig({ mode: "local", modelId: id }); rerender(); }
-          const run = op === "dl" ? L.loadModel(null, id).then(() => toast(tr("{model} is ready on this device").replace("{model}",nm(id))))
+          const run = op === "dl" ? L.loadModel(null, id).then(() => toast(nm(id) + " is ready on this device"))
             : L.generate("What does John 3:16 say?", { modelId: id }).then(r => toast(nm(id) + " test \u2713 " + r.text.replace(/\s+/g, " ").slice(0, 110) + "\u2026", 6000));
-          run.catch(e => toast(tr("Couldn't load {model}: {error}").replace("{model}",nm(id)).replace("{error}", String(e && e.message || e).slice(0,80)), 4000));
+          run.catch(e => toast("Couldn't load " + nm(id) + ": " + String(e && e.message || e).slice(0, 80), 4000));
           return;
         }
-        if (op === "clear" && confirm(tr("Remove {model} from this device? You can download it again any time.").replace("{model}",nm(id)))) L.clearCache(id).then(() => { toast(tr("{model} removed").replace("{model}",nm(id))); rerender(); });
+        if (op === "clear" && confirm("Remove " + nm(id) + " from this device? You can download it again any time.")) L.clearCache(id).then(() => { toast(nm(id) + " removed"); rerender(); });
       }
     });
   } };
@@ -768,13 +738,13 @@
   const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
-    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is the lighter option. Bibley 2.2 (Gemma 3 1B, about 600-880 MB) needs more resources. Compatibility and answer quality depend on the device; answers can contain errors.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
+    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is fast and light. Bibley 2.2 (Google Gemma 3 1B, about 600-880 MB) gives fuller, more careful answers and is best on newer devices.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
     ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI, Bibley 2.1 or Bibley 2.2 without opening Settings.", "switcher pill cloud local engine", ""],
     ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed", "aiengine"],
-    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Downloaded files can stay saved for offline use if the browser allows it. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
-    ["ai", "Real KJV verse lookup", "Both models include King James verse lookup by reference, keywords and topics across all 31,102 verses. Check quotes and answers against the Bible text.", "kjv bible verse lookup quotes topics search grounding", ""],
+    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
+    ["ai", "Real KJV verse lookup", "Both models look up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
     ["ai", "Referenced Verses chips", "Under an AI answer, tap a Referenced Verses chip to jump straight to that verse in the reader.", "chips references tap jump", ""],
-    ["ai", "Cloud AI", "Cloud AI needs internet. In the chat, \u2713 marks a verse reference checked as real and \u26a0 one that does not exist. That check does not guarantee the interpretation is correct.", "cloud online internet fast check verify", "aiengine"],
+    ["ai", "Cloud AI", "Cloud AI answers instantly with Bibley's online AI and needs internet. In the chat, \u2713 marks a verse reference that was checked as real and \u26a0 one that doesn't exist.", "cloud online internet fast check verify", "aiengine"],
     ["ai", "What Bibley remembers", "Bibley keeps a few short lines from your chats (like your name) to pick up where you left off. On a call, say \u201cforget that\u201d or \u201cforget everything\u201d. Edit it any time.", "memory remember forget call chat history", "memory"],
     ["nb", "Full-page Study Notebook", "Tap Notes in the bottom bar or Notebook on any verse. On a phone, switch notebooks with the pills under the header; on a computer use the sidebar.", "notebook notes open full page pills sidebar", ""],
     ["nb", "AI Grammar Fix", "In a note, tap Grammar to fix spelling, punctuation and grammar. Select text first to check just that part. Your voice, Markdown and quoted Bible verses are kept, and you review the changes before applying. Undo reverts them.", "grammar spelling punctuation ai fix correct proofread", ""],
@@ -790,33 +760,32 @@
     ["read", "Listen to a chapter", "Tap the speaker on a chapter to hear it read aloud. The voice comes from your device's text-to-speech; change the speed in Audio.", "audio listen read aloud tts speaker voice speed", "audio"],
     ["read", "Reading plans & streaks", "Pick a plan, then tap \u201cMark chapter read\u201d at the end of a chapter. When every chapter for the day is read, the day checks itself off and your streak grows.", "plans streak mark read daily", "study"],
     ["read", "Verse feed", "Scroll the verse feed for one verse at a time, like a stream. Like and save the ones that speak to you.", "scroll feed verses like", ""],
-    ["read", "Compare translations", "Open two panes on the same chapter to compare Bible versions with word-level differences. Optional red letters are available for source-marked words of Jesus in the World English Bible (WEB), not every translation.", "compare translations versions parallel kjv web esv red letter", "reading"],
+    ["read", "Compare translations", "Open two panes on the same chapter to compare Bible versions side by side. Red letters aren't offered: the texts Bibley uses don't mark the words of Jesus.", "compare translations versions parallel kjv web esv red letter", "reading"],
     ["lb", "157 Lost Books", "Lost Books holds 118 full public-domain texts (Apocrypha, Pseudepigrapha, Apostolic Fathers, New Testament Apocrypha, Gnostic texts) plus 39 Lost to History reference guides.", "lost books apocrypha enoch gnostic pseudepigrapha count", ""],
     ["lb", "Lost to History entries", "Books with an orange Lost to History badge no longer survive: they are reference guides (where they're cited and what's known), not ancient text.", "lost to history reference badge cited", ""],
     ["lb", "Find a book fast", "Use the shelf filters and search inside Lost Books to find any title, group or translator.", "shelf filter search lost books", ""],
     ["lb", "Passkey lock", "Lost Books opens with a passkey you set, so only you can open it on this device.", "passkey lock password lost books", ""],
     ["acct", "Sync across devices", "Sign in with a username and password to sync highlights, notes, bookmarks, the Study Notebook, plans, streaks, memory verses and settings across the web and the Android app. Chats stay on the device.", "account sync cloud sign in login android web devices", "account"],
-    ["acct", "Signing in is safe", "Notes on your device are merged into your account when you sign in. Usernames are 3-24 letters, numbers, _ or -. Keep a backup of important data.", "merge safe password hash username", "account"],
+    ["acct", "Signing in is safe", "Notes already on your device are merged into your account, never wiped. Passwords are stored only as salted hashes. Usernames are 3-24 letters, numbers, _ or -.", "merge safe password hash username", "account"],
     ["acct", "Backup files", "Data & backup exports everything to a file and imports it again, handy for moving to a new phone without an account.", "backup export import restore file json new phone", "data"],
     ["look", "Themes, fonts & text", "Appearance has themes, accent colours, fonts, text size, spacing and corner roundness, with a live preview.", "theme dark light sepia font size accent appearance", "appearance"],
     ["look", "Modes", "One tap changes the whole app (Focus, Night, Simple, Study, Prayer, Low data, Accessibility). Turn a mode off and everything goes back. Night can start at sunset, worked out from your time zone.", "modes night focus simple study prayer accessibility sunset schedule", "modes"],
-    ["look", "Offline Bibles", "Translations download the first time you open them and can work offline if saved. On-device AI also needs a prior download and a compatible device.", "offline download bible translations no internet", ""],
+    ["look", "Offline Bibles", "Translations download the first time you open them and then work offline. On-device AI models work offline once downloaded too.", "offline download bible translations no internet", ""],
     ["look", "Widgets", "In the Android app, add Verse of the Day or Bibley Quick from Settings, or long-press your home screen, tap Widgets and drag Bibley out.", "widgets home screen android", NAT ? "widgets" : ""],
     ["look", "Time with God", "A calm screen with today's verse and a prayer timer. In the Android app your phone's Do Not Disturb can switch on for the session.", "time with god prayer timer do not disturb focus", "device"]
   ];
   let tipCat = "all", tipQ = "";
   PAGES.tips = { title: "Tips", render(el) {
     el.innerHTML = '<div class="bs-search">' + IC.search + '<input type="search" placeholder="Search tips and features" aria-label="Search tips" value="' + esc(tipQ) + '"><button type="button" class="bs-tclr" aria-label="Clear search"' + (tipQ ? "" : " hidden") + ">" + IC.close + '</button></div><div class="bs-tchips" role="tablist">' +
-      TIP_CATS.map(c => '<button type="button" class="bs-tchip' + (tipCat === c[0] ? " on" : "") + '" data-cat="' + c[0] + '">' + esc(tr(c[1])) + "</button>").join("") + '</div><div class="bs-tcount" aria-live="polite"></div><div class="bs-tips"></div>';
+      TIP_CATS.map(c => '<button type="button" class="bs-tchip' + (tipCat === c[0] ? " on" : "") + '" data-cat="' + c[0] + '">' + esc(c[1]) + "</button>").join("") + '</div><div class="bs-tcount" aria-live="polite"></div><div class="bs-tips"></div>';
     const inp = el.querySelector("input"), clr = el.querySelector(".bs-tclr"), box = el.querySelector(".bs-tips"), cnt = el.querySelector(".bs-tcount");
     const mark = (t, ws) => { let h = esc(t); ws.forEach(w => { if (w.length > 1) h = h.replace(new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?![^<]*>)", "gi"), "<mark>$1</mark>"); }); return h; };
     const draw = () => {
-      const norm = v => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const ws = norm(tipQ).split(/\s+/).filter(Boolean), cn = c => (TIP_CATS.find(x => x[0] === c) || [])[1];
-      const hits = TIPS.filter(t => (tipCat === "all" || t[0] === tipCat) && ws.every(w => norm(t[1] + " " + tr(t[1]) + " " + t[2] + " " + tr(t[2]) + " " + t[3] + " " + tr(cn(t[0]))).includes(w)));
-      cnt.textContent = hits.length + " " + tr(hits.length === 1 ? "tip" : "tips");
-      box.innerHTML = hits.length ? hits.map(t => '<article class="bs-tip"><div class="bs-tip-h"><b>' + mark(tr(t[1]), ws) + '</b><span class="bs-tip-c">' + esc(tr(cn(t[0]))) + "</span></div><p>" + mark(tr(t[2]), ws) + "</p>" + (t[4] ? '<button type="button" class="bs-tip-go" data-go="' + t[4] + '">' + esc(tr('Open')) + ' ' + esc(tr(PG_NAMES[t[4]] || PAGES[t[4]].title)) + IC.chev + "</button>" : "") + "</article>").join("")
-        : '<div class="bs-empty">' + esc(tr('No tips match')) + ' \u201c' + esc(tipQ) + "\u201d</div>";
+      const ws = tipQ.toLowerCase().split(/\s+/).filter(Boolean), cn = c => (TIP_CATS.find(x => x[0] === c) || [])[1];
+      const hits = TIPS.filter(t => (tipCat === "all" || t[0] === tipCat) && ws.every(w => (t[1] + " " + t[2] + " " + t[3] + " " + cn(t[0])).toLowerCase().includes(w)));
+      cnt.textContent = hits.length + (hits.length === 1 ? " tip" : " tips");
+      box.innerHTML = hits.length ? hits.map(t => '<article class="bs-tip"><div class="bs-tip-h"><b>' + mark(t[1], ws) + '</b><span class="bs-tip-c">' + esc(cn(t[0])) + "</span></div><p>" + mark(t[2], ws) + "</p>" + (t[4] ? '<button type="button" class="bs-tip-go" data-go="' + t[4] + '">Open ' + esc(PG_NAMES[t[4]] || PAGES[t[4]].title) + IC.chev + "</button>" : "") + "</article>").join("")
+        : '<div class="bs-empty">No tips match \u201c' + esc(tipQ) + "\u201d</div>";
       box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => nav(b.dataset.go));
     };
     inp.oninput = () => { tipQ = inp.value; clr.hidden = !tipQ; draw(); };
@@ -900,8 +869,11 @@
   } };
 
   PAGES.privacy = { title: "Privacy", render(el) {
-    const blocks = [["On this phone.", "Your highlights, notes, notebook, plans and settings are saved on this device. If you sign in, they also sync to your Bibley account."], ["Study AI.", "When you use cloud AI, your question and the verses around it are sent to the AI service to write the answer. On-device models process answers locally after download."], ["Chats and memory.", "Your chats, calls and what Bibley remembers about you are saved on this device. The last few turns and short memory are included with each AI question; cloud AI sends that context to the service. You can delete them in Settings."], ["Bibles.", "Some translations load from the internet the first time you open them, then work offline if cached."], ["Your ESV key", "If you added one, it is kept on this device and sent to api.esv.org for ESV requests."], ["Reflection journal.", "The reflection journal is encrypted on this device with your PIN or passphrase. Unlocked Markdown, CSV and print/PDF exports are not encrypted. Close print previews when finished and keep exported files private."]];
-    el.innerHTML = '<div class="bs-card bs-prose">' + blocks.map(([title, body]) => '<p><b>' + esc(tr(title)) + '</b> ' + esc(tr(body)) + '</p>').join('') + '</div>' +
+    el.innerHTML = '<div class="bs-card bs-prose"><p><b>On this phone.</b> Your highlights, notes, notebook, plans and settings are saved on this device. No tracking. If you sign in, they also sync to your Bibley account.</p>' +
+      "<p><b>Study AI.</b> When you ask the Study AI something, your question and the verses around it are sent to the AI service to write the answer.</p>" +
+      "<p><b>Chats and memory.</b> Your chats, calls and what Bibley remembers about you are saved only on this phone. The last few turns and the short memory are sent with each question so Bibley can remember. You can delete them in Settings anytime.</p>" +
+      "<p><b>Bibles.</b> Some translations load from the internet the first time you open them, then work offline.</p>" +
+      "<p><b>Your ESV key</b> (if you added one) is kept on this phone and only sent to api.esv.org.</p></div>" +
       group("", row({ ic: IC.data, t: "Data & backup", s: "Export everything as a file", go: "data" }));
     wire(el, {});
   } };
@@ -1002,15 +974,7 @@
     else { setS({ themeMode: "" }); FX.prefs.set("theme", t); }
     applyAll();
   }
-  window.addEventListener("bibley:localechange", () => {
-    if (root?.classList.contains("open")) {
-      const focused = root.querySelector(":focus");
-      // Do not discard unsaved account passwords, edited memory or search input.
-      if (focused?.matches("input:not([type=range]),textarea")) return;
-      rerender();
-    }
-  });
   const isOpen = () => !!(root && root.classList.contains("open"));
-  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, setTtsRate: tts => setS({ tts }), ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { syncWord, syncDetail, ago, S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
+  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
   logp("info", "ready");
 })();

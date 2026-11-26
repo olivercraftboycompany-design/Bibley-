@@ -17,7 +17,6 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="stylesheet" href="bibley-features.css" />
-<link rel="stylesheet" href="bibley-section-tools.css" />
 <link rel="stylesheet" href="bibley-ui16.css" />
 <script>try{var bp=JSON.parse(localStorage.getItem("bibley_prefs_v1")||"{}");if(bp.theme==="sepia"||bp.theme==="light")document.documentElement.classList.add("theme-"+bp.theme);}catch(e){}</script>
 <link rel="stylesheet" href="bibley-settings.css" />
@@ -394,7 +393,7 @@
     </div>
 
     <aside id="aiPanel">
-      <div class="ai-head"><h2><span data-locale-ui>Study</span> <span data-locale-ui>Assistant</span><div data-locale-ui class="model-badge ready">Free AI &#x2014; no signup, no key</div><button type="button" id="aiEnginePill" class="ai-engine-pill" aria-label="AI engine">Cloud AI</button></h2><button id="closeAiBtn">Close</button></div>
+      <div class="ai-head"><h2><span>Study</span> Assistant<div class="model-badge ready">Free AI &#x2014; no signup, no key</div><button type="button" id="aiEnginePill" class="ai-engine-pill" aria-label="AI engine">Cloud AI</button></h2><button id="closeAiBtn">Close</button></div>
       <div class="ai-tabs">
         <button class="ai-tab active" data-tab="chapter">Chapter</button>
         <button class="ai-tab" data-tab="verse">Verse</button>
@@ -882,20 +881,6 @@
     if(!verses.length) throw new Error("not-in-this-translation");
     return verses;
   }
-  async function searchBollsVerses(version, query, filter, page, limit){
-    const code = BOLLS_CODES[version];
-    if(!code) throw new Error("unsupported-search-version");
-    const params = new URLSearchParams({ search: query, match_whole: "true", page: String(page), limit: String(limit) });
-    if(filter) params.set("book", String(filter));
-    const res = await fetchWithTimeout("https://bolls.life/v2/find/"+code+"?"+params, { cache: "no-store", referrerPolicy: "no-referrer" }, 12000);
-    if(!res.ok) throw new Error("bolls-search-"+res.status);
-    const data = await res.json();
-    if(!Array.isArray(data?.results) || data.results.length > limit) throw new Error("bolls-search-invalid");
-    return {
-      hasMore: data.results.length === limit,
-      rows: data.results.filter(v => v && v.translation === code).map(v => ({ b: v.book - 1, c: v.chapter, v: v.verse, text: cleanBollsText(v.text) }))
-    };
-  }
   // One entry point for every non-bible-api.com source. Returns null when the
   // version is served by bible-api.com (handled by the original code path).
   // --- Bibley 5.4: offline JSON Bibles ------------------------------------------
@@ -1127,17 +1112,16 @@
   }
   let searchIndexBuild = null; // in-flight build state, if any
 
-  window.addEventListener("bibley:localechange", () => updateSsScopeLabel());
   function updateSsScopeLabel(){
     const idx=getSearchIndex();
     const version=panes.a.version;
     const built = idx.version===version ? Object.keys(idx.chapters||{}).length : 0;
     const total = BOOKS.reduce((sum,b)=> sum+b[2], 0);
     if(built>=total){
-      ssScopeLabel.textContent = (window.BibleyLocale?.text("Searching the whole Bible ({version})") || "Searching the whole Bible ({version})").replace("{version}",versionName(version));
+      ssScopeLabel.textContent = `Searching the whole Bible (${versionName(version)})`;
       ssWholeBibleBtn.textContent = "Rebuild index";
     } else if(built>0){
-      ssScopeLabel.textContent = (window.BibleyLocale?.text("Whole Bible: {done}/{total} chapters downloaded ({version})") || "Whole Bible: {done}/{total} chapters downloaded ({version})").replace("{done}",built).replace("{total}",total).replace("{version}",versionName(version));
+      ssScopeLabel.textContent = `Whole Bible: ${built}/${total} chapters downloaded (${versionName(version)})`;
       ssWholeBibleBtn.textContent = "Continue download";
     } else {
       ssScopeLabel.textContent = "Searching chapters you've viewed";
@@ -1714,13 +1698,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     versionSelectB.value = panes.b.version;
   }
   populateVersionSelects();
-  function setPrimaryVersion(version){
-    if(!VERSIONS.some(v => v[0] === version)) return;
-    panes.a.version = version; versionSelect.value = version; rememberVersions();
-    const lbl = paneEl(".pane-version-label", "a");
-    if(lbl) lbl.textContent = versionName(version);
-  }
-  versionSelect.addEventListener("change", ()=>{ setPrimaryVersion(versionSelect.value); loadPane("a"); });
+  versionSelect.addEventListener("change", ()=>{ panes.a.version=versionSelect.value; rememberVersions(); const lbl=paneEl(".pane-version-label","a"); if(lbl) lbl.textContent=versionName(versionSelect.value); loadPane("a"); });
   versionSelectB.addEventListener("change", ()=>{ panes.b.version=versionSelectB.value; rememberVersions(); loadPane("b"); });
 
   // --- Per-pane reference picker (book + chapter), used mainly so pane B can
@@ -1865,10 +1843,8 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     if(k==="a") rememberPosition();
     updateHeader(k); updatePager(k);
     const key=p.version+"/"+book[0]+"/"+p.chapter;
-    // Even a cache hit supersedes an in-flight request for another chapter.
-    const req=++p.requestId;
     if(cache[key]){ renderVerses(k, cache[key]); if(k==="a"){ renderCurrentTab(); updateBookmarkUI(); } else if(currentTab==="compare") renderCurrentTab(); return; }
-    renderLoading(k);
+    const req=++p.requestId; renderLoading(k);
     const ref=encodeURIComponent(book[0]+" "+p.chapter);
     const url="https://bible-api.com/"+ref+"?translation="+p.version;
     const ext = (p.version==="esv" && getEsvKey()) ? fetchEsvChapter(book[1], p.chapter) : externalChapter(p.version, p.bookIdx, p.chapter);
@@ -1981,7 +1957,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     else if(currentTab==="compare") renderCompareTab();
     else if(currentTab==="chat") renderChat();
     else if(currentTab==="marks") renderMarks();
-    else if(currentTab==="explore"){ if(window.BibleyStudy) window.BibleyStudy.render(aiContent); else aiContent.innerHTML='<div class="ai-empty"><p data-locale-ui>Loading study tools...</p></div>'; }
+    else if(currentTab==="explore"){ if(window.BibleyStudy) window.BibleyStudy.render(aiContent); else aiContent.innerHTML='<div class="ai-empty"><p>Loading study tools...</p></div>'; }
   }
 
   // Chapter summaries are tap-to-generate (2026-10-13): firing one on every
@@ -1991,14 +1967,14 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   function chapterSummaryHtml(summary){
     const esc = s=> escapeHtml(String(s||""));
     return `
-      <div class="ai-card" id="chSummaryCard"><h3 data-locale-ui>Chapter Summary</h3><p>${esc(summary.overview)}</p></div>
-      <div class="ai-card gold" id="chKeyPointsCard"><h3 data-locale-ui>Key Points</h3>${(summary.keyPoints||[]).map((k,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${esc(k)}</p></div>`).join("")}</div>
-      ${summary.structure ? `<div class="ai-card" id="chStructureCard"><h3 data-locale-ui>Structure</h3><p>${esc(summary.structure)}</p></div>` : ""}
-      <button data-locale-ui class="ai-action-btn" id="regenChapterSummary" style="margin-top:4px">\u21bb Regenerate</button>`;
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3><p>${esc(summary.overview)}</p></div>
+      <div class="ai-card gold" id="chKeyPointsCard"><h3>Key Points</h3>${(summary.keyPoints||[]).map((k,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${esc(k)}</p></div>`).join("")}</div>
+      ${summary.structure ? `<div class="ai-card" id="chStructureCard"><h3>Structure</h3><p>${esc(summary.structure)}</p></div>` : ""}
+      <button class="ai-action-btn" id="regenChapterSummary" style="margin-top:4px">\u21bb Regenerate</button>`;
   }
   async function renderChapterSummary(){
     const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
-    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p data-locale-ui>Load a chapter to see summary</p></div>'; return; }
+    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p>Load a chapter to see summary</p></div>'; return; }
     const sumKey = key+"/"+aiMode;
     const cached = chapterSummaryCache[sumKey];
     if(cached){
@@ -2010,9 +1986,9 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     }
     ++chapterSummaryReq; // cancels any in-flight summary for a previous chapter
     aiContent.innerHTML = `
-      <div class="ai-card" id="chSummaryCard"><h3 data-locale-ui>Chapter Summary</h3>
-        <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px">${escapeHtml(book[1])} ${p.chapter}: <span data-locale-ui>overview, key points and structure.</span></p>
-        <button data-locale-ui class="ai-action-btn" id="genChapterSummary">Summarize this chapter</button>
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>
+        <p style="color:var(--ink-faint);font-size:13px;margin-bottom:10px">${escapeHtml(book[1])} ${p.chapter}: overview, key points and structure.</p>
+        <button class="ai-action-btn" id="genChapterSummary">Summarize this chapter</button>
       </div>`;
     const gb=document.getElementById("genChapterSummary");
     if(gb) gb.addEventListener("click", ()=> generateChapterSummaryNow());
@@ -2023,9 +1999,9 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     const sumKey = key+"/"+aiMode;
     const reqToken=++chapterSummaryReq;
     aiContent.innerHTML=`
-      <div class="ai-card" id="chSummaryCard"><h3 data-locale-ui>Chapter Summary</h3>${skeletonHtml([95,88,60])}</div>
-      <div class="ai-card gold" id="chKeyPointsCard"><h3 data-locale-ui>Key Points</h3>${skeletonHtml([90,80,85,70])}</div>
-      <div class="ai-card" id="chStructureCard"><h3 data-locale-ui>Structure</h3>${skeletonHtml([92,55])}</div>
+      <div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>${skeletonHtml([95,88,60])}</div>
+      <div class="ai-card gold" id="chKeyPointsCard"><h3>Key Points</h3>${skeletonHtml([90,80,85,70])}</div>
+      <div class="ai-card" id="chStructureCard"><h3>Structure</h3>${skeletonHtml([92,55])}</div>
     `;
     try {
       const summary = await generateChapterSummary(book, p.chapter, verses);
@@ -2035,8 +2011,8 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     } catch(err){
       if(reqToken!==chapterSummaryReq) return;
       console.warn(err);
-      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button data-locale-ui class="ai-action-btn" id="retryChapterSummary" style="margin-top:8px">Try Again</button>`;
-      aiContent.innerHTML=`<div class="ai-card" id="chSummaryCard"><h3 data-locale-ui>Chapter Summary</h3>${msg}</div>`;
+      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryChapterSummary" style="margin-top:8px">Try Again</button>`;
+      aiContent.innerHTML=`<div class="ai-card" id="chSummaryCard"><h3>Chapter Summary</h3>${msg}</div>`;
       const rb=document.getElementById("retryChapterSummary");
       if(rb) rb.addEventListener("click", ()=> generateChapterSummaryNow());
     }
@@ -2062,7 +2038,7 @@ Be precise and concrete rather than generic. Avoid vague filler like "this chapt
   }
   async function renderVerseSummary(){
     if(!selectedVerse){
-      aiContent.innerHTML=`<div class="ai-empty"><p data-locale-ui>Select a verse by tapping it to see summary and highlighting.</p></div>`;
+      aiContent.innerHTML=`<div class="ai-empty"><p>Select a verse by tapping it to see summary and highlighting.</p></div>`;
       return;
     }
     const v=selectedVerse;
@@ -2070,18 +2046,18 @@ Be precise and concrete rather than generic. Avoid vague filler like "this chapt
     aiContent.innerHTML=`
       <div class="ai-card gold"><div class="verse-ref">${v.bookName} ${v.chapter}:${v.verseNum}</div><div class="verse-text">"${v.text}"</div>
         <div class="hl-controls"${/^\d+$/.test(String(v.verseNum))?"":' style="display:none"'}>
-          <button data-locale-ui class="hl-btn yellow ${v.color==="yellow"?"active":""}" data-color="yellow" title="Yellow highlight"></button>
-          <button data-locale-ui class="hl-btn green ${v.color==="green"?"active":""}" data-color="green" title="Green highlight"></button>
-          <button data-locale-ui class="hl-btn blue ${v.color==="blue"?"active":""}" data-color="blue" title="Blue highlight"></button>
-          <button data-locale-ui class="hl-btn pink ${v.color==="pink"?"active":""}" data-color="pink" title="Pink highlight"></button>
-          <button data-locale-ui class="hl-btn purple ${v.color==="purple"?"active":""}" data-color="purple" title="Purple highlight"></button>
-          <button data-locale-ui class="hl-btn clear" data-color="clear">Clear</button>
+          <button class="hl-btn yellow ${v.color==="yellow"?"active":""}" data-color="yellow" title="Yellow highlight"></button>
+          <button class="hl-btn green ${v.color==="green"?"active":""}" data-color="green" title="Green highlight"></button>
+          <button class="hl-btn blue ${v.color==="blue"?"active":""}" data-color="blue" title="Blue highlight"></button>
+          <button class="hl-btn pink ${v.color==="pink"?"active":""}" data-color="pink" title="Pink highlight"></button>
+          <button class="hl-btn purple ${v.color==="purple"?"active":""}" data-color="purple" title="Purple highlight"></button>
+          <button class="hl-btn clear" data-color="clear">Clear</button>
         </div>
-        <button data-locale-ui type="button" class="ai-action-btn" id="exploreVerseBtn" style="margin-top:10px">Explore this verse: explain, cross-refs, background</button>
+        <button type="button" class="ai-action-btn" id="exploreVerseBtn" style="margin-top:10px">Explore this verse: explain, cross-refs, background</button>
       </div>
-      <div class="ai-card" id="vsSummaryCard"><h3 data-locale-ui>Verse Summary</h3>${skeletonHtml([90,65])}</div>
-      <div class="ai-card" id="vsContextCard"><h3 data-locale-ui>In Context</h3>${skeletonHtml([85,50])}</div>
-      <div class="ai-card" id="vsApplicationCard"><h3 data-locale-ui>Application</h3>${skeletonHtml([80])}</div>
+      <div class="ai-card" id="vsSummaryCard"><h3>Verse Summary</h3>${skeletonHtml([90,65])}</div>
+      <div class="ai-card" id="vsContextCard"><h3>In Context</h3>${skeletonHtml([85,50])}</div>
+      <div class="ai-card" id="vsApplicationCard"><h3>Application</h3>${skeletonHtml([80])}</div>
     `;
     aiContent.querySelectorAll(".hl-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
@@ -2098,16 +2074,16 @@ Be precise and concrete rather than generic. Avoid vague filler like "this chapt
     try {
       const meaning = await generateVerseMeaning(v);
       if(reqToken!==verseSummaryReq) return;
-      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3 data-locale-ui>Verse Summary</h3><p>${meaning.meaning}</p>`;
-      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3 data-locale-ui>In Context</h3><p>${meaning.context}</p>`;
-      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3 data-locale-ui>Application</h3><p>${meaning.application}</p>`;
+      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3>Verse Summary</h3><p>${meaning.meaning}</p>`;
+      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3>In Context</h3><p>${meaning.context}</p>`;
+      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3>Application</h3><p>${meaning.application}</p>`;
     } catch(err){
       if(reqToken!==verseSummaryReq) return;
       console.warn(err);
-      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button data-locale-ui class="ai-action-btn" id="retryVerseSummary" style="margin-top:8px">Try Again</button>`;
-      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3 data-locale-ui>Verse Summary</h3>${msg}`;
-      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3 data-locale-ui>In Context</h3>${msg}`;
-      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3 data-locale-ui>Application</h3>${msg}`;
+      const msg=`<p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryVerseSummary" style="margin-top:8px">Try Again</button>`;
+      const sc=document.getElementById("vsSummaryCard"); if(sc) sc.innerHTML=`<h3>Verse Summary</h3>${msg}`;
+      const cc=document.getElementById("vsContextCard"); if(cc) cc.innerHTML=`<h3>In Context</h3>${msg}`;
+      const ac=document.getElementById("vsApplicationCard"); if(ac) ac.innerHTML=`<h3>Application</h3>${msg}`;
       const retryBtns=document.querySelectorAll("#retryVerseSummary");
       retryBtns.forEach(b=> b.addEventListener("click", ()=> renderVerseSummary()));
     }
@@ -2148,25 +2124,25 @@ Be precise and concrete. Avoid vague filler.`;
   ];
   function renderOutlineTab(){
     const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key];
-    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p data-locale-ui>Load a chapter to build an outline from it.</p></div>'; return; }
+    if(!verses || !verses.length){ aiContent.innerHTML='<div class="ai-empty"><p>Load a chapter to build an outline from it.</p></div>'; return; }
     const cached = lastOutline && lastOutline.book===book[1] && lastOutline.chapter===p.chapter && lastOutline.audience===outlineSettings.audience && lastOutline.length===outlineSettings.length ? lastOutline.data : null;
     aiContent.innerHTML = `
       <div class="ai-card">
-        <h3 data-locale-ui>Build an Outline</h3>
+        <h3>Build an Outline</h3>
         <div class="outline-controls">
           <div>
-            <div data-locale-ui class="outline-field-label">Audience</div>
+            <div class="outline-field-label">Audience</div>
             <div class="outline-chip-row" id="outlineAudienceRow">
-              ${OUTLINE_AUDIENCES.map(([id,label])=> `<button data-locale-ui class="outline-chip ${outlineSettings.audience===id?"active":""}" data-audience="${id}">${label}</button>`).join("")}
+              ${OUTLINE_AUDIENCES.map(([id,label])=> `<button class="outline-chip ${outlineSettings.audience===id?"active":""}" data-audience="${id}">${label}</button>`).join("")}
             </div>
           </div>
           <div>
-            <div data-locale-ui class="outline-field-label">Length</div>
+            <div class="outline-field-label">Length</div>
             <div class="outline-chip-row" id="outlineLengthRow">
-              ${OUTLINE_LENGTHS.map(([id,label])=> `<button data-locale-ui class="outline-chip ${outlineSettings.length===id?"active":""}" data-length="${id}">${label}</button>`).join("")}
+              ${OUTLINE_LENGTHS.map(([id,label])=> `<button class="outline-chip ${outlineSettings.length===id?"active":""}" data-length="${id}">${label}</button>`).join("")}
             </div>
           </div>
-          <button data-locale-ui class="outline-generate-btn" id="outlineGenerateBtn">${cached ? "Regenerate Outline" : "Generate Outline"}</button>
+          <button class="outline-generate-btn" id="outlineGenerateBtn">${cached ? "Regenerate Outline" : "Generate Outline"}</button>
         </div>
       </div>
       <div id="outlineResult"></div>
@@ -2198,7 +2174,7 @@ Be precise and concrete. Avoid vague filler.`;
     } catch(err){
       if(reqToken!==outlineReq) return;
       console.warn(err);
-      if(resultEl) resultEl.innerHTML = `<div class="ai-card"><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button data-locale-ui class="ai-action-btn" id="retryOutline" style="margin-top:8px">Try Again</button></div>`;
+      if(resultEl) resultEl.innerHTML = `<div class="ai-card"><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryOutline" style="margin-top:8px">Try Again</button></div>`;
       const retryBtn=document.getElementById("retryOutline"); if(retryBtn) retryBtn.addEventListener("click", ()=> generateOutline(book, chapter, verses));
     } finally {
       if(reqToken===outlineReq && genBtn){ genBtn.disabled=false; genBtn.textContent="Regenerate Outline"; }
@@ -2211,28 +2187,28 @@ Be precise and concrete. Avoid vague filler.`;
     resultEl.innerHTML = `
       <div class="ai-card gold outline-title-card">
         <h3>${escapeHtml(data.title)}</h3>
-        <div class="outline-meta">${book[1]} ${chapter} \u00b7 <span data-locale-ui>${audienceLabel}</span> \u00b7 <span data-locale-ui>${lengthLabel}</span></div>
+        <div class="outline-meta">${book[1]} ${chapter} \u00b7 ${audienceLabel} \u00b7 ${lengthLabel}</div>
       </div>
       <div class="ai-card">
-        <h3 data-locale-ui>Big Idea</h3>
+        <h3>Big Idea</h3>
         <p>${escapeHtml(data.bigIdea)}</p>
       </div>
       <div class="ai-card">
-        <h3 data-locale-ui>Outline</h3>
+        <h3>Outline</h3>
         ${data.points.map((pt,i)=> `
           <div class="outline-point">
             <div class="bullet"><div class="num">${i+1}</div><p><strong>${escapeHtml(pt.heading)}</strong> \u2014 ${escapeHtml(pt.text)}</p></div>
             ${pt.subpoints && pt.subpoints.length ? `<div class="outline-subpoints">${pt.subpoints.map(sp=> `<div class="sub-item">${escapeHtml(sp)}</div>`).join("")}</div>` : ""}
           </div>
         `).join("")}
-        ${data.illustration ? `<div class="outline-illustration"><b data-locale-ui>Illustration idea:</b> ${escapeHtml(data.illustration)}</div>` : ""}
+        ${data.illustration ? `<div class="outline-illustration"><b>Illustration idea:</b> ${escapeHtml(data.illustration)}</div>` : ""}
       </div>
       <div class="ai-card">
-        <h3 data-locale-ui>Discussion Questions</h3>
+        <h3>Discussion Questions</h3>
         ${data.questions.map((q,i)=> `<div class="bullet"><div class="num">${i+1}</div><p>${escapeHtml(q)}</p></div>`).join("")}
       </div>
       <div class="outline-actions">
-        <button data-locale-ui class="ai-action-btn" id="outlineCopyBtn">Copy as Text</button>
+        <button class="ai-action-btn" id="outlineCopyBtn">Copy as Text</button>
       </div>
     `;
     const copyBtn=document.getElementById("outlineCopyBtn");
@@ -2290,14 +2266,14 @@ Ground every point in the actual chapter text provided. Be specific and concrete
   let compareReq = 0;
   async function renderCompareTab(){
     if(!compareMode){
-      aiContent.innerHTML=`<div class="ai-empty"><p data-locale-ui>Turn on Compare (top toolbar) to compare two translations side by side.</p></div>`;
+      aiContent.innerHTML=`<div class="ai-empty"><p>Turn on Compare (top toolbar) to compare two translations side by side.</p></div>`;
       return;
     }
     const pa=panes.a, pb=panes.b, bookA=BOOKS[pa.bookIdx], bookB=BOOKS[pb.bookIdx];
     const keyA=pa.version+"/"+bookA[0]+"/"+pa.chapter, keyB=pb.version+"/"+bookB[0]+"/"+pb.chapter;
     const versesA=cache[keyA], versesB=cache[keyB];
     if(!versesA || !versesA.length || !versesB || !versesB.length){
-      aiContent.innerHTML=`<div class="ai-empty"><p data-locale-ui>Let both panes finish loading, then reopen this tab.</p></div>`;
+      aiContent.innerHTML=`<div class="ai-empty"><p>Let both panes finish loading, then reopen this tab.</p></div>`;
       return;
     }
     if(bookA[0]!==bookB[0] || pa.chapter!==pb.chapter){
@@ -2315,7 +2291,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
       if(reqToken!==compareReq) return;
       console.warn(err);
       const card=aiContent.querySelector(".ai-card");
-      if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)}</h3><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button data-locale-ui class="ai-action-btn" id="retryCompare" style="margin-top:8px">Try Again</button>`;
+      if(card) card.innerHTML = `<h3>${versionName(pa.version)} vs ${versionName(pb.version)}</h3><p style="color:var(--ink-faint);font-size:13px">${aiErrorMessage(err)}</p><button class="ai-action-btn" id="retryCompare" style="margin-top:8px">Try Again</button>`;
       const retryBtn=document.getElementById("retryCompare"); if(retryBtn) retryBtn.addEventListener("click", ()=> renderCompareTab());
     }
   }
@@ -2329,7 +2305,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
   }
 
   function renderChat(){
-    if(!chatReady){ aiContent.innerHTML=`<div class="ai-empty"><p data-locale-ui>Loading conversations\u2026</p></div>`; return; }
+    if(!chatReady){ aiContent.innerHTML=`<div class="ai-empty"><p>Loading conversations\u2026</p></div>`; return; }
     const activeConvo = conversations.find(c=> c.id===activeConvoId);
     const memoryNote = chatSummary ? `<div class="chat-memory-note">Remembering earlier conversation <button id="clearChatMemBtn" title="Forget conversation history">Clear</button></div>` : "";
     aiContent.innerHTML = `
@@ -2340,7 +2316,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
         </div>
         <button id="convoNewBtn" type="button" title="Start a new conversation">+ New</button>
       </div>
-      ${memoryNote}<div id="aiChatLog"></div><div class="ai-empty" id="chatEmpty"><p data-locale-ui>Ask a question and get answers grounded in scripture with references.</p></div>
+      ${memoryNote}<div id="aiChatLog"></div><div class="ai-empty" id="chatEmpty"><p>Ask a question and get answers grounded in scripture with references.</p></div>
     `;
     chatHistory.forEach(m=> addMsg(m.role, m.text, m.sources, false));
     if(chatHistory.length>0){ const e=document.getElementById("chatEmpty"); if(e) e.style.display="none"; }
@@ -2681,15 +2657,15 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     let html="";
     const vbms=getVerseBookmarks().sort((a,b)=> (b.added||0)-(a.added||0));
     const escT=s=> String(s==null?"":s).replace(/[&<>"']/g, c=> ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-    html+=`<div class="ai-card"><h3><span data-locale-ui>Bookmarks</span> (${bms.length+vbms.length})</h3>`;
-    if(!bms.length && !vbms.length) html+=`<p data-locale-ui style="color:var(--ink-dim);font-size:13px">No bookmarks yet. Tap Bookmark in header to save a chapter, or tap verses and choose Bookmark.</p>`;
-    else html+=`<div class="marks-list">${vbms.map(vb=> `<div class="mark-item" data-type="vbm" data-vkey="${escT(vb.key)}"><div class="left"><div class="ref">${escT(verseBmRef(vb))}</div><div class="snippet">${escT(String(vb.text||"Bookmarked verse").slice(0,90))}</div></div><div class="right"><button data-locale-ui class="icon-btn remove-vbm">Remove</button></div></div>`).join("")}${bms.map(bm=> `<div class="mark-item" data-type="bm" data-book="${bm.bookIdx}" data-ch="${bm.chapter}"><div class="left"><div class="ref">${bm.bookName} ${bm.chapter}</div><div data-locale-ui class="snippet">Bookmarked chapter</div></div><div class="right"><button data-locale-ui class="icon-btn remove-bm">Remove</button></div></div>`).join("")}</div>`;
+    html+=`<div class="ai-card"><h3>Bookmarks (${bms.length+vbms.length})</h3>`;
+    if(!bms.length && !vbms.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No bookmarks yet. Tap Bookmark in header to save a chapter, or tap verses and choose Bookmark.</p>`;
+    else html+=`<div class="marks-list">${vbms.map(vb=> `<div class="mark-item" data-type="vbm" data-vkey="${escT(vb.key)}"><div class="left"><div class="ref">${escT(verseBmRef(vb))}</div><div class="snippet">${escT(String(vb.text||"Bookmarked verse").slice(0,90))}</div></div><div class="right"><button class="icon-btn remove-vbm">Remove</button></div></div>`).join("")}${bms.map(bm=> `<div class="mark-item" data-type="bm" data-book="${bm.bookIdx}" data-ch="${bm.chapter}"><div class="left"><div class="ref">${bm.bookName} ${bm.chapter}</div><div class="snippet">Bookmarked chapter</div></div><div class="right"><button class="icon-btn remove-bm">Remove</button></div></div>`).join("")}</div>`;
     html+=`</div>`;
-    html+=`<div class="ai-card"><h3><span data-locale-ui>Highlights</span> (${hls.length})</h3>`;
-    if(!hls.length) html+=`<p data-locale-ui style="color:var(--ink-dim);font-size:13px">No highlights yet. Tap a verse then choose a color in Verse tab.</p>`;
-    else html+=`<div class="marks-list">${hls.map(hl=> `<div class="mark-item" data-type="hl" data-key="${hl.key}"><div class="left"><div class="ref"><span class="color-dot ${hl.color}" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>${hl.ref}</div><div class="snippet">${hl.text.slice(0,90)}</div></div><div class="right"><button data-locale-ui class="icon-btn remove-hl">Remove</button></div></div>`).join("")}</div>`;
+    html+=`<div class="ai-card"><h3>Highlights (${hls.length})</h3>`;
+    if(!hls.length) html+=`<p style="color:var(--ink-dim);font-size:13px">No highlights yet. Tap a verse then choose a color in Verse tab.</p>`;
+    else html+=`<div class="marks-list">${hls.map(hl=> `<div class="mark-item" data-type="hl" data-key="${hl.key}"><div class="left"><div class="ref"><span class="color-dot ${hl.color}" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>${hl.ref}</div><div class="snippet">${hl.text.slice(0,90)}</div></div><div class="right"><button class="icon-btn remove-hl">Remove</button></div></div>`).join("")}</div>`;
     html+=`</div>`;
-    html+=`<button data-locale-ui class="ai-action-btn" id="clearAllMarks">Clear All Marks</button>`;
+    html+=`<button class="ai-action-btn" id="clearAllMarks">Clear All Marks</button>`;
     aiContent.innerHTML=html;
     aiContent.querySelectorAll(".mark-item[data-type='vbm']").forEach(el=>{
       el.addEventListener("click", (e)=>{
@@ -2712,7 +2688,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     });
     const clearBtn=document.getElementById("clearAllMarks");
     if(clearBtn) clearBtn.addEventListener("click", ()=>{
-      if(confirm(window.BibleyLocale?.text("Clear all bookmarks and highlights?") || "Clear all bookmarks and highlights?")){ localStorage.removeItem(STORAGE_BM); localStorage.removeItem(STORAGE_HL); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key]; if(verses) renderVerses("a", verses); renderMarks(); }
+      if(confirm("Clear all bookmarks and highlights?")){ localStorage.removeItem(STORAGE_BM); localStorage.removeItem(STORAGE_HL); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); const p=panes.a; const book=BOOKS[p.bookIdx]; const key=p.version+"/"+book[0]+"/"+p.chapter; const verses=cache[key]; if(verses) renderVerses("a", verses); renderMarks(); }
     });
   }
 
@@ -2725,7 +2701,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     chapterVerses: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; return null; },
     isCompare: ()=> compareMode,
     goPrev: (k)=> goPrev(k||"a"), goNext: (k)=> goNext(k||"a"),
-    goTo: (bookIdx, chapter, version)=>{ if(!BOOKS[bookIdx]) return; if(version) setPrimaryVersion(version); const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
+    goTo: (bookIdx, chapter)=>{ if(!BOOKS[bookIdx]) return; const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
     rerender: ()=>{ ["a","b"].forEach(k=>{ if(k==="b" && !compareMode) return; const p=panes[k]; const key=p.version+"/"+BOOKS[p.bookIdx][0]+"/"+p.chapter; if(cache[key]){ const sc=paneEl(".reader-main", k).scrollTop; renderVerses(k, cache[key]); paneEl(".reader-main", k).scrollTop=sc; } }); if(currentTab==="marks") renderMarks(); },
     refreshLists: ()=>{ renderBookmarkList(); renderChapterGrid(); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); },
     studyVerse: (v)=>{ selectedVerse={bookName:v.bookName, chapter:v.chapter, verseNum:v.verseNum, text:v.text, bookIdx:v.bookIdx, key:v.key, color:v.color||null}; openAi("verse"); },
@@ -2740,7 +2716,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     parseRef: (r)=> parseRef(r), findBookIndex: (n)=> findBookIndex(n), escapeHtml: (t)=> escapeHtml(t),
     getChapter: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; const v = await externalChapter(version, bookIdx, chapter); cache[key]=v; return v; },
     selectedVerse: ()=> selectedVerse, switchTab: (t)=> switchTab(t), openAi: (t)=> openAi(t), currentTab: ()=> currentTab,
-    loadJsonBible, jsonBibles: JSON_BIBLES, searchBollsVerses, bollsSearchVersions: Object.keys(BOLLS_CODES), notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
+    jsonBibles: JSON_BIBLES, notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
   };
 
   // Init
@@ -2765,8 +2741,6 @@ Ground every point in the actual chapter text provided. Be specific and concrete
 <div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
 <script src="pwa.js" defer></script>
 <script src="bibley-features.js" defer></script>
-<script src="bibley-locale.js" defer></script>
-<script src="bibley-section-tools.js" defer></script>
 <script src="bibley-sections.js" defer></script>
 <script src="bibley-focus.js" defer></script>
 <script src="bibley-study.js" defer></script>

@@ -15,7 +15,6 @@
   if (!drawer || !header) return;
   const { BOOKS } = C;
   const esc = FX.ui.esc;
-  const tr = value => window.BibleyLocale?.text(value) ?? value;
   const sv = d => '<svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + "</svg>";
   const IC = {
     search: sv('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>'), more: sv('<circle cx="12" cy="5.5" r="1.1"/><circle cx="12" cy="12" r="1.1"/><circle cx="12" cy="18.5" r="1.1"/>'),
@@ -29,7 +28,7 @@
     lock: sv('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>')
   };
   const bname = b => b[1] === "Psalm" ? "Psalms" : b[1];
-  const GROUP_NAMES = { law: "Law", history: "Historical books", "history-nt": "Historical books", poetry: "Poetry & Wisdom", wisdom: "Poetry & Wisdom", prophets: "Prophets", "major-prophets": "Major prophets", "minor-prophets": "Minor prophets", gospels: "Gospels", letters: "Letters", "pauline": "Paul's letters", "general": "General letters", prophecy: "Prophecy" };
+  const GROUP_NAMES = { law: "Law", history: "History", "history-nt": "History", poetry: "Poetry & Wisdom", wisdom: "Poetry & Wisdom", prophets: "Prophets", "major-prophets": "Major prophets", "minor-prophets": "Minor prophets", gospels: "Gospels", letters: "Letters", "pauline": "Paul's letters", "general": "General letters", prophecy: "Prophecy" };
 
   /* ================= top bar ================= */
   const hr = header.querySelector(".header-right");
@@ -45,21 +44,18 @@
   function menuItems() {
     const bm = $("bookmarkBtn"), cmp = $("compareBtn"), fs = $("fullscreenBtn");
     const marked = bm && bm.classList.contains("active"), comparing = cmp && cmp.classList.contains("active"), full = fs && fs.classList.contains("active");
-    const tools = window.BibleyTools;
-    return (tools ? [["print", IC.bookmark, "Print this chapter"], ["prevHist", "‹", "Back in reading history", false, !tools.history?.can(-1)], ["nextHist", "›", "Forward in reading history", false, !tools.history?.can(1)]] : []).concat([["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
-      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]));
+    return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
+      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]);
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; document.removeEventListener("pointerdown", outside, true); } }
   function outside(e) { if (menu && !menu.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) closeMenu(); }
   function openMenu() {
     if (menu) { closeMenu(); return; }
     menu = document.createElement("div"); menu.className = "bn-menu"; menu.setAttribute("role", "menu");
-    menu.innerHTML = menuItems().map(([k, ic, t, on, disabled]) => '<button type="button" role="menuitem" data-k="' + k + '" class="' + (on ? "on" : "") + '"' + (disabled ? ' disabled' : '') + '>' + ic + "<span>" + esc(t) + "</span></button>").join("");
+    menu.innerHTML = menuItems().map(([k, ic, t, on]) => '<button type="button" role="menuitem" data-k="' + k + '" class="' + (on ? "on" : "") + '">' + ic + "<span>" + esc(t) + "</span></button>").join("");
     document.body.appendChild(menu);
     menu.querySelectorAll("button").forEach(b => b.onclick = () => {
       const k = b.dataset.k; closeMenu();
-      if (k === "prevHist" || k === "nextHist") window.BibleyTools?.history?.move(k === "prevHist" ? -1 : 1);
-      if (k === "print") window.BibleyTools?.printChapter();
       if (k === "bm") { const x = $("bookmarkBtn"); if (x) x.click(); }
       if (k === "cmp") { const x = $("compareBtn"); if (x) x.click(); }
       if (k === "fs") { const x = $("fullscreenBtn"); if (x) x.click(); }
@@ -79,7 +75,7 @@
   let sp = null;
   function buildSearch() {
     sp = document.createElement("section"); sp.className = "bn-search"; sp.setAttribute("role", "dialog"); sp.setAttribute("aria-label", "Search verses");
-    sp.innerHTML = '<div class="bn-sh"><button type="button" class="bn-hb bn-sback" aria-label="Back">' + IC.back + '</button><div class="bn-sbox">' + IC.search + '</div></div><div class="bn-sbody"><div class="bn-shint">' + esc(tr("Type a word or phrase, like shepherd or love your neighbour. Tap a result to open it.")) + '</div></div>';
+    sp.innerHTML = '<div class="bn-sh"><button type="button" class="bn-hb bn-sback" aria-label="Back">' + IC.back + '</button><div class="bn-sbox">' + IC.search + '</div></div><div class="bn-sbody"><div class="bn-shint">Type a word or phrase, like <i>shepherd</i> or <i>love your neighbour</i>. Tap a result to open it.</div></div>';
     document.body.appendChild(sp);
     const box = sp.querySelector(".bn-sbox"), body = sp.querySelector(".bn-sbody");
     if (ss) { ss.placeholder = "Search verse text"; box.appendChild(ss); }
@@ -126,19 +122,18 @@
     BOOKS.forEach((b, i) => {
       if (q) { if (!(b[1].toLowerCase().includes(q) || b[0].toLowerCase().includes(q))) return; }
       else if ((tab === "ot") !== (i < 39)) return;
-      if (b[3] !== last) { last = b[3]; html += '<div class="bn-sec">' + esc(tr(GROUP_NAMES[b[3]] || b[3])) + "</div>"; }
+      if (b[3] !== last) { last = b[3]; html += '<div class="bn-sec">' + esc(GROUP_NAMES[b[3]] || b[3]) + "</div>"; }
       html += '<button type="button" class="bn-book' + (i === cur ? " on" : "") + '" data-b="' + i + '"><span>' + esc(bname(b)) + (bmSet.has(i) ? '<i class="bn-dot" title="Bookmarked"></i>' : "") + "</span><small>" + b[2] + "</small></button>";
     });
-    if (!html) html = '<div class="bn-empty">' + esc(tr('No book matches “{query}”.').replace('{query}',bs.value)) + '<button type="button" class="fx-btn small" data-a="vs">' + IC.search + esc(tr("Search verse text instead")) + "</button></div>";
+    if (!html) html = '<div class="bn-empty">No book matches \u201c' + esc(bs.value) + '\u201d.<button type="button" class="fx-btn small" data-a="vs">' + IC.search + "Search verse text instead</button></div>";
     list.innerHTML = html;
     list.querySelectorAll("[data-b]").forEach(b => b.onclick = () => showChapters(+b.dataset.b));
     const vsb = list.querySelector('[data-a="vs"]'); if (vsb) vsb.onclick = () => { const t = bs.value; openSearch(); if (ss) { ss.value = t; ss.dispatchEvent(new Event("input", { bubbles: true })); } };
   }
   function showChapters(b) {
-    chap.dataset.book = b;
     const book = BOOKS[b]; const cur = C.panes.a; const bm = new Set(marks().filter(m => m.bookIdx === b).map(m => m.chapter));
     let g = ""; for (let c = 1; c <= book[2]; c++) g += '<button type="button" class="bn-ch' + (cur.bookIdx === b && cur.chapter === c ? " on" : "") + (bm.has(c) ? " bm" : "") + '" data-c="' + c + '">' + c + "</button>";
-    chap.innerHTML = '<div class="bn-ch-h"><button type="button" class="bn-hb bn-cback" aria-label="Back to books">' + IC.back + '</button><div><b>' + esc(bname(book)) + "</b><small>" + book[2] + (book[2] === 1 ? tr(" chapter") : tr(" chapters")) + (book[4] ? " \u00b7 " + esc(book[4]) : "") + '</small></div></div><div class="bn-grid">' + g + "</div>";
+    chap.innerHTML = '<div class="bn-ch-h"><button type="button" class="bn-hb bn-cback" aria-label="Back to books">' + IC.back + '</button><div><b>' + esc(bname(book)) + "</b><small>" + book[2] + (book[2] === 1 ? " chapter" : " chapters") + (book[4] ? " \u00b7 " + esc(book[4]) : "") + '</small></div></div><div class="bn-grid">' + g + "</div>";
     chap.hidden = false; drawer.classList.add("bn-in-chap");
     chap.querySelector(".bn-cback").onclick = backToBooks;
     chap.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { const c = +x.dataset.c; C.goTo(b, c); setTimeout(backToBooks, 300); });
@@ -155,8 +150,7 @@
     document.querySelectorAll(".verses-text span.selected").forEach(s => s.classList.remove("selected"));
     backToBooks(); closeMenu();
     tab = C.panes.a.bookIdx < 39 ? "ot" : "nt"; drawList();
-    const hint = document.querySelector(".bn-shint"); if (hint) hint.textContent = tr("Type a word or phrase, like shepherd or love your neighbour. Tap a result to open it.");
-    const cur = drawer.querySelector(".bn-cur"); if (cur) cur.textContent = tr("Reading {reference}").replace("{reference}", BOOKS[C.panes.a.bookIdx][1] + " " + C.panes.a.chapter);
+    const cur = drawer.querySelector(".bn-cur"); if (cur) cur.textContent = "Reading " + BOOKS[C.panes.a.bookIdx][1] + " " + C.panes.a.chapter;
     setTimeout(() => { const on = nav.querySelector(".bn-book.on"); if (on) on.scrollIntoView({ block: "center" }); }, 40);
   }
   let wasOpen = false;
@@ -165,11 +159,6 @@
   let sx = null;
   drawer.addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, { passive: true });
   drawer.addEventListener("touchend", e => { if (sx != null && sx - e.changedTouches[0].clientX > 70) { try { C.closeDrawer(); } catch {} } sx = null; }, { passive: true });
-  window.addEventListener("bibley:localechange", () => {
-    drawList(); if (!chap.hidden) showChapters(+chap.dataset.book);
-    const hint = document.querySelector(".bn-shint"); if (hint) hint.textContent = tr("Type a word or phrase, like shepherd or love your neighbour. Tap a result to open it.");
-    const cur = drawer.querySelector(".bn-cur"); if (cur) cur.textContent = tr("Reading {reference}").replace("{reference}", BOOKS[C.panes.a.bookIdx][1] + " " + C.panes.a.chapter);
-  });
   drawList();
 
   window.BibleyNav = { openSearch, openMenu, closeMenu, showChapters, backToBooks, drawList };
