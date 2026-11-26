@@ -150,8 +150,6 @@
   }
   function openSheet(view, title, render) {
     ensureSheet();
-    // one sheet at a time: close the Plus sheet (bibley-plus.js) if it is open
-    try { if (window.BibleyPlus && window.BibleyPlus.close) window.BibleyPlus.close(); } catch {}
     if (onSheetClose) { const f = onSheetClose; onSheetClose = null; try { f(); } catch {} }
     sheetView = view; sheet.dataset.view = view; sheetTitle.textContent = title;
     sheetBody.innerHTML = ""; sheetBody.scrollTop = 0; render(sheetBody);
@@ -812,13 +810,6 @@
     if (document.querySelector('script[data-bibley-wisdom]')) return;
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-wisdom.css"; document.head.appendChild(l);
     const s = document.createElement("script"); s.src = "bibley-wisdom.js"; s.defer = true; s.dataset.bibleyWisdom = "1"; document.body.appendChild(s);
-  })();
-  // v7.2: Bibley Plus - recaps, prayer list, encrypted journal, memory practice, plans+, compare diff,
-  // reading history, print view, random verse, voice search, Search+, read-aloud sleep timer, trash, exports.
-  (function loadPlus() {
-    if (document.querySelector('script[data-bibley-plus]')) return;
-    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "bibley-plus.css"; document.head.appendChild(l);
-    const s = document.createElement("script"); s.src = "bibley-plus.js"; s.defer = true; s.dataset.bibleyPlus = "1"; document.body.appendChild(s);
   })();
   ["a", "b"].forEach(k => { const p = C.panes[k]; const el = document.querySelector(`.pane[data-pane="${k}"] .verses-text`); if (el) onChapter(k, { bookIdx: p.bookIdx, chapter: p.chapter, version: p.version }); });
   // Open screen: once a day show Today (verse of the day, continue reading, plan) unless opened from a shortcut.
