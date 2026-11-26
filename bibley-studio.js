@@ -298,7 +298,7 @@
     const all = memAll(), k = memKey(d); const cur = all.verses[k] || { ref: d.ref, text: d.text, version: d.version || "", bookIdx: d.bookIdx, chapter: d.chapter, verseNum: d.verseNum, added: Date.now(), level: 0, best: 0, tries: 0 };
     all.verses[k] = Object.assign(cur, { text: d.text || cur.text, ref: d.ref || cur.ref }, patch || {}); all.v = 1; save(K_MEM, all); return all.verses[k];
   }
-  function memDel(k) { const all = memAll(); delete all.verses[k]; save(K_MEM, all); }
+  function memDel(k) { const all = memAll(); const data = all.verses[k]; if (data) window.BibleyTools?.pushTrash("Memory verse", data.ref, { key: K_MEM, id: k, data }); delete all.verses[k]; save(K_MEM, all); }
   const words = t => String(t || "").trim().split(/\s+/).filter(Boolean);
   const norm = w => String(w).toLowerCase().replace(/[\u2019']/g, "").replace(/[^a-z0-9]/g, "");
   // order in which words disappear (same every time for a verse, each level hides more)
@@ -374,6 +374,7 @@
   }
   function memoryList() {
     openSheet("memlist", "My memory verses", body => {
+      if (window.BibleyTools) { const due = window.BibleyTools.dueCount(); const b = h(`<button class="fx-btn block" type="button">Memory practice${due ? ` · ${due} due` : ""}</button>`); b.onclick = () => window.BibleyTools.open("memory", memoryList); body.append(b); }
       const all = memAll().verses; const keys = Object.keys(all).sort((a, b) => (all[b].practiced || all[b].added || 0) - (all[a].practiced || all[a].added || 0));
       if (!keys.length) { body.append(h('<div class="fx-card"><p class="fx-muted" style="margin:0">No memory verses yet. Tap any verse in the reader, then tap <b>Memorize</b>.</p></div>')); return; }
       const done = keys.filter(k => (all[k].best || 0) >= 90).length;

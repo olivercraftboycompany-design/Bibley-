@@ -17,6 +17,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="stylesheet" href="bibley-features.css" />
+<link rel="stylesheet" href="bibley-section-tools.css" />
 <link rel="stylesheet" href="bibley-ui16.css" />
 <script>try{var bp=JSON.parse(localStorage.getItem("bibley_prefs_v1")||"{}");if(bp.theme==="sepia"||bp.theme==="light")document.documentElement.classList.add("theme-"+bp.theme);}catch(e){}</script>
 <link rel="stylesheet" href="bibley-settings.css" />
@@ -2716,7 +2717,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     parseRef: (r)=> parseRef(r), findBookIndex: (n)=> findBookIndex(n), escapeHtml: (t)=> escapeHtml(t),
     getChapter: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; const v = await externalChapter(version, bookIdx, chapter); cache[key]=v; return v; },
     selectedVerse: ()=> selectedVerse, switchTab: (t)=> switchTab(t), openAi: (t)=> openAi(t), currentTab: ()=> currentTab,
-    jsonBibles: JSON_BIBLES, notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
+    loadJsonBible, jsonBibles: JSON_BIBLES, notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
   };
 
   // Init
@@ -2741,6 +2742,8 @@ Ground every point in the actual chapter text provided. Be specific and concrete
 <div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
 <script src="pwa.js" defer></script>
 <script src="bibley-features.js" defer></script>
+<script src="bibley-locale.js" defer></script>
+<script src="bibley-section-tools.js" defer></script>
 <script src="bibley-sections.js" defer></script>
 <script src="bibley-focus.js" defer></script>
 <script src="bibley-study.js" defer></script>

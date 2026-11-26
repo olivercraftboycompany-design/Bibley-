@@ -1,60 +1,27 @@
-# Bibley feature roadmap
+# Bibley feature status
 
-Oliver's feature list (sent 2026-11-26), tracked here. Status:
+Features are placed in the matching reader and study sections. There is no separate Plus tab.
 
-- ✅ **Built** — working in the app now (see the version noted)
-- 🔨 **Existing** — was already in Bibley before this list
-- 🗑 **Removed** — built in 7.2, then removed in 7.2.2 at Oliver's request (2026-11-26); can be restored if he asks
-- 🕓 **Planned** — not built yet; reason noted
+| Section | Available in this update |
+| --- | --- |
+| Today → Your activity | Daily recap with date navigation and copy; monthly recap with reading counts, active days, longest streak, most-read books and study totals. Recaps use records available on the device, including any synced records. They are not a historical audit, and don't reconstruct activity that was never recorded. |
+| Today → Prayer & reflection | Private active/answered prayer requests, guided prayers and access to the reflection journal. Prayers can sync to the signed-in Bibley account; they are not shared publicly. |
+| My Bible → Personal study | Encrypted reflection journal with a PIN or passphrase; locks when closed or hidden and after the lock timeout. Export unlocked entries only via explicit, unencrypted downloads. Export notes, bookmarks, highlights and prayers; use Trash to restore recently deleted verse notes, study notes, saved verses, memory verses or prayers. |
+| Reader → Compare / More | Word-level highlighting and a percentage difference when comparing the same chapter; reading back/forward controls; print chapter or Save as PDF from the browser print dialog; optional red letters for the World English Bible (matching source-marked passages). |
+| Books → Search | Whole-Bible search in the bundled translations, with testament and book filters, recent searches, voice search on supported browsers, and a random verse in the current translation. |
+| Study → Explore | Strong’s Hebrew/Greek dictionary; Easton’s Bible dictionary; two historical commentaries, sourced book introductions and clickable chapter outlines; searchable timeline and character profiles; interactive maps of possible Bible locations. From a verse, Linked verses covers all 66 Protestant books; Original words shows WEB publisher tags, plus a STEPBible source-order Greek/Hebrew/Aramaic interlinear with word-by-word transliterations, English glosses and morphology. |
+| Settings → Language / Idioma | Switch primary navigation, common actions, daily/monthly recaps, and controls in prayer and study views between English and Spanish. Scripture stays in the selected translation; study reference content and some other views remain in English. |
+| Read aloud | Speed and sleep timer controls while reading; retains the existing synced verse highlighting. |
+| Plans → Your own pace | Custom and seasonal reading plans (Advent, Lent, Holy Week and Easter); catch-up and skip-day. |
+| Today → My memory verses → Memory practice | Flashcards, fill-in-the-blank, first-letter and reference quizzes with spaced repetition. |
 
-## 1. Database, Accounts & Community
+Account sign-up, sign-in and cross-device sync already live in **Settings → Account & Cloud Sync**. The version picker already includes Bibles in multiple languages (independent of the UI language). Study already offers AI-generated chapter summaries and outlines. The Study Notebook has its own print/PDF and Markdown options.
 
-- 🔨 Sign up/in + cloud sync across devices (notes, highlights, bookmarks, settings, streaks) — **Existing since 6.8**: Settings > Account & Cloud Sync, syncs through bibley.sites.tab.bot.
-- 🗑 Prayer list (private, active/answered) + guided prayers — **Removed in 7.2.2** (built in 7.2) (Plus > Prayer list). Private only; the shared-prayer half is 🕓 pending a deliberate, opt-in design.
-- 🕓 Friends list to share highlights, notes & encouragement — needs a deliberate privacy design on the sync backend; nothing is shared publicly by default.
-- 🕓 Group reading plans + daily discussions — same.
-- 🕓 Public verse notes + Church hub (events, bulletins, sermon outlines, giving links) — public-by-design surface; needs Oliver's explicit choices on moderation and content before anything is built.
+## Not included
 
-## 2. Reading & Comparison
+- Sharing prayers with friends, friends list, group plans/discussions, public verse notes and church hub. These need backend access rules, opt-in sharing, and moderation. Private notes and prayers have not been made public.
+- Complete UI localization and word alignment to the selected translation. WEB tags and optional red letters are specific to the WEB. The new study datasets are limited to the 66-book Protestant canon; other supported editions remain readable.
 
-- 🗑 Word-level & % diff highlighting between parallel translations — **Removed in 7.2.2** (built in 7.2): open Compare, tap "Diff" in the second pane's toolbar; changed words are underlined and the pane shows "% different".
-- 🕓 Red-letter mode (words of Jesus) — the bundled translations carry no red-letter markup; needs a licensed words-of-Jesus dataset.
-- 🗑 Back/forward chapter history — **Removed in 7.2.2** (built in 7.2): ‹ › buttons in the reading toolbar retrace the chapters you visited.
-- 🕓 Multi-language Bibles + multi-language UI — large content + translation project.
-- 🗑 Print-friendly reading & study view — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Print this chapter (browser "Save as PDF" works from the same view).
+Strong’s data credits are in [study-data](study-data/README.md). Browser smoke tests are in `tests/section-tools-smoke.py` and `tests/study-resources-smoke.py`.
 
-## 3. Study & Original Languages
-
-- 🕓 Strong's Concordance + Greek/Hebrew interlinear, transliteration & word study — needs bundled Strong's/lexicon data (public-domain sources identified; size and quality review pending).
-- 🕓 Cross-references + public-domain commentaries & Bible dictionary — same data-bundling work (Treasury of Scripture Knowledge and public-domain commentaries are candidates).
-- 🕓 Book intros, outlines, timelines, character profiles & interactive Bible maps — content to write/source; maps need artwork. 🔨 Chapter summaries, key points, structure, verse context and outlines already exist in the Study assistant.
-
-## 4. Search, Audio & Journaling
-
-- 🗑 Filtered search (book/testament/version) — **Removed in 7.2.2** (built in 7.2): Plus > Search+ searches the whole Bible in any bundled translation, filtered by testament or book.
-- 🗑 Saved search history — **Removed in 7.2.2** (built in 7.2): recent searches appear as chips in Search+; clearable.
-- 🗑 Voice search — **Removed in 7.2.2** (built in 7.2): mic button in the Books drawer search and in Search+ (Chrome/Edge).
-- 🗑 Random verse picker — **Removed in 7.2.2** (built in 7.2): Books drawer > Random verse, or Plus > Tools.
-- 🔨 Synced verse highlighting while listening — already existed; read-aloud highlights the current verse and follows along.
-- 🗑 TTS sleep timer + speed controls — **Removed in 7.2.2** (built in 7.2): a bar appears while reading aloud with a sleep timer (5–60 min) and speed control.
-- 🗑 Trash/recovery for deleted notes — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Trash restores deleted notes, saved verses, memory verses and prayers for 30 days.
-- 🗑 Journal PIN lock + reflection log — **Removed in 7.2.2** (built in 7.2): Plus > Journal. Entries are AES-GCM encrypted with a key derived from the PIN or passphrase (PBKDF2, 250k rounds); only ciphertext plus a last-modified timestamp is stored or synced, and the PIN is never stored. The app says plainly: a short numeric PIN can be brute-forced by someone who gets the data (use a longer passphrase), a forgotten PIN means no recovery, and encryption can't protect against malicious software on the device itself. Locks automatically (10 min idle, tab hide, or sheet close).
-- 🗑 PDF / Markdown / CSV export — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Export Markdown / Export CSV / Print (Save as PDF).
-
-## 5. Plans & Memorization
-
-- 🗑 Flashcards, fill-in-the-blank & first-letter memorization + reference quiz — **Removed in 7.2.2** (built in 7.2): Plus > Memory practice (works with the existing Memorize verse list).
-- 🗑 Spaced repetition — **Removed in 7.2.2** (built in 7.2): reviews are scheduled by how well you know each verse; due count shows on the Plus menu.
-- 🗑 Custom reading-plan builder — **Removed in 7.2.2** (built in 7.2): Plus > Reading plans+ > Build a custom plan (choose books and pace).
-- 🗑 Catch-up & skip-day — **Removed in 7.2.2** (built in 7.2): behind-schedule banner with Catch up; Skip this day on the current reading.
-- 🗑 Seasonal plans (Advent, Lent, Easter/Holy Week) — **Removed in 7.2.2** (built in 7.2): dates are computed each year (e.g. Lent starts Ash Wednesday).
-- 🗑 Daily recap — **Removed in 7.2.2** (built in 7.2): Plus > Daily recap (reading, notes, highlights, saved verses, prayers, memory, journal, streak; copyable).
-- 🗑 Monthly recap — **Removed in 7.2.2** (built in 7.2): Plus > Monthly recap (chapters, active days, best streak, top books, prayers, memory; browsable by month).
-
-Recaps only count activity recorded on the device; they don't invent history for days with no records.
-
-Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks.
-
-## Still to do (summary)
-
-Red-letter data, Strong's/interlinear + word study, cross-references, commentaries/dictionary, book intros/timelines/profiles/maps, multi-language Bibles and UI, and the community features (friends, group plans, public notes, church hub) which will be designed privacy-first and opt-in.
+A local [community persistence foundation](backend/README.md) is available for future integration with the account host; it does not enable any public endpoints or in-app sharing.

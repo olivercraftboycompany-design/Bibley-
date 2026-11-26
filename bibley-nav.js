@@ -44,18 +44,21 @@
   function menuItems() {
     const bm = $("bookmarkBtn"), cmp = $("compareBtn"), fs = $("fullscreenBtn");
     const marked = bm && bm.classList.contains("active"), comparing = cmp && cmp.classList.contains("active"), full = fs && fs.classList.contains("active");
-    return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
-      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]);
+    const tools = window.BibleyTools;
+    return (tools ? [["print", IC.bookmark, "Print this chapter"], ["prevHist", "‹", "Back in reading history", false, !tools.history?.can(-1)], ["nextHist", "›", "Forward in reading history", false, !tools.history?.can(1)]] : []).concat([["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
+      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]));
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; document.removeEventListener("pointerdown", outside, true); } }
   function outside(e) { if (menu && !menu.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) closeMenu(); }
   function openMenu() {
     if (menu) { closeMenu(); return; }
     menu = document.createElement("div"); menu.className = "bn-menu"; menu.setAttribute("role", "menu");
-    menu.innerHTML = menuItems().map(([k, ic, t, on]) => '<button type="button" role="menuitem" data-k="' + k + '" class="' + (on ? "on" : "") + '">' + ic + "<span>" + esc(t) + "</span></button>").join("");
+    menu.innerHTML = menuItems().map(([k, ic, t, on, disabled]) => '<button type="button" role="menuitem" data-k="' + k + '" class="' + (on ? "on" : "") + '"' + (disabled ? ' disabled' : '') + '>' + ic + "<span>" + esc(t) + "</span></button>").join("");
     document.body.appendChild(menu);
     menu.querySelectorAll("button").forEach(b => b.onclick = () => {
       const k = b.dataset.k; closeMenu();
+      if (k === "prevHist" || k === "nextHist") window.BibleyTools?.history?.move(k === "prevHist" ? -1 : 1);
+      if (k === "print") window.BibleyTools?.printChapter();
       if (k === "bm") { const x = $("bookmarkBtn"); if (x) x.click(); }
       if (k === "cmp") { const x = $("compareBtn"); if (x) x.click(); }
       if (k === "fs") { const x = $("fullscreenBtn"); if (x) x.click(); }
