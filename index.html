@@ -1845,8 +1845,10 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     if(k==="a") rememberPosition();
     updateHeader(k); updatePager(k);
     const key=p.version+"/"+book[0]+"/"+p.chapter;
+    // Even a cache hit supersedes an in-flight request for another chapter.
+    const req=++p.requestId;
     if(cache[key]){ renderVerses(k, cache[key]); if(k==="a"){ renderCurrentTab(); updateBookmarkUI(); } else if(currentTab==="compare") renderCurrentTab(); return; }
-    const req=++p.requestId; renderLoading(k);
+    renderLoading(k);
     const ref=encodeURIComponent(book[0]+" "+p.chapter);
     const url="https://bible-api.com/"+ref+"?translation="+p.version;
     const ext = (p.version==="esv" && getEsvKey()) ? fetchEsvChapter(book[1], p.chapter) : externalChapter(p.version, p.bookIdx, p.chapter);

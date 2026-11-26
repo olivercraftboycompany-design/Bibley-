@@ -148,7 +148,8 @@
     };
   }
   function monthRecap(month) { // month = "YYYY-MM"
-    const from = month + "-01", to = month + "-31";
+    const [year, monthNumber] = month.split("-").map(Number);
+    const from = month + "-01", to = month + "-" + pad(new Date(year, monthNumber, 0).getDate());
     const rm = readMap(); const chs = [];
     Object.keys(rm).forEach(k => { const d = rm[k]; if (d >= from && d <= to) { const m = k.match(/^(.+)-(\d+)$/); if (m) { const bi = BOOKS.findIndex(b => b[0] === m[1]); if (bi >= 0) chs.push([bi, +m[2]]); } } });
     const bookCount = {}; chs.forEach(([b]) => { bookCount[b] = (bookCount[b] || 0) + 1; });
@@ -188,6 +189,26 @@
     return L.join("\n");
   }
 
+  const recapCopyButton = makeText => {
+    const button = h('<button type="button" class="bp-btn block">' + esc(tr("Copy recap as text")) + '</button>');
+    button.onclick = async () => toast(await copyText(makeText()) ? "Recap copied" : "Couldn't copy");
+    return button;
+  };
+  const monthMetrics = r => [
+    ["chapters read", r.chapters], ["days active", r.activeDays], ["best streak", r.bestStreak],
+    ["notes", r.notes], ["highlights", r.highlights], ["verses saved", r.savedVerses],
+    ["prayers added", r.prayersAdded], ["prayers answered", r.prayersAnswered], ["memory reviews", r.memReviews]
+  ];
+  function monthlyRecapText(r, label) {
+    const lines = [tr("Monthly recap") + " — " + label];
+    const metrics = [...monthMetrics(r), ["Reading plan days completed", r.planDays], ["Days with journal entries", r.journalDays]];
+    for (const [key, value] of metrics) if (value) lines.push(tr(key) + ": " + value);
+    if (r.topBooks.length) lines.push(tr("Most read") + ": " + r.topBooks.join(" · "));
+    if (lines.length === 1) lines.push(tr("Nothing recorded for this month. Counts start from activity recorded on this device."));
+    lines.push(tr("Based on records available on this device. Deleted items and unavailable history aren’t counted."));
+    return lines.join("\n");
+  }
+
   const VIEWS = {};
   VIEWS["recap-day"] = {
     title: "Daily recap",
@@ -218,9 +239,7 @@
         content.appendChild(card);
         const s = streak();
         content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + d.chapters.length + '</b><span>' + esc(tr("chapters")) + '</span></div><div class="bp-stat"><b>' + s.n + '</b><span>' + esc(tr("current streak")) + '</span></div><div class="bp-stat"><b>' + (d.notes + d.highlights + d.savedVerses) + '</b><span>' + esc(tr("study marks")) + '</span></div></div>'));
-        const cp = h('<button class="bp-btn block">' + esc(tr("Copy recap as text")) + '</button>');
-        cp.onclick = async () => { const ok = await copyText(recapText(d)); toast(tr(ok ? "Recap copied" : "Couldn't copy")); };
-        content.appendChild(cp);
+        content.appendChild(recapCopyButton(() => recapText(d)));
       };
       prev.onclick = () => { day = addDays(day, -1); draw(); };
       next.onclick = () => { day = addDays(day, 1); draw(); };
@@ -243,13 +262,15 @@
         label.textContent = new Intl.DateTimeFormat(isEs() ? "es" : "en", { month: "long", year: "numeric" }).format(new Date(y, m - 1, 1)) + (month === monthStr() ? " " + tr("(so far)") : "");
         const r = monthRecap(month);
         content.innerHTML = "";
-        content.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + r.chapters + '</b><span>' + esc(tr("chapters read")) + '</span></div><div class="bp-stat"><b>' + r.activeDays + '</b><span>' + esc(tr("days active")) + '</span></div><div class="bp-stat"><b>' + r.bestStreak + '</b><span>' + esc(tr("best streak")) + '</span></div><div class="bp-stat"><b>' + r.notes + '</b><span>' + esc(tr("notes")) + '</span></div><div class="bp-stat"><b>' + r.highlights + '</b><span>' + esc(tr("highlights")) + '</span></div><div class="bp-stat"><b>' + r.savedVerses + '</b><span>' + esc(tr("verses saved")) + '</span></div><div class="bp-stat"><b>' + r.prayersAdded + '</b><span>' + esc(tr("prayers added")) + '</span></div><div class="bp-stat"><b>' + r.prayersAnswered + '</b><span>' + esc(tr("prayers answered")) + '</span></div><div class="bp-stat"><b>' + r.memReviews + '</b><span>' + esc(tr("memory reviews")) + '</span></div></div>'));
+        content.appendChild(h('<div class="bp-stat-grid">' + monthMetrics(r).map(([name, value]) => '<div class="bp-stat"><b>' + value + '</b><span>' + esc(tr(name)) + '</span></div>').join("") + '</div>'));
         if (r.topBooks.length) content.appendChild(h('<div class="bp-card"><div class="bp-eyebrow">' + esc(tr("Most read")) + '</div><p style="margin:4px 0 0;font-size:14px">' + esc(r.topBooks.join(" \u00b7 ")) + '</p></div>'));
         const more = [];
         if (r.planDays) more.push(isEs() ? amount(r.planDays, "día del plan completado", "días del plan completados") : amount(r.planDays, "reading-plan day completed", "reading-plan days completed"));
         if (r.journalDays) more.push(isEs() ? amount(r.journalDays, "día con entradas en el diario", "días con entradas en el diario") : amount(r.journalDays, "day with journal entries", "days with journal entries"));
         if (more.length) content.appendChild(h('<p class="bp-muted">' + esc(more.join(" \u00b7 ")) + '</p>'));
         if (![r.chapters, r.activeDays, r.notes, r.highlights, r.savedVerses, r.prayersAdded, r.prayersAnswered, r.memReviews, r.planDays, r.journalDays].some(Boolean)) content.appendChild(h('<p class="bp-muted">' + esc(tr("Nothing recorded for this month. Counts start from activity recorded on this device.")) + '</p>'));
+        content.appendChild(recapCopyButton(() => monthlyRecapText(r, label.textContent)));
+        content.appendChild(h('<p class="bp-muted">' + esc(tr("Based on records available on this device. Deleted items and unavailable history aren’t counted.")) + '</p>'));
       };
       prev.onclick = () => { const [y, m] = month.split("-").map(Number); const d = new Date(y, m - 2, 1); month = monthStr(d); draw(); };
       next.onclick = () => { const [y, m] = month.split("-").map(Number); const d = new Date(y, m, 1); month = monthStr(d); draw(); };
@@ -1606,50 +1627,75 @@
     ws.forEach(w => w.replaceWith(document.createTextNode(w.textContent)));
     span.normalize();
   }
-  function paneVerses(k) {
-    const out = {};
-    document.querySelectorAll('.pane[data-pane="' + k + '"] .verses-text span[data-verse]').forEach(s => { out[s.dataset.verse] = s; });
-    return out;
+  function paneVerses(host) {
+    const out = new Map(), duplicates = new Set();
+    host?.querySelectorAll('span[data-verse]').forEach(span => {
+      const raw = span.dataset.verse;
+      if (!/^[1-9]\d*$/.test(raw)) return;
+      if (out.has(raw)) duplicates.add(raw);
+      else out.set(raw, span);
+    });
+    return { out, duplicates };
   }
   function applyDiff() {
     if (diffState.applying) return;
+    const paneA = document.querySelector('.pane[data-pane="a"]');
     const paneB = document.querySelector('.pane[data-pane="b"]');
-    const compareOn = paneB && C.isCompare();
-    const badgeHost = document.querySelector('.pane[data-pane="b"] .pane-toolbar');
-    const oldBadge = badgeHost && badgeHost.querySelector(".bp-diff-badge");
-    if (!diffState.on || !compareOn) {
-      ["a", "b"].forEach(k => { const vs = paneVerses(k); Object.values(vs).forEach(unmarkWords); });
-      if (oldBadge) oldBadge.remove();
+    const badgeHost = paneB?.querySelector('.pane-toolbar');
+    const oldBadge = badgeHost?.querySelector('.bp-diff-badge');
+    const oldNote = paneB?.querySelector('.bp-diff-note');
+    const clear = () => {
+      [paneA, paneB].forEach(pane => pane?.querySelectorAll('.verses-text span[data-verse]').forEach(unmarkWords));
+      oldBadge?.remove(); oldNote?.remove();
+    };
+    if (!diffState.on || !C.isCompare()) {
+      if (diffState.lastKey || oldBadge || oldNote) clear();
       diffState.lastKey = "";
       return;
     }
     const pa = C.panes.a, pb = C.panes.b;
-    const key = pa.version + "/" + pa.bookIdx + "/" + pa.chapter + "|" + pb.version + "/" + pb.bookIdx + "/" + pb.chapter;
-    const aa = document.querySelector('.pane[data-pane="a"] .verses-text');
-    const bb = paneB.querySelector('.verses-text');
+    const aa = paneA.querySelector('.reader-inner > div'), bb = paneB.querySelector('.reader-inner > div');
+    const key = [isEs(), pa.version, pa.bookIdx, pa.chapter, pb.version, pb.bookIdx, pb.chapter].join('/');
     if (key === diffState.lastKey && aa === diffState.lastA && bb === diffState.lastB) return;
-    const remember = () => Object.assign(diffState, { lastKey: key, lastA: aa, lastB: bb });
-    const va = paneVerses("a"), vb = paneVerses("b");
+    const badge = (label, title = "") => {
+      const node = document.createElement("span");
+      node.className = "bp-diff-badge"; node.textContent = label;
+      if (title) node.title = title;
+      badgeHost.append(node);
+    };
+    const note = label => {
+      const node = document.createElement("p");
+      node.className = "bp-diff-note"; node.setAttribute("role", "status"); node.textContent = label;
+      badgeHost.after(node);
+    };
     diffState.applying = true;
     try {
-      if (oldBadge) oldBadge.remove();
-      Object.values(va).forEach(unmarkWords); Object.values(vb).forEach(unmarkWords);
+      clear();
+      Object.assign(diffState, { lastKey: key, lastA: aa, lastB: bb });
       if (pa.bookIdx !== pb.bookIdx || pa.chapter !== pb.chapter) {
-        badgeHost?.append(h(("<span class=\"bp-diff-badge\">" + esc(tr("Match chapters to compare")) + "</span>"))); remember(); return;
+        badge(tr("Match chapters to compare")); return;
       }
-      if (!aa || !bb) return;
-      let totW = 0, totC = 0;
-      for (const n of new Set([...Object.keys(va), ...Object.keys(vb)])) {
-        const sa = va[n], sb = vb[n];
-        const a = sa ? wordTokens(verseText(sa)) : [], b = sb ? wordTokens(verseText(sb)) : [];
+      if (!aa || !bb || aa.classList.contains("skeleton") || bb.classList.contains("skeleton")) {
+        note(tr("Waiting for both translations to load…")); return;
+      }
+      const ha = aa.querySelector(".verses-text"), hb = bb.querySelector(".verses-text");
+      if (!ha || !hb) { note(tr("Word comparison is unavailable until both translations have this chapter.")); return; }
+      const aRows = paneVerses(ha), bRows = paneVerses(hb);
+      let total = 0, changed = 0, skipped = 0;
+      for (const n of new Set([...aRows.out.keys(), ...bRows.out.keys()])) {
+        const sa = aRows.out.get(n), sb = bRows.out.get(n);
+        if (!sa || !sb || aRows.duplicates.has(n) || bRows.duplicates.has(n)) { skipped++; continue; }
+        const a = wordTokens(verseText(sa)), b = wordTokens(verseText(sb));
+        if (!a.length || !b.length) { skipped++; continue; }
         const [ma, mb] = lcsMarks(a, b);
-        if (sa) markWords(sa, ma);
-        if (sb) markWords(sb, mb);
-        totW += a.length + b.length; totC += ma.filter(Boolean).length + mb.filter(Boolean).length;
+        markWords(sa, ma); markWords(sb, mb);
+        total += a.length + b.length; changed += ma.filter(Boolean).length + mb.filter(Boolean).length;
       }
-      const pct = totW ? Math.round(totC / totW * 100) : 0;
-      badgeHost?.append(h(("<span class=\"bp-diff-badge\" title=\"" + esc(tr("Unmatched words as a share of all words in both translations")) + "\">") + pct + (isEs() ? '% diferente</span>' : '% different</span>')));
-      remember();
+      if (!total) { note(tr("No matching numbered verses to compare.")); return; }
+      const pct = Math.round(changed / total * 100);
+      badge(pct + (isEs() ? '% diferente' : '% different'), tr("Unmatched words as a share of words in paired verses"));
+      const counting = skipped ? (isEs() ? " Sin comparar: " + skipped + "." : " Skipped: " + skipped + ".") : "";
+      note(tr("Compares matching verse numbers only. Numbering can differ by edition.") + counting);
     } finally { diffState.applying = false; }
   }
   function wireDiff() {
@@ -1658,6 +1704,7 @@
     const btn = h('<button type="button" class="bp-diff-toggle' + (diffState.on ? " on" : "") + '" aria-pressed="' + diffState.on + ("\" title=\"" + esc(tr("Highlight word-level differences between the two translations")) + "\">" + esc(tr("Diff")) + "</button>"));
     btn.onclick = () => { diffState.on = !diffState.on; setPref("diffOn", diffState.on); btn.classList.toggle("on", diffState.on); btn.setAttribute("aria-pressed", String(diffState.on)); diffState.lastKey = ""; applyDiff(); };
     tb.insertBefore(btn, tb.firstChild);
+    window.addEventListener("bibley:localechange", applyDiff);
     let t;
     const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(applyDiff, 350); });
     document.querySelectorAll(".reader-inner").forEach(el => mo.observe(el, { childList: true, subtree: true }));
@@ -1739,7 +1786,7 @@
     if (!SR) mic.disabled = true;
     mic.onclick = () => {
       if (!SR) { toast("Voice search needs Chrome or Edge"); return; }
-      const r = new SR(); r.lang = "en-US"; r.interimResults = false;
+      const r = new SR(); r.lang = isEs() ? "es-ES" : "en-US"; r.interimResults = false;
       mic.classList.add("on");
       r.onresult = e => { input.value = e.results[0][0].transcript; input.dispatchEvent(new Event("input", { bubbles: true })); };
       r.onend = () => mic.classList.remove("on");

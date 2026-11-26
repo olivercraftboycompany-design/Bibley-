@@ -3,6 +3,13 @@
   'use strict';
   const key = 'bibley_ui_locale_v1';
   const entries = {
+    "Days with journal entries":"Días con entradas en el diario",
+    "Waiting for both translations to load…":"Esperando a que se carguen ambas traducciones…",
+    "Word comparison is unavailable until both translations have this chapter.":"La comparación de palabras no está disponible hasta que ambas traducciones tengan este capítulo.",
+    "No matching numbered verses to compare.":"No hay versículos con números coincidentes para comparar.",
+    "Unmatched words as a share of words in paired verses":"Proporción de palabras diferentes en los versículos emparejados",
+    "Compares matching verse numbers only. Numbering can differ by edition.":"Solo compara versículos del mismo número. La numeración puede variar según la edición.",
+
     "Open separate ULT development source":"Abrir la fuente de desarrollo ULT por separado",
     "Separate ULT development snapshot, 26 November 2026 (452a08b). Not the v92 release. Publisher alignments are shown only for this source; they are not mapped to your reader translation. Punctuation is omitted.":"Instantánea separada de ULT en desarrollo, 26 de noviembre de 2026 (452a08b). No es la edición v92. Las alineaciones del editor corresponden solo a esta fuente; no se vinculan con la traducción del lector. Se omite la puntuación.",
     "Deuterocanon linked passages":"Pasajes deuterocanónicos relacionados",
