@@ -46,6 +46,7 @@
   const tsDay = ts => { const d = new Date(ts); return isNaN(d) ? null : dayStr(d); };
   const refOf = (b, c, v) => BOOKS[b][1] + " " + c + (v ? ":" + v : "");
   function toast(msg, ms) {
+    msg = tr(msg);
     if (typeof window.bibleyToast === "function") { window.bibleyToast(msg, ms); return; }
     let t = document.querySelector(".fx-toast");
     if (!t) { t = document.createElement("div"); t.className = "fx-toast"; document.body.appendChild(t); }
@@ -83,7 +84,7 @@
     if (view === "journal" && fx.ui.isOpen("tool-journal")) fx.ui.onClose(null);
     fx.ui.openSheet("tool-" + view, tr(title), host => {
       if (back) {
-        const b = h('<button type="button" class="bp-btn small bp-section-back">← Back</button>');
+        const b = h(("<button type=\"button\" class=\"bp-btn small bp-section-back\">" + esc(tr("← Back")) + "</button>"));
         b.onclick = back;
         host.append(b);
       }
@@ -192,7 +193,7 @@
     title: "Daily recap",
     render(body) {
       let day = dayStr();
-      const head = h('<div class="bp-row spread"><button class="bp-btn small">&#8249; Prev</button><b style="font-family:Fraunces;color:var(--gold-soft)"></b><button class="bp-btn small">Next &#8250;</button></div>');
+      const head = h(("<div class=\"bp-row spread\"><button class=\"bp-btn small\">" + esc(tr("‹ Prev")) + "</button><b style=\"font-family:Fraunces;color:var(--gold-soft)\"></b><button class=\"bp-btn small\">" + esc(tr("Next ›")) + "</button></div>"));
       const [prev, label, next] = head.querySelectorAll("button,b");
       prev.textContent = tr("‹ Prev"); next.textContent = tr("Next ›");
       const content = h('<div></div>');
@@ -232,7 +233,7 @@
     title: "Monthly recap",
     render(body) {
       let month = monthStr();
-      const head = h('<div class="bp-row spread"><button class="bp-btn small">&#8249; Prev</button><b style="font-family:Fraunces;color:var(--gold-soft)"></b><button class="bp-btn small">Next &#8250;</button></div>');
+      const head = h(("<div class=\"bp-row spread\"><button class=\"bp-btn small\">" + esc(tr("‹ Prev")) + "</button><b style=\"font-family:Fraunces;color:var(--gold-soft)\"></b><button class=\"bp-btn small\">" + esc(tr("Next ›")) + "</button></div>"));
       const [prev, label, next] = head.querySelectorAll("button,b");
       prev.textContent = tr("‹ Prev"); next.textContent = tr("Next ›");
       const content = h('<div></div>');
@@ -374,11 +375,11 @@
       if (!jKey) {
         const wrap = h('<div class="bp-lock-wrap"><div class="bp-lock-ic">' + IC.lock + '</div></div>');
         if (!m) {
-          wrap.appendChild(h('<p style="font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px">Lock your journal</p>'));
-          wrap.appendChild(h('<p class="bp-muted">Entries are encrypted on this device with a key made from your PIN or passphrase; if you sync, only the encrypted copy ever leaves the device. <b>Strength matters:</b> a short numeric PIN can be guessed by someone who gets hold of your data - a longer passphrase is much stronger. Encryption protects the stored entries; it cannot protect against malicious software on the device itself. If you forget your PIN or passphrase, these entries <b>cannot be recovered</b>. There is no reset.</p>'));
-          const p1 = h('<input class="bp-input" type="password" placeholder="Choose a PIN or passphrase (longer is stronger)" maxlength="64"/>');
-          const p2 = h('<input class="bp-input" type="password" placeholder="Repeat it" maxlength="64" style="margin-top:8px"/>');
-          const btn = h('<button class="bp-btn primary block" style="margin-top:10px">Create locked journal</button>');
+          wrap.appendChild(h(("<p style=\"font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px\">" + esc(tr("Lock your journal")) + "</p>")));
+          wrap.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Entries are encrypted on this device with a key made from your PIN or passphrase; if you sync, only the encrypted copy ever leaves the device.")) + " <b>" + esc(tr("Strength matters:")) + "</b> " + esc(tr("a short numeric PIN can be guessed by someone who gets hold of your data - a longer passphrase is much stronger. Encryption protects the stored entries; it cannot protect against malicious software on the device itself. If you forget your PIN or passphrase, these entries")) + " <b>" + esc(tr("cannot be recovered")) + "</b>" + esc(tr(". There is no reset.")) + "</p>")));
+          const p1 = h(("<input class=\"bp-input\" type=\"password\" placeholder=\"" + esc(tr("Choose a PIN or passphrase (longer is stronger)")) + "\" maxlength=\"64\"/>"));
+          const p2 = h(("<input class=\"bp-input\" type=\"password\" placeholder=\"" + esc(tr("Repeat it")) + "\" maxlength=\"64\" style=\"margin-top:8px\"/>"));
+          const btn = h(("<button class=\"bp-btn primary block\" style=\"margin-top:10px\">" + esc(tr("Create locked journal")) + "</button>"));
           btn.onclick = async () => {
             const a = p1.value.trim();
             if (a.length < 4) { toast("Needs at least 4 characters - longer is stronger"); return; }
@@ -389,10 +390,10 @@
           };
           wrap.append(p1, p2, btn);
         } else {
-          wrap.appendChild(h('<p style="font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px">Journal is locked</p>'));
-          wrap.appendChild(h('<p class="bp-muted">Entries are encrypted on this device. A wrong PIN or passphrase cannot open them, and a forgotten one cannot be recovered.</p>'));
-          const p1 = h('<input class="bp-input" type="password" placeholder="PIN or passphrase" maxlength="64"/>');
-          const btn = h('<button class="bp-btn primary block" style="margin-top:10px">Unlock</button>');
+          wrap.appendChild(h(("<p style=\"font-family:Fraunces;font-size:17px;color:var(--gold-soft);margin:0 0 6px\">" + esc(tr("Journal is locked")) + "</p>")));
+          wrap.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Entries are encrypted on this device. A wrong PIN or passphrase cannot open them, and a forgotten one cannot be recovered.")) + "</p>")));
+          const p1 = h(("<input class=\"bp-input\" type=\"password\" placeholder=\"" + esc(tr("PIN or passphrase")) + "\" maxlength=\"64\"/>"));
+          const btn = h(("<button class=\"bp-btn primary block\" style=\"margin-top:10px\">" + esc(tr("Unlock")) + "</button>"));
           const go = async () => { btn.disabled = true; const ok = await journalUnlock(p1.value); if (!body.isConnected || !body.contains(p1)) return; btn.disabled = false; if (ok) renderView("journal"); else { toast("Wrong PIN"); p1.value = ""; p1.focus(); } };
           btn.onclick = go; p1.onkeydown = e => { if (e.key === "Enter") go(); };
           wrap.append(p1, btn);
@@ -401,22 +402,30 @@
         return;
       }
       armJournalLock();
-      const bar = h('<div class="bp-row spread"><span class="bp-muted">' + jEntries.length + ' entr' + (jEntries.length === 1 ? "y" : "ies") + '</span><button class="bp-btn small">Lock now</button></div>');
+      const bar = h('<div class="bp-row spread"><span class="bp-muted">' + jEntries.length + (isEs() ? (jEntries.length === 1 ? ' entrada' : ' entradas') : ' entr' + (jEntries.length === 1 ? "y" : "ies")) + ("</span><button class=\"bp-btn small\">" + esc(tr("Lock now")) + "</button></div>"));
       bar.querySelector("button").onclick = () => { lockJournal(); renderView("journal", true); };
       body.appendChild(bar);
       if (jEntries.length) {
-        const row = h('<div class="bp-row"><button class="bp-btn small">Export journal Markdown</button><button class="bp-btn small">Export journal CSV</button></div>');
+        const row = h(("<div class=\"bp-row\"><button class=\"bp-btn small\">" + esc(tr("Export journal Markdown")) + "</button><button class=\"bp-btn small\">" + esc(tr("Export journal CSV")) + "</button></div>"));
         const prompts = ['Markdown', 'CSV'];
         row.querySelectorAll('button').forEach((b, i) => b.onclick = () => {
-          if (!jEntries || !confirm('Export your unlocked journal as a readable, unencrypted ' + prompts[i] + ' file?')) return;
+          if (!jEntries || !confirm(isEs() ? '¿Exportar el diario desbloqueado como archivo ' + prompts[i] + ' legible y sin cifrar?' : 'Export your unlocked journal as a readable, unencrypted ' + prompts[i] + ' file?')) return;
           const text = i ? [['date','prompt','text'], ...jEntries.map(e => [e.d, e.prompt, e.text])].map(r => r.map(csvCell).join(',')).join('\n') : '# Bibley journal\n\n' + jEntries.map(e => '## ' + e.d + '\n' + e.prompt + '\n\n' + e.text).join('\n\n');
           download('bibley-journal-' + dayStr() + (i ? '.csv' : '.md'), text, i ? 'text/csv' : 'text/markdown');
         });
         body.append(row);
       }
+      if (jEntries.length) {
+        const pdf = h('<button class="bp-btn block">' + esc(tr("Print journal / Save PDF")) + '</button>');
+        pdf.onclick = () => {
+          if (!jEntries || !confirm(tr("Open a readable, unencrypted journal print preview? It stays open after you lock the journal. Close it when finished."))) return;
+          printText(tr("Bibley journal"), jEntries.map(e => e.d + "\n" + (e.prompt || "") + "\n\n" + e.text).join("\n\n────────\n\n"));
+        };
+        body.append(pdf);
+      }
       const PROMPTS = ["What are you grateful to God for today?", "What is God teaching you right now?", "A verse that stayed with you today", "Who is on your heart to pray for?", "What do you want to remember from today?"];
-      const prompt = PROMPTS[new Date().getDate() % PROMPTS.length];
-      const card = h('<div class="bp-card"><div class="bp-eyebrow">Today \u00b7 ' + esc(prompt) + '</div><textarea class="bp-textarea" placeholder="Write freely - this is between you and God."></textarea><button class="bp-btn primary block">Save entry</button></div>');
+      const prompt = tr(PROMPTS[new Date().getDate() % PROMPTS.length]);
+      const card = h(("<div class=\"bp-card\"><div class=\"bp-eyebrow\">" + esc(tr("Today ·")) + " ") + esc(prompt) + ("</div><textarea class=\"bp-textarea\" placeholder=\"" + esc(tr("Write freely - this is between you and God.")) + "\"></textarea><button class=\"bp-btn primary block\">" + esc(tr("Save entry")) + "</button></div>"));
       const ta = card.querySelector("textarea"), sv = card.querySelector("button");
       sv.onclick = async () => {
         const t = ta.value.trim(); if (!t) { toast("Write something first"); return; }
@@ -430,7 +439,7 @@
       jEntries.forEach(e => {
         const el = h('<div class="bp-j-entry"><div class="je-date">' + esc(e.d) + '</div><div class="je-prompt">' + esc(e.prompt || "") + '</div><div class="je-text">' + esc(e.text) + '</div><div class="bp-row" style="margin-top:6px"><button class="bp-btn small danger">' + esc(tr("Delete")) + '</button></div></div>');
         el.querySelector("button").onclick = async () => {
-          if (sv.disabled || !confirm("Delete this journal entry? This cannot be undone.")) return;
+          if (sv.disabled || !confirm(tr("Delete this journal entry? This cannot be undone."))) return;
           const epoch = jEpoch, next = jEntries.filter(x => x.id !== e.id); sv.disabled = true;
           try { await journalPersist(next); if (epoch === jEpoch) { jEntries = next; renderView("journal"); } }
           catch { toast("Couldn’t delete the entry"); sv.disabled = false; }
@@ -458,7 +467,7 @@
       if (g === 3) c.ease += 0.15;
       c.ivl = c.ivl === 0 ? (g === 3 ? 3 : 1) : Math.max(1, Math.round(c.ivl * c.ease * (g === 1 ? 0.8 : 1)));
     }
-    c.due = addDays(dayStr(), c.ivl); c.last = dayStr(); s.cards[key] = c; srsSave(s); logEvent("mem", 1);
+    c.due = addDays(dayStr(), Math.max(1, c.ivl)); c.last = dayStr(); s.cards[key] = c; srsSave(s); logEvent("mem", 1);
   }
   const memList = () => Object.entries(memAll().verses).map(([k, v]) => ({ key: k, ref: v.ref || k, text: v.text || "" }));
   const STARTER = [["John 3:16"], ["Psalm 23:1"], ["Proverbs 3:5"], ["Proverbs 3:6"], ["Philippians 4:13"], ["Romans 8:28"], ["Psalm 119:105"], ["Joshua 1:9"]];
@@ -483,11 +492,11 @@
       const today = dayStr(); const s = srsAll();
       const due = list.filter(v => { const c = s.cards[v.key]; return !c || c.due <= today; });
       const learned = list.filter(v => { const c = s.cards[v.key]; return c && c.due > today; });
-      body.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + due.length + '</b><span>due today</span></div><div class="bp-stat"><b>' + learned.length + '</b><span>scheduled</span></div><div class="bp-stat"><b>' + list.length + '</b><span>total verses</span></div></div>'));
+      body.appendChild(h('<div class="bp-stat-grid"><div class="bp-stat"><b>' + due.length + ("</b><span>" + esc(tr("due today")) + "</span></div><div class=\"bp-stat\"><b>") + learned.length + ("</b><span>" + esc(tr("scheduled")) + "</span></div><div class=\"bp-stat\"><b>") + list.length + ("</b><span>" + esc(tr("total verses")) + "</span></div></div>")));
       if (!list.length) {
-        body.appendChild(h('<p class="bp-muted">No memory verses yet. Verses you save in Memorize mode (tap a verse in the reader) appear here, or start with a small starter set.</p>'));
-        const st = h('<button class="bp-btn primary block">Add 8 well-known starter verses</button>');
-        st.onclick = async () => { st.disabled = true; const n = await addStarterVerses(); toast(n ? n + " verses added" : "Couldn't add verses (offline?)"); renderView("memory", true); };
+        body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("No memory verses yet. Verses you save in Memorize mode (tap a verse in the reader) appear here, or start with a small starter set.")) + "</p>")));
+        const st = h(("<button class=\"bp-btn primary block\">" + esc(tr("Add 8 well-known starter verses")) + "</button>"));
+        st.onclick = async () => { st.disabled = true; const n = await addStarterVerses(); toast(n ? (isEs() ? n + " versículos añadidos" : n + " verses added") : "Couldn't add verses (offline?)"); renderView("memory", true); };
         body.appendChild(st);
         const cur = C.selectedVerse && C.selectedVerse();
         if (cur) {
@@ -498,13 +507,13 @@
         return;
       }
       const pool = due.length ? due : list;
-      body.appendChild(h('<div class="bp-eyebrow">' + (due.length ? "Review " + due.length + " due verse" + (due.length === 1 ? "" : "s") : "Nothing due - practice anyway") + '</div>'));
+      body.appendChild(h('<div class="bp-eyebrow">' + (due.length ? (isEs() ? "Repasar " + due.length + " versículo(s) pendiente(s)" : "Review " + due.length + " due verse" + (due.length === 1 ? "" : "s")) : tr("Nothing due - practice anyway")) + '</div>'));
       MODES.forEach(([m, name]) => {
-        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.cards + '</span><span>' + name + '</span><span class="mi-arrow">&#8250;</span></button>');
+        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.cards + '</span><span>' + esc(tr(name)) + '</span><span class="mi-arrow">&#8250;</span></button>');
         b.onclick = () => startSession(m, pool);
         body.appendChild(b);
       });
-      body.appendChild(h('<p class="bp-muted">Spaced repetition: verses you know well come back less often; ones you miss come back tomorrow. Reviews count toward your recaps.</p>'));
+      body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Spaced repetition: verses you know well come back less often; ones you miss come back tomorrow. Reviews count toward your recaps.")) + "</p>")));
     }
   };
   let session = null;
@@ -515,8 +524,8 @@
   function nextCard() {
     sheetBody.innerHTML = "";
     if (!session.queue.length) {
-      sheetBody.appendChild(h('<div class="bp-card gold" style="text-align:center"><p style="font-family:Fraunces;font-size:17px;margin:6px 0">Session complete</p><p class="bp-muted">' + session.done + ' verse' + (session.done === 1 ? "" : "s") + ' reviewed. Nice work.</p></div>'));
-      const back = h('<button class="bp-btn block">Back to Memory practice</button>');
+      sheetBody.appendChild(h(("<div class=\"bp-card gold\" style=\"text-align:center\"><p style=\"font-family:Fraunces;font-size:17px;margin:6px 0\">" + esc(tr("Session complete")) + "</p><p class=\"bp-muted\">") + session.done + (isEs() ? ' versículo(s) repasado(s). Buen trabajo.' : ' verse' + (session.done === 1 ? "" : "s") + ' reviewed. Nice work.') + '</p></div>'));
+      const back = h(("<button class=\"bp-btn block\">" + esc(tr("Back to Memory practice")) + "</button>"));
       back.onclick = () => renderView("memory", true);
       sheetBody.appendChild(back);
       return;
@@ -525,7 +534,7 @@
     sheetBody.appendChild(h('<div class="bp-progress"><i style="width:' + Math.round(session.done / (session.done + session.queue.length) * 100) + '%"></i></div>'));
     const box = h('<div class="bp-flash"><div class="bp-flash-inner"></div></div>');
     const inner = box.querySelector(".bp-flash-inner");
-    const grades = h('<div class="bp-grade-row"><button>Again<small>tomorrow</small></button><button>Hard<small>shorter gap</small></button><button>Good<small>normal gap</small></button><button>Easy<small>longer gap</small></button></div>');
+    const grades = h(("<div class=\"bp-grade-row\"><button>" + esc(tr("Again")) + "<small>" + esc(tr("tomorrow")) + "</small></button><button>" + esc(tr("Hard")) + "<small>" + esc(tr("shorter gap")) + "</small></button><button>" + esc(tr("Good")) + "<small>" + esc(tr("normal gap")) + "</small></button><button>" + esc(tr("Easy")) + "<small>" + esc(tr("longer gap")) + "</small></button></div>"));
     grades.style.display = "none";
     grades.querySelectorAll("button").forEach((btn, g) => btn.onclick = () => { grade(v.key, g); session.queue.shift(); session.done++; nextCard(); });
     const reveal = () => { grades.style.display = "grid"; };
@@ -537,16 +546,16 @@
       const hideIdx = new Set(); const step = Math.max(3, Math.round(words.length / 4));
       for (let i = 1; i < words.length; i += step) hideIdx.add(i);
       const html = words.map((w, i) => hideIdx.has(i) ? '<span class="blank" data-w="' + esc(w) + '">' + esc(w) + '</span>' : esc(w)).join(" ");
-      inner.innerHTML = '<div class="bp-flash-ref">' + esc(v.ref) + '</div><div class="bp-flash-text">' + html + '</div><p class="bp-muted" style="margin:0">Tap to reveal the missing words</p>';
+      inner.innerHTML = '<div class="bp-flash-ref">' + esc(v.ref) + '</div><div class="bp-flash-text">' + html + ("</div><p class=\"bp-muted\" style=\"margin:0\">" + esc(tr("Tap to reveal the missing words")) + "</p>");
       inner.onclick = () => { inner.querySelectorAll(".blank").forEach(b => b.classList.add("shown")); reveal(); };
     } else if (session.mode === "first") {
-      const fl = v.text.split(/\s+/).map(w => { const m = w.match(/[\w\u2019'-]+|./gu); return m ? m[0][0] : ""; }).join(" ");
-      inner.innerHTML = '<div class="bp-flash-ref">' + esc(v.ref) + '</div><div class="bp-firstletters">' + esc(fl) + '</div><div class="bp-flash-text" hidden>' + esc(v.text) + '</div><p class="bp-muted" style="margin:0">Say it from the first letters, then tap</p>';
+      const fl = v.text.split(/\s+/).map(w => { const m = w.match(/[\p{L}\p{N}]/u); return m ? m[0] : ""; }).join(" ");
+      inner.innerHTML = '<div class="bp-flash-ref">' + esc(v.ref) + '</div><div class="bp-firstletters">' + esc(fl) + '</div><div class="bp-flash-text" hidden>' + esc(v.text) + ("</div><p class=\"bp-muted\" style=\"margin:0\">" + esc(tr("Say it from the first letters, then tap")) + "</p>");
       inner.onclick = () => { inner.querySelector(".bp-flash-text").hidden = false; reveal(); };
     } else { // quiz: pick the reference
       const others = memList().filter(x => x.key !== v.key).sort(() => Math.random() - .5).slice(0, 3);
       const opts = others.concat([v]).sort(() => Math.random() - .5);
-      inner.innerHTML = '<div class="bp-flash-text">' + esc(v.text) + '</div><p class="bp-muted" style="margin:0">Which verse is this?</p>';
+      inner.innerHTML = '<div class="bp-flash-text">' + esc(v.text) + ("</div><p class=\"bp-muted\" style=\"margin:0\">" + esc(tr("Which verse is this?")) + "</p>");
       const orow = h('<div style="display:grid;gap:7px;margin-top:10px"></div>');
       opts.forEach(o => {
         const b = h('<button class="bp-btn">' + esc(o.ref) + '</button>');
@@ -565,7 +574,11 @@
   const cplanAll = () => { const d = load(K.CPLAN, null); return d && Array.isArray(d.plans) ? d : { plans: [], active: null }; };
   const cplanSave = d => save(K.CPLAN, d);
   const chRange = (b0, b1) => { const out = []; for (let b = b0; b <= b1; b++) for (let c = 1; c <= BOOKS[b][2]; c++) out.push([b, c]); return out; };
-  const splitDays = (list, days) => Array.from({ length: days }, (_, d) => list.slice(Math.floor(d * list.length / days), Math.floor((d + 1) * list.length / days)));
+  const splitDays = (list, days) => {
+    // A short book must not produce empty reading days (which cannot be opened).
+    days = Math.min(list.length, Math.max(1, Math.floor(days)));
+    return Array.from({ length: days }, (_, d) => list.slice(Math.floor(d * list.length / days), Math.floor((d + 1) * list.length / days)));
+  };
   function easterDate(year) { // Gregorian computus
     const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), hh = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - hh - k) % 7, m = Math.floor((a + 11 * hh + 22 * l) / 451), mo = Math.floor((hh + l - 7 * m + 114) / 31), da = ((hh + l - 7 * m + 114) % 31) + 1;
     return new Date(year, mo - 1, da);
@@ -588,7 +601,7 @@
   function activeSeasonal() {
     const today = dayStr(), y = new Date().getFullYear();
     return seasonalPlans(y).concat(seasonalPlans(y + 1)).map(s => Object.assign({}, s, { end: addDays(s.start, s.days.length - 1) }))
-      .sort((a, b) => a.start < b.start ? -1 : 1);
+      .filter(s => s.end >= today).sort((a, b) => a.start < b.start ? -1 : 1);
   }
   function cplanState(pl) {
     const done = pl.done || {}, skipped = pl.skipped || {};
@@ -605,83 +618,84 @@
       const mine = d.plans.find(p => p.id === d.active) || null;
       if (mine) {
         const st = cplanState(mine);
-        const card = h('<div class="bp-card gold"><div class="bp-row spread"><b style="font-family:Fraunces;color:var(--gold-soft)">' + esc(mine.name) + '</b><span class="bp-muted">' + st.doneCount + '/' + st.total + ' days \u00b7 ' + st.pct + '%</span></div><div class="bp-progress"><i style="width:' + st.pct + '%"></i></div></div>');
+        const card = h('<div class="bp-card gold"><div class="bp-row spread"><b style="font-family:Fraunces;color:var(--gold-soft)">' + esc(mine.name) + '</b><span class="bp-muted">' + st.doneCount + '/' + st.total + (isEs() ? ' días \u00b7 ' : ' days \u00b7 ') + st.pct + '%</span></div><div class="bp-progress"><i style="width:' + st.pct + '%"></i></div></div>');
         if (st.behind > 0 && !st.finished) {
-          const cu = h('<button class="bp-btn small">Catch up (' + st.behind + ' day' + (st.behind === 1 ? "" : "s") + ' behind)</button>');
+          const cu = h('<button class="bp-btn small">' + (isEs() ? 'Ponerse al día (' + st.behind + ' día(s) de retraso)' : 'Catch up (' + st.behind + ' day' + (st.behind === 1 ? "" : "s") + ' behind)') + '</button>');
           cu.onclick = () => { const dd = cplanAll(); const pl = dd.plans.find(p => p.id === dd.active); pl.started = addDays(dayStr(), -(st.doneCount + Object.keys(pl.skipped || {}).length)); cplanSave(dd); toast("Schedule moved up - today is your next reading"); renderView("plans", true); };
           card.appendChild(cu);
         }
         body.appendChild(card);
         if (!st.finished) {
           const todays = mine.days[st.idx];
-          const tc = h('<div class="bp-card"><div class="bp-eyebrow">Today \u00b7 Day ' + (st.idx + 1) + '</div><p style="font-size:15px;margin:4px 0 10px">' + esc(summarizeChapters(todays)) + '</p><div class="bp-row"></div></div>');
+          const tc = h(("<div class=\"bp-card\"><div class=\"bp-eyebrow\">" + esc(tr("Today · Day")) + " ") + (st.idx + 1) + '</div><p style="font-size:15px;margin:4px 0 10px">' + esc(summarizeChapters(todays)) + '</p><div class="bp-row"></div></div>');
           const row = tc.querySelector(".bp-row");
-          const open = h('<button class="bp-btn small">Open reading</button>');
+          const open = h(("<button class=\"bp-btn small\">" + esc(tr("Open reading")) + "</button>"));
           open.onclick = () => { C.goTo(todays[0][0], todays[0][1]); closeTool(); };
-          const done = h('<button class="bp-btn small primary">Mark day done</button>');
+          const done = h(("<button class=\"bp-btn small primary\">" + esc(tr("Mark day done")) + "</button>"));
           done.onclick = () => {
             const dd = cplanAll(); const pl = dd.plans.find(p => p.id === dd.active);
             pl.done = pl.done || {}; pl.done[st.idx] = dayStr(); cplanSave(dd);
             const rm = readMap(); todays.forEach(([b, c]) => { if (!rm[BOOKS[b][0] + "-" + c]) rm[BOOKS[b][0] + "-" + c] = dayStr(); }); save(K.READ, rm);
             markActive(); logEvent("plan", 1);
             const after = cplanState(pl);
-            toast(after.finished ? "Plan complete - well done!" : "Day " + (st.idx + 1) + " done \u2713", 3000);
+            toast(after.finished ? "Plan complete - well done!" : (isEs() ? "Día " + (st.idx + 1) + " completado" : "Day " + (st.idx + 1) + " done \u2713"), 3000);
             renderView("plans", true);
           };
-          const skip = h('<button class="bp-btn small">Skip this day</button>');
-          skip.onclick = () => { if (!confirm("Skip Day " + (st.idx + 1) + "? Its reading is dropped, not moved.")) return; const dd = cplanAll(); const pl = dd.plans.find(p => p.id === dd.active); pl.skipped = pl.skipped || {}; pl.skipped[st.idx] = dayStr(); cplanSave(dd); renderView("plans", true); };
-          const quit = h('<button class="bp-btn small danger">End plan</button>');
-          quit.onclick = () => { if (!confirm("End this plan? Your progress is kept in history.")) return; const dd = cplanAll(); dd.active = null; cplanSave(dd); renderView("plans", true); };
+          const skip = h(("<button class=\"bp-btn small\">" + esc(tr("Skip this day")) + "</button>"));
+          skip.onclick = () => { if (!confirm(isEs() ? "¿Omitir el día " + (st.idx + 1) + "? Se quitará su lectura, no se moverá." : "Skip Day " + (st.idx + 1) + "? Its reading is dropped, not moved.")) return; const dd = cplanAll(); const pl = dd.plans.find(p => p.id === dd.active); pl.skipped = pl.skipped || {}; pl.skipped[st.idx] = dayStr(); cplanSave(dd); renderView("plans", true); };
+          const quit = h(("<button class=\"bp-btn small danger\">" + esc(tr("End plan")) + "</button>"));
+          quit.onclick = () => { if (!confirm(tr("End this plan? Your progress is kept in history."))) return; const dd = cplanAll(); dd.active = null; cplanSave(dd); renderView("plans", true); };
           row.append(open, done, skip, quit);
           body.appendChild(tc);
         } else {
-          body.appendChild(h('<p class="bp-muted">Plan complete. Start another below.</p>'));
+          body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Plan complete. Start another below.")) + "</p>")));
         }
       }
-      body.appendChild(h('<div class="bp-eyebrow">' + (mine ? "Start a different plan" : "Start a plan") + '</div>'));
-      const custom = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.route + '</span><span>Build a custom plan<span class="mi-sub">Choose the books and the pace</span></span><span class="mi-arrow">&#8250;</span></button>');
+      body.appendChild(h('<div class="bp-eyebrow">' + esc(tr(mine ? "Start a different plan" : "Start a plan")) + '</div>'));
+      const custom = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.route + ("</span><span>" + esc(tr("Build a custom plan")) + "<span class=\"mi-sub\">" + esc(tr("Choose the books and the pace")) + "</span></span><span class=\"mi-arrow\">&#8250;</span></button>"));
       custom.onclick = () => renderView("plan-builder");
       body.appendChild(custom);
       const seasons = activeSeasonal();
-      body.appendChild(h('<div class="bp-eyebrow">Seasonal</div>'));
+      body.appendChild(h(("<div class=\"bp-eyebrow\">" + esc(tr("Seasonal")) + "</div>")));
       seasons.slice(0, 3).forEach(s => {
-        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.cal + '</span><span>' + esc(s.name) + '<span class="mi-sub">' + esc(s.blurb) + ' \u00b7 ' + esc(s.start) + ' \u2192 ' + esc(s.end) + '</span></span><span class="mi-arrow">&#8250;</span></button>');
+        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.cal + '</span><span>' + esc(tr(s.name)) + '<span class="mi-sub">' + esc(tr(s.blurb)) + ' \u00b7 ' + esc(s.start) + ' \u2192 ' + esc(s.end) + '</span></span><span class="mi-arrow">&#8250;</span></button>');
         b.onclick = () => {
           const dd = cplanAll();
           const id = s.id + "-" + s.start;
           if (!dd.plans.some(p => p.id === id)) dd.plans.push({ id, name: s.name + " " + s.start.slice(0, 4), days: s.days, started: dayStr(), done: {}, skipped: {}, seasonal: s.id });
-          dd.active = id; cplanSave(dd); toast(s.name + " plan started"); renderView("plans", true);
+          dd.active = id; cplanSave(dd); toast(isEs() ? "Plan de " + tr(s.name) + " iniciado" : s.name + " plan started"); renderView("plans", true);
         };
         body.appendChild(b);
       });
-      body.appendChild(h('<p class="bp-muted">These plans sit alongside the built-in plans (Plans button in the dock) - pick whichever you like; both count toward your streak. If you switch, progress on the other plan is kept.</p>'));
+      body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("These plans sit alongside the built-in plans (Plans button in the dock) - pick whichever you like; both count toward your streak. If you switch, progress on the other plan is kept.")) + "</p>")));
     }
   };
   VIEWS["plan-builder"] = {
     title: "Custom plan",
     render(body) {
       const scopes = [["Whole Bible", 0, 65], ["Old Testament", 0, OT_END], ["New Testament", 39, 65], ["Gospels", 39, 42], ["Gospels & Acts", 39, 43], ["Letters", 44, 64], ["Psalms", 18, 18], ["Proverbs", 19, 19]];
-      const card = h('<div class="bp-card"><div class="bp-eyebrow">Build your plan</div>' +
-        '<input class="bp-input" placeholder="Plan name (optional)" maxlength="60"/>' +
-        '<div class="bp-eyebrow" style="margin-top:10px">What to read</div><select class="bp-select"></select>' +
-        '<div class="bp-eyebrow" style="margin-top:10px">Pace</div><div class="bp-row"><input class="bp-input" type="number" min="1" max="365" value="30" style="width:90px"/><span class="bp-muted">days to finish</span></div>' +
+      const card = h(("<div class=\"bp-card\"><div class=\"bp-eyebrow\">" + esc(tr("Build your plan")) + "</div>") +
+        ("<input class=\"bp-input\" placeholder=\"" + esc(tr("Plan name (optional)")) + "\" maxlength=\"60\"/>") +
+        ("<div class=\"bp-eyebrow\" style=\"margin-top:10px\">" + esc(tr("What to read")) + "</div><select class=\"bp-select\"></select>") +
+        ("<div class=\"bp-eyebrow\" style=\"margin-top:10px\">" + esc(tr("Pace")) + "</div><div class=\"bp-row\"><input class=\"bp-input\" type=\"number\" min=\"1\" max=\"365\" value=\"30\" style=\"width:90px\"/><span class=\"bp-muted\">" + esc(tr("days to finish")) + "</span></div>") +
         '<div class="bp-day-list" style="margin-top:10px"></div>' +
-        '<button class="bp-btn primary block" style="margin-top:10px">Start this plan</button></div>');
+        ("<button class=\"bp-btn primary block\" style=\"margin-top:10px\">" + esc(tr("Start this plan")) + "</button></div>"));
       const [nameIn, sel, daysIn, preview, start] = [card.querySelector("input"), card.querySelector("select"), card.querySelector("input[type=number]"), card.querySelector(".bp-day-list"), card.querySelector("button")];
-      scopes.concat(BOOKS.map((b, i) => [b[1], i, i])).forEach(([n, b0, b1]) => sel.appendChild(h('<option value="' + b0 + '-' + b1 + '">' + esc(n) + '</option>')));
+      scopes.concat(BOOKS.map((b, i) => [b[1], i, i])).forEach(([n, b0, b1]) => sel.appendChild(h('<option value="' + b0 + '-' + b1 + '">' + esc(tr(n)) + '</option>')));
       const draw = () => {
         const [b0, b1] = sel.value.split("-").map(Number);
         const list = chRange(b0, b1);
-        const days = Math.max(1, Math.min(365, +daysIn.value || 30));
+        const days = Math.max(1, Math.min(365, list.length, Math.floor(+daysIn.value || 30)));
+        daysIn.max = String(Math.min(365, list.length));
         const dd = splitDays(list, days);
-        preview.textContent = list.length + " chapters over " + days + " days \u00b7 Day 1: " + summarizeChapters(dd[0]) + (dd[1] ? " \u00b7 Day 2: " + summarizeChapters(dd[1]) : "") + " \u00b7 ...";
+        preview.textContent = isEs() ? list.length + " capítulos en " + days + " días · Día 1: " + summarizeChapters(dd[0]) + (dd[1] ? " · Día 2: " + summarizeChapters(dd[1]) : "") : list.length + " chapters over " + days + " days · Day 1: " + summarizeChapters(dd[0]) + (dd[1] ? " · Day 2: " + summarizeChapters(dd[1]) : "");
       };
       sel.onchange = draw; daysIn.oninput = draw; draw();
       start.onclick = () => {
         const [b0, b1] = sel.value.split("-").map(Number);
-        const days = Math.max(1, Math.min(365, +daysIn.value || 30));
         const list = chRange(b0, b1);
-        const name = nameIn.value.trim() || (sel.options[sel.selectedIndex].text + " in " + days + " days");
+        const days = Math.max(1, Math.min(365, list.length, Math.floor(+daysIn.value || 30)));
+        const name = nameIn.value.trim() || (sel.options[sel.selectedIndex].text + (isEs() ? " en " : " in ") + days + (isEs() ? " días" : " days"));
         const dd = cplanAll();
         const id = "c" + Date.now().toString(36);
         dd.plans.push({ id, name, days: splitDays(list, days), started: dayStr(), done: {}, skipped: {} });
@@ -712,14 +726,14 @@
     title: "Filtered Bible search",
     render(body) {
       const versions = Object.keys(C.jsonBibles || { web: 1, kjv: 1 });
-      const card = h('<div class="bp-card"><div class="bp-row"><input class="bp-input" placeholder="Search the whole Bible..." style="flex:1"/><button class="bp-btn small" title="Voice search">&#x1F3A4;</button></div>' +
+      const card = h(("<div class=\"bp-card\"><div class=\"bp-row\"><input class=\"bp-input\" placeholder=\"" + esc(tr("Search the whole Bible...")) + "\" style=\"flex:1\"/><button class=\"bp-btn small\" title=\"" + esc(tr("Voice search")) + "\">&#x1F3A4;</button></div>") +
         '<div class="bp-row" style="margin-top:8px"><select class="bp-select" style="flex:1"></select><select class="bp-select" style="flex:1"></select><select class="bp-select" style="flex:1"></select></div>' +
-        '<button class="bp-btn primary block" style="margin-top:8px">Search</button></div>');
+        ("<button class=\"bp-btn primary block\" style=\"margin-top:8px\">" + esc(tr("Search")) + "</button></div>"));
       const [inp, mic] = card.querySelectorAll("input,button");
       const [scopeSel, bookSel, verSel] = card.querySelectorAll("select");
-      [["all", "Old & New Testament"], ["ot", "Old Testament"], ["nt", "New Testament"]].forEach(([v, n]) => scopeSel.appendChild(h('<option value="' + v + '">' + n + '</option>')));
+      [["all", "Old & New Testament"], ["ot", "Old Testament"], ["nt", "New Testament"]].forEach(([v, n]) => scopeSel.appendChild(h('<option value="' + v + '">' + esc(tr(n)) + '</option>')));
       const updBooks = () => {
-        bookSel.innerHTML = '<option value="-1">All books</option>';
+        bookSel.innerHTML = ("<option value=\"-1\">" + esc(tr("All books")) + "</option>");
         const a = scopeSel.value === "nt" ? 39 : 0, b = scopeSel.value === "ot" ? OT_END : 65;
         for (let i = a; i <= b; i++) bookSel.appendChild(h('<option value="' + i + '">' + esc(BOOKS[i][1]) + '</option>'));
       };
@@ -728,10 +742,10 @@
       const results = h('<div></div>');
       const histWrap = h('<div></div>');
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) mic.disabled = true, mic.title = "Voice search needs Chrome or Edge";
+      if (!SR) mic.disabled = true, mic.title = tr("Voice search needs Chrome or Edge");
       mic.onclick = () => {
         if (!SR) { toast("Voice search needs Chrome or Edge"); return; }
-        const r = new SR(); r.lang = "en-US"; r.interimResults = false;
+        const r = new SR(); r.lang = isEs() ? "es-ES" : "en-US"; r.interimResults = false;
         mic.style.color = "#e6bf69";
         r.onresult = e => { inp.value = e.results[0][0].transcript; run(); };
         r.onend = () => { mic.style.color = ""; };
@@ -742,7 +756,7 @@
       async function run() {
         const q = inp.value.trim(); if (q.length < 2) { toast("Type at least 2 letters"); return; }
         const seq = ++searchSeq;
-        results.innerHTML = '<p class="bp-muted">Searching ' + verSel.value.toUpperCase() + '...</p>';
+        results.innerHTML = ("<p class=\"bp-muted\">" + esc(tr("Searching")) + " ") + verSel.value.toUpperCase() + '...</p>';
         try {
           const ver = verSel.value, scope = scopeSel.value, book = +bookSel.value;
           const d = await C.loadJsonBible(ver);
@@ -752,7 +766,7 @@
           const found = bibleSearch(d, q, b0, b1, 200);
           const hist = shistAll().filter(x => x.q.toLowerCase() !== q.toLowerCase());
           hist.unshift({ q, ts: Date.now() }); save(K.SHIST, hist.slice(0, 15)); drawHist();
-          results.innerHTML = '<p class="bp-muted">' + found.length + (found.length >= 200 ? "+" : "") + ' result' + (found.length === 1 ? "" : "s") + ' in ' + esc(ver.toUpperCase()) + '</p>';
+          results.innerHTML = '<p class="bp-muted">' + found.length + (found.length >= 200 ? "+" : "") + (isEs() ? ' resultado' + (found.length === 1 ? '' : 's') + ' en ' : ' result' + (found.length === 1 ? "" : "s") + ' in ') + esc(ver.toUpperCase()) + '</p>';
           const ql = q.toLowerCase();
           found.forEach(r => {
             const i = r.text.toLowerCase().indexOf(ql);
@@ -761,24 +775,24 @@
             row.onclick = () => window.BibleyFX.jumpToVerse(r.b, r.c, r.v);
             results.appendChild(row);
           });
-          if (!found.length) results.appendChild(h('<p class="bp-muted">No matches. Try another word or a wider scope.</p>'));
-        } catch (e) { if (seq !== searchSeq) return; results.innerHTML = '<p class="bp-muted">Couldn\'t load that translation for searching. Are you online?</p>'; }
+          if (!found.length) results.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("No matches. Try another word or a wider scope.")) + "</p>")));
+        } catch (e) { if (seq !== searchSeq) return; results.innerHTML = ("<p class=\"bp-muted\">" + esc(tr("Couldn't load that translation for searching. Are you online?")) + "</p>"); }
       }
       card.querySelector(".bp-btn.primary").onclick = run;
       inp.onkeydown = e => { if (e.key === "Enter") run(); };
       function drawHist() {
         const hist = shistAll();
-        histWrap.innerHTML = hist.length ? '<div class="bp-eyebrow">Recent searches</div>' : "";
+        histWrap.innerHTML = hist.length ? ("<div class=\"bp-eyebrow\">" + esc(tr("Recent searches")) + "</div>") : "";
         if (!hist.length) return;
         const chips = h('<div class="bp-chips"></div>');
         hist.slice(0, 10).forEach(x => { const c = h('<button class="bp-chip">' + esc(x.q) + '</button>'); c.onclick = () => { inp.value = x.q; run(); }; chips.appendChild(c); });
-        const clr = h('<button class="bp-chip">Clear</button>'); clr.onclick = () => { save(K.SHIST, []); drawHist(); };
+        const clr = h(("<button class=\"bp-chip\">" + esc(tr("Clear")) + "</button>")); clr.onclick = () => { save(K.SHIST, []); drawHist(); };
         chips.appendChild(clr);
         histWrap.appendChild(chips);
       }
       drawHist();
       body.append(card, histWrap, results);
-      body.appendChild(h('<p class="bp-muted">Searches the offline translations bundled with Bibley. The drawer search still searches chapters you have opened in any version.</p>'));
+      body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Searches the offline translations bundled with Bibley. The drawer search still searches chapters you have opened in any version.")) + "</p>")));
     }
   };
 
@@ -809,6 +823,15 @@
     a.href = URL.createObjectURL(new Blob([text], { type: mime || "text/plain" }));
     a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  }
+  function printText(title, text) {
+    const popup = window.open("", "_blank");
+    if (!popup) { toast("Allow pop-ups to open the print preview"); return; }
+    popup.opener = null;
+    popup.document.write('<!doctype html><html lang="' + (isEs() ? 'es' : 'en') + '"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'"><title>' + esc(title) + '</title><style>body{max-width:52rem;margin:2rem auto;padding:0 1rem;color:#222;font:16px/1.65 Georgia,serif}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}button{padding:.7rem 1rem;font:inherit}@media print{button{display:none}body{margin:0;max-width:none}pre{orphans:3;widows:3}}</style></head><body><button type="button" id="print">' + esc(tr("Print / Save PDF")) + '</button><h1>' + esc(title) + '</h1><pre></pre></body></html>');
+    popup.document.close();
+    popup.document.querySelector('pre').textContent = text;
+    popup.document.getElementById('print').onclick = () => popup.print();
   }
   function exportMarkdown() {
     const L = ["# Bibley export", "", "_" + new Date().toLocaleString() + "_", ""];
@@ -849,31 +872,32 @@
     window.print();
   }
   VIEWS.tools = {
-    title: "Export & trash",
+    title: "Exports & trash",
     render(body) {
       const items = [
         ["Print this chapter", "Clean print-friendly view of what you're reading" + (C.isCompare && C.isCompare() ? " (both translations)" : ""), printChapter],
+        ["Print / Save PDF", "Notes, highlights, saved verses, memory verses, prayers", () => printText(tr("Bibley study records"), exportMarkdown())],
         ["Export Markdown", "Notes, highlights, saved verses, memory verses, prayers", () => { download("bibley-notes-" + dayStr() + ".md", exportMarkdown(), "text/markdown"); toast("Markdown downloaded"); }],
         ["Export CSV", "Study records in a spreadsheet file", () => { download("bibley-" + dayStr() + ".csv", exportCsv(), "text/csv"); toast("CSV downloaded"); }]
       ];
       items.forEach(([t, sub, fn]) => {
-        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.tool + '</span><span>' + esc(t) + '<span class="mi-sub">' + esc(sub) + '</span></span><span class="mi-arrow">&#8250;</span></button>');
+        const b = h('<button class="bp-menu-item"><span class="mi-ic">' + IC.tool + '</span><span>' + esc(tr(t)) + '<span class="mi-sub">' + esc(tr(sub)) + '</span></span><span class="mi-arrow">&#8250;</span></button>');
         b.onclick = fn;
         body.appendChild(b);
       });
-      body.appendChild(h('<div class="bp-eyebrow">Trash (' + trashAll().length + ')</div>'));
+      body.appendChild(h('<div class="bp-eyebrow">' + esc(tr('Trash')) + ' (' + trashAll().length + ')</div>'));
       const deleted = trashAll();
-      if (!deleted.length) body.appendChild(h('<p class="bp-muted">Deleted notes, saved verses, memory verses and prayers land here and can be restored within 30 days.</p>'));
-      deleted.slice(0, 30).forEach(e => {
+      if (!deleted.length) body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Deleted notes, saved verses, memory verses and prayers land here and can be restored within 30 days.")) + "</p>")));
+      deleted.forEach(e => {
         const row = h('<div class="bp-trash-row"><div class="tr-info"><div class="tr-kind">' + esc(e.kind) + '</div><div class="tr-label">' + esc(e.label) + '</div><div class="lr-sub bp-muted">' + esc(tsDay(e.deletedAt) || "") + '</div></div></div>');
-        const re = h('<button class="bp-btn small">Restore</button>');
+        const re = h(("<button class=\"bp-btn small\">" + esc(tr("Restore")) + "</button>"));
         re.onclick = () => { toast(restoreTrash(e) ? "Restored" : "Couldn't restore"); renderView("tools", true); };
         const del = h('<button class="bp-btn small danger">' + esc(tr("Delete")) + '</button>');
-        del.onclick = () => { if (confirm("Delete forever?")) { save(K.TRASH, trashAll().filter(x => x.id !== e.id)); renderView("tools", true); } };
+        del.onclick = () => { if (confirm(tr("Delete forever?"))) { save(K.TRASH, trashAll().filter(x => x.id !== e.id)); renderView("tools", true); } };
         row.append(re, del);
         body.appendChild(row);
       });
-      body.appendChild(h('<p class="bp-muted" style="margin-top:12px">Backup &amp; restore of everything lives in Settings &gt; Backup / My Bible &gt; Backup as before.</p>'));
+      body.appendChild(h(("<p class=\"bp-muted\" style=\"margin-top:12px\">" + esc(tr("Backup & restore of everything lives in Settings > Backup / My Bible > Backup as before.")) + "</p>")));
     }
   };
 
@@ -940,7 +964,7 @@
           if (found.length > 30) results.prepend(h('<p class="bp-muted">' + esc(tr("Showing 30 matches. Type more of the word to narrow the results.")) + '</p>'));
         } catch { if (n === seq && results.isConnected) results.textContent = tr("Couldn’t load the dictionary in this browser. Try again online."); }
       };
-      body.append(form, results, h('<p class="bp-muted">Dictionary entries with transliteration, not a verse-by-verse interlinear. <a href="./study-data/README.md" target="_blank" rel="noopener">Open Scriptures credits</a></p>'));
+      body.append(form, results, h(("<p class=\"bp-muted\">Dictionary entries with transliteration, not a verse-by-verse interlinear. <a href=\"./study-data/README.md\" target=\"_blank\" rel=\"noopener\">" + esc(tr("Open Scriptures credits")) + "</a></p>")));
     }
   };
 
@@ -1099,7 +1123,7 @@
       const sync = () => {
         const head = pane.querySelector('.chapter-heading .right');
         if (head && C.panes[k].version === "web" && !head.querySelector('.bp-red-toggle')) {
-          const button = h('<button type="button" class="bp-red-toggle" title="Words of Jesus · World English Bible">Red letters</button>');
+          const button = h(("<button type=\"button\" class=\"bp-red-toggle\" title=\"" + esc(tr("Words of Jesus · World English Bible")) + "\">" + esc(tr("Red letters")) + "</button>"));
           button.onclick = () => {
             setPref("redLetters", !prefs().redLetters);
             document.documentElement.classList.toggle("bp-red-letters", !!prefs().redLetters);
@@ -1140,7 +1164,7 @@
           if (!chapters.length) result.textContent = tr("No headings are available for this book.");
           chapters.forEach((rows, i) => {
             if (!rows.length) return;
-            const row = h('<div class="bp-card"><button type="button" class="bp-chip">Chapter ' + (i+1) + '</button><div class="bp-study-prose"></div></div>');
+            const row = h(("<div class=\"bp-card\"><button type=\"button\" class=\"bp-chip\">" + esc(tr("Chapter")) + " ") + (i+1) + '</button><div class="bp-study-prose"></div></div>');
             row.firstElementChild.onclick = () => { closeTool(); C.goTo(bookIdx, i+1); };
             row.lastElementChild.textContent = rows.map(v => v[0] + '. ' + v[1]).join('\n'); result.append(row);
           });
@@ -1227,7 +1251,7 @@
               canvas.replaceChildren(f);
             }; buttons.append(b);
           }
-          const a = h('<a class="bp-chip" target="_blank" rel="noopener noreferrer">Sources and alternate identifications</a>');
+          const a = h(("<a class=\"bp-chip\" target=\"_blank\" rel=\"noopener noreferrer\">" + esc(tr("Sources and alternate identifications")) + "</a>"));
           a.href = 'https://www.openbible.info/geo/ancient/' + encodeURIComponent(slug); buttons.append(a);
         };
         const draw = () => {
@@ -1363,7 +1387,7 @@
       if (oldBadge) oldBadge.remove();
       Object.values(va).forEach(unmarkWords); Object.values(vb).forEach(unmarkWords);
       if (pa.bookIdx !== pb.bookIdx || pa.chapter !== pb.chapter) {
-        badgeHost?.append(h('<span class="bp-diff-badge">Match chapters to compare</span>')); remember(); return;
+        badgeHost?.append(h(("<span class=\"bp-diff-badge\">" + esc(tr("Match chapters to compare")) + "</span>"))); remember(); return;
       }
       if (!aa || !bb) return;
       let totW = 0, totC = 0;
@@ -1376,14 +1400,14 @@
         totW += a.length + b.length; totC += ma.filter(Boolean).length + mb.filter(Boolean).length;
       }
       const pct = totW ? Math.round(totC / totW * 100) : 0;
-      badgeHost?.append(h('<span class="bp-diff-badge" title="Unmatched words as a share of all words in both translations">' + pct + '% different</span>'));
+      badgeHost?.append(h(("<span class=\"bp-diff-badge\" title=\"" + esc(tr("Unmatched words as a share of all words in both translations")) + "\">") + pct + (isEs() ? '% diferente</span>' : '% different</span>')));
       remember();
     } finally { diffState.applying = false; }
   }
   function wireDiff() {
     const tb = document.querySelector('.pane[data-pane="b"] .pane-toolbar');
     if (!tb || tb.querySelector(".bp-diff-toggle")) return;
-    const btn = h('<button type="button" class="bp-diff-toggle' + (diffState.on ? " on" : "") + '" aria-pressed="' + diffState.on + '" title="Highlight word-level differences between the two translations">Diff</button>');
+    const btn = h('<button type="button" class="bp-diff-toggle' + (diffState.on ? " on" : "") + '" aria-pressed="' + diffState.on + ("\" title=\"" + esc(tr("Highlight word-level differences between the two translations")) + "\">" + esc(tr("Diff")) + "</button>"));
     btn.onclick = () => { diffState.on = !diffState.on; setPref("diffOn", diffState.on); btn.classList.toggle("on", diffState.on); btn.setAttribute("aria-pressed", String(diffState.on)); diffState.lastKey = ""; applyDiff(); };
     tb.insertBefore(btn, tb.firstChild);
     let t;
@@ -1424,7 +1448,7 @@
   /* ================= read-aloud bar (sleep timer + speed) ================= */
   function wireTtsBar() {
     if (!("speechSynthesis" in window)) return;
-    const bar = h('<div class="bp-tts-bar" style="display:none"><span class="t-label">Reading aloud</span><select title="Sleep timer"><option value="0">No sleep timer</option><option value="5">Stop in 5 min</option><option value="15">Stop in 15 min</option><option value="30">Stop in 30 min</option><option value="45">Stop in 45 min</option><option value="60">Stop in 60 min</option></select><select title="Reading speed (applies from the next verse)"><option value="0.75">Slow</option><option value="0.95">Normal</option><option value="1.15">Fast</option><option value="1.35">Faster</option></select><button type="button">Stop</button></div>');
+    const bar = h(("<div class=\"bp-tts-bar\" style=\"display:none\"><span class=\"t-label\">" + esc(tr("Reading aloud")) + "</span><select title=\"" + esc(tr("Sleep timer")) + "\"><option value=\"0\">" + esc(tr("No sleep timer")) + "</option><option value=\"5\">" + esc(tr("Stop in 5 min")) + "</option><option value=\"15\">" + esc(tr("Stop in 15 min")) + "</option><option value=\"30\">" + esc(tr("Stop in 30 min")) + "</option><option value=\"45\">" + esc(tr("Stop in 45 min")) + "</option><option value=\"60\">" + esc(tr("Stop in 60 min")) + "</option></select><select title=\"" + esc(tr("Reading speed (applies from the next verse)")) + "\"><option value=\"0.75\">" + esc(tr("Slow")) + "</option><option value=\"0.95\">" + esc(tr("Normal")) + "</option><option value=\"1.15\">" + esc(tr("Fast")) + "</option><option value=\"1.35\">" + esc(tr("Faster")) + "</option></select><button type=\"button\">" + esc(tr("Stop")) + "</button></div>"));
     document.body.appendChild(bar);
     const [timerSel, rateSel, stopBtn] = bar.querySelectorAll("select,button");
     let deadline = 0;
@@ -1432,7 +1456,7 @@
     timerSel.onchange = () => {
       const m = +timerSel.value;
       deadline = m ? Date.now() + m * 60000 : 0;
-      if (m) toast("Reading will stop in " + m + " minutes");
+      if (m) toast(isEs() ? "La lectura se detendrá en " + m + " minutos" : "Reading will stop in " + m + " minutes");
     };
     try { rateSel.value = String((JSON.parse(localStorage.getItem(K.SET) || "{}").tts) || 0.95); } catch {}
     rateSel.onchange = () => {
@@ -1463,7 +1487,7 @@
     const wrap = input.parentElement;
     const row = h('<div class="bp-row" style="margin-top:6px"></div>');
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const mic = h('<button type="button" class="bp-chip bp-drawer-mic">\u{1F3A4} Voice search</button>');
+    const mic = h(("<button type=\"button\" class=\"bp-chip bp-drawer-mic\">" + esc(tr("🎤 Voice search")) + "</button>"));
     if (!SR) mic.disabled = true;
     mic.onclick = () => {
       if (!SR) { toast("Voice search needs Chrome or Edge"); return; }
@@ -1474,7 +1498,7 @@
       r.onerror = () => { mic.classList.remove("on"); toast("Didn't catch that"); };
       try { r.start(); } catch {}
     };
-    const rnd = h('<button type="button" class="bp-chip">Random verse</button>');
+    const rnd = h(("<button type=\"button\" class=\"bp-chip\">" + esc(tr("Random verse")) + "</button>"));
     rnd.onclick = async () => {
       rnd.disabled = true;
       try {
@@ -1488,7 +1512,7 @@
       } catch { toast("Couldn’t load a random verse in this translation"); }
       finally { rnd.disabled = false; }
     };
-    const filters = h('<button type="button" class="bp-chip">Filters &amp; history</button>');
+    const filters = h(("<button type=\"button\" class=\"bp-chip\">" + esc(tr("Filters & history")) + "</button>"));
     filters.onclick = () => { C.closeDrawer(); openTool("search", () => { closeTool(); document.getElementById("openNavBtn")?.click(); }); };
     row.append(filters, mic, rnd);
     wrap.append(row);
