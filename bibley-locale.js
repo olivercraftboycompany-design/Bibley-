@@ -1263,6 +1263,20 @@
   const englishBySpanish = Object.fromEntries(Object.entries(entries).map(([en, es]) => [es, en]));
   let locale = 'en';
   try { if (localStorage.getItem(key) === 'es') locale = 'es'; } catch {}
+  Object.assign(entries, {
+    "Dictionary entries with transliteration, not a verse-by-verse interlinear.": "Entradas de diccionario con transliteración; no es un interlineal versículo por versículo.",
+    "OpenBible.info, CC BY 4.0. Full bundled vote-ranked suggestions, 24 at a time; votes do not guarantee relevance. Berean links also appear where bundled.": "OpenBible.info, CC BY 4.0. Sugerencias incluidas ordenadas por votos, 24 a la vez; los votos no garantizan relevancia. También se muestran enlaces de Berean cuando están disponibles.",
+    "English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.": "Palabras inglesas etiquetadas en la World English Bible, con formas de diccionario de Strong y transliteración. Se omiten las palabras sin etiqueta; esto no es un análisis gramatical de la oración original.",
+    "Headings: Berean Standard Bible. Public-domain historical commentaries via the Free Use Bible API; introductions reflect the cited author’s interpretation.": "Encabezados: Berean Standard Bible. Comentarios históricos de dominio público mediante Free Use Bible API; las introducciones reflejan la interpretación del autor citado.",
+    "Loading commentary from": "Cargando comentario de",
+    "Book introduction": "Introducción del libro",
+    "Chapter introduction": "Introducción del capítulo",
+    "Easton’s Illustrated Bible Dictionary, third edition (1897), public domain. This is a historical reference work.": "Easton’s Illustrated Bible Dictionary, tercera edición (1897), de dominio público. Es una obra de referencia histórica.",
+    "Possible locations from OpenBible.info (CC BY 4.0), using Wikimedia-sourced points. Ancient identifications may be uncertain; the pin is not a proven site.": "Ubicaciones posibles de OpenBible.info (CC BY 4.0), con puntos procedentes de Wikimedia. La identificación de lugares antiguos puede ser incierta; el marcador no indica un sitio demostrado.",
+    "Appears in": "Aparece en",
+    "Map": "Mapa",
+    "Possible location:": "Ubicación posible:"
+  });
   const text = original => locale === 'es' ? (Object.hasOwn(entries, original) ? entries[original] : original) : original;
   const apply = () => {
     // Only trusted, fixed labels in the app shell; never touch any user or Bible text.

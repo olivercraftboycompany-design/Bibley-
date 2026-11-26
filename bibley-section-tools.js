@@ -1147,7 +1147,7 @@
           if (found.length > 30) results.prepend(h('<p class="bp-muted">' + esc(tr("Showing 30 matches. Type more of the word to narrow the results.")) + '</p>'));
         } catch { if (n === seq && results.isConnected) results.textContent = tr("Couldn’t load the dictionary in this browser. Try again online."); }
       };
-      body.append(form, results, h(("<p class=\"bp-muted\">Dictionary entries with transliteration, not a verse-by-verse interlinear. <a href=\"./study-data/README.md\" target=\"_blank\" rel=\"noopener\">" + esc(tr("Open Scriptures credits")) + "</a></p>")));
+      body.append(form, results, h(("<p class=\"bp-muted\">" + esc(tr("Dictionary entries with transliteration, not a verse-by-verse interlinear.")) + " <a href=\"./study-data/README.md\" target=\"_blank\" rel=\"noopener\">" + esc(tr("Open Scriptures credits")) + "</a></p>")));
     }
   };
 
@@ -1195,7 +1195,7 @@
           appendPage(); more.onclick = appendPage;
           if (card.lastElementChild.children.length) { body.append(card); body.append(more); }
         }
-        body.append(h('<p class="bp-muted">OpenBible.info, CC BY 4.0. Full bundled vote-ranked suggestions, 24 at a time; votes do not guarantee relevance. Berean links also appear where bundled.</p>'));
+        body.append(h('<p class="bp-muted">' + esc(tr("OpenBible.info, CC BY 4.0. Full bundled vote-ranked suggestions, 24 at a time; votes do not guarantee relevance. Berean links also appear where bundled.")) + '</p>'));
       } catch { if (body.isConnected) body.replaceChildren(h('<p class="bp-muted" role="status">' + esc(tr("Couldn’t load linked passages. Try again online.")) + '</p>')); }
     }, null);
   }
@@ -1212,7 +1212,7 @@
       try {
         const [book, entries] = await Promise.all([getStudyFile("web-words/" + (b + 1)), getLexicon(b < 39 ? "hebrew" : "greek")]);
         if (!body.isConnected) return;
-        tagged.replaceChildren(h('<p class="bp-muted">English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.</p>'));
+        tagged.replaceChildren(h('<p class="bp-muted">' + esc(tr("English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.")) + '</p>'));
         const words = book?.[c]?.[v]?.[0] || [];
         if (!words.length) tagged.append(h('<p>' + esc(tr("No tagged words are available for this verse.")) + '</p>'));
         for (const [word, codes] of words) {
@@ -1425,7 +1425,7 @@
       const intro = h('<div role="status"></div>'), outline = h('<details class="bp-card"><summary>' + esc(tr("Book outline · chapter headings")) + '</summary></details>');
       const content = h('<div role="status"></div>');
       body.append(h('<h3>' + esc(refOf(bookIdx, chapter)) + '</h3>'), outline, source, intro, content,
-        h('<p class="bp-muted">Headings: Berean Standard Bible. Public-domain historical commentaries via the Free Use Bible API; introductions reflect the cited author’s interpretation.</p>'));
+        h('<p class="bp-muted">' + esc(tr("Headings: Berean Standard Bible. Public-domain historical commentaries via the Free Use Bible API; introductions reflect the cited author’s interpretation.")) + '</p>'));
       let loadedOutline = false;
       outline.addEventListener('toggle', async () => {
         if (!outline.open || loadedOutline) return;
@@ -1447,7 +1447,7 @@
       let request = 0;
       const draw = async () => {
         const n = ++request, name = source.selectedOptions[0].textContent;
-        intro.replaceChildren(); content.textContent = 'Loading ' + name + '…';
+        intro.replaceChildren(); content.textContent = tr("Loading commentary from") + " " + name + "…";
         try {
           const r = await fetch('https://bible.helloao.org/api/c/' + source.value + '/' + id + '/' + chapter + '.json', {signal: AbortSignal.timeout(14000)});
           if (n !== request || !body.isConnected) return;
@@ -1459,14 +1459,14 @@
             const box = h('<details class="bp-card"><summary>' + esc(title) + '</summary><p class="bp-study-prose"></p></details>');
             box.lastElementChild.textContent = value.trim(); intro.append(box);
           };
-          addIntro('Book introduction', result.book?.introduction);
-          addIntro('Chapter introduction', result.chapter?.introduction);
+          addIntro(tr("Book introduction"), result.book?.introduction);
+          addIntro(tr("Chapter introduction"), result.chapter?.introduction);
           const rows = (result.chapter?.content || []).filter(row => Array.isArray(row.content) && row.content.some(p => typeof p === 'string'));
           content.replaceChildren();
           if (!rows.length) content.textContent = tr("No commentary text is listed for this chapter.");
           for (const row of rows) {
             const p = h('<div class="bp-card"><div class="bp-eyebrow"></div><div class="bp-study-prose"></div></div>');
-            p.firstElementChild.textContent = row.number ? 'Verse ' + row.number : name;
+            p.firstElementChild.textContent = row.number ? tr("Verse") + ' ' + row.number : name;
             p.lastElementChild.textContent = row.content.filter(t => typeof t === 'string').join('\n\n').trim();
             content.append(p);
           }
@@ -1540,7 +1540,7 @@
     async render(body) {
       const input = h('<input aria-label="' + esc(tr("Search people, places or terms")) + '" class="bp-input" type="search" placeholder="' + esc(tr("e.g. Nicodemus, Zion, covenant")) + '">');
       const results = h('<div role="status">' + esc(tr("Loading the dictionary…")) + '</div>');
-      body.append(input, results, h('<p class="bp-muted">Easton’s Illustrated Bible Dictionary, third edition (1897), public domain. This is a historical reference work.</p>'));
+      body.append(input, results, h('<p class="bp-muted">' + esc(tr("Easton’s Illustrated Bible Dictionary, third edition (1897), public domain. This is a historical reference work.")) + '</p>'));
       try {
         const entries = Object.entries(await getStudyFile('eastons')).map(([term, defs]) => [term, defs, lexNorm(term)]);
         if (!body.isConnected) return;
@@ -1567,21 +1567,21 @@
       const input = h('<input class="bp-input" aria-label="' + esc(tr("Find a Bible place")) + '" type="search" placeholder="' + esc(tr("e.g. Jerusalem")) + '">');
       const results = h('<div class="bp-chips" role="status">' + esc(tr("Loading places…")) + '</div>');
       const map = h('<div></div>');
-      body.append(input, results, map, h('<p class="bp-muted">Possible locations from OpenBible.info (CC BY 4.0), using Wikimedia-sourced points. Ancient identifications may be uncertain; the pin is not a proven site.</p>'));
+      body.append(input, results, map, h('<p class="bp-muted">' + esc(tr("Possible locations from OpenBible.info (CC BY 4.0), using Wikimedia-sourced points. Ancient identifications may be uncertain; the pin is not a proven site.")) + '</p>'));
       try {
         const sites = await getStudyFile('places'); if (!body.isConnected) return;
         const mapFor = ([name, slug, refs, candidates]) => {
-          const refsText = refs.length ? 'Appears in ' + refs.join(', ') : '';
+          const refsText = refs.length ? tr("Appears in") + ' ' + refs.join(', ') : '';
           const title = h('<h3></h3>'); title.textContent = name;
           const about = h('<p class="bp-muted"></p>'); about.textContent = refsText;
           const buttons = h('<div class="bp-chips"></div>');
           const canvas = h('<div></div>');
           map.replaceChildren(title, about, buttons, canvas);
           for (const [label, lat, lon] of candidates) {
-            const b = h('<button class="bp-chip" type="button"></button>'); b.textContent = 'Map: ' + label;
+            const b = h('<button class="bp-chip" type="button"></button>'); b.textContent = tr("Map") + ': ' + label;
             b.onclick = () => {
               const d = 0.13, params = new URLSearchParams({bbox:[lon-d,lat-d,lon+d,lat+d].join(','),layer:'mapnik',marker:lat+','+lon});
-              const f = document.createElement('iframe'); f.className='bp-map-frame'; f.title='Possible location: '+label; f.referrerPolicy='no-referrer'; f.src='https://www.openstreetmap.org/export/embed.html?'+params;
+              const f = document.createElement('iframe'); f.className='bp-map-frame'; f.title=tr("Possible location:")+' '+label; f.referrerPolicy='no-referrer'; f.src='https://www.openstreetmap.org/export/embed.html?'+params;
               canvas.replaceChildren(f);
             }; buttons.append(b);
           }
