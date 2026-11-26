@@ -16,11 +16,13 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C || !FX.ui) { console.warn("Study Notebook: features missing"); return; }
   const { openSheet, closeSheet, toast, copyText, h, esc, vname } = FX.ui;
+  const tr = s => window.BibleyLocale?.text(s) ?? s;
+  const tx = s => esc(tr(s));
   const BOOKS = C.BOOKS;
   const KN = "bibley_nb_v1_notebooks", KT = "bibley_nb_v1_notes", KM = "bibley_nb_v1_meta";
   const OLD = { NOTES: "bibley_notes_v1", NB: "bibley_notebook_v1", HL: "bible_highlights_v2", BM: "bible_bookmarks_v2", VBM: "bibley_vbm_v1" };
   const rd = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
-  const wr = (k, v) => { if (!/^bibley_nb_v1_/.test(k)) return false; try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
+  const wr = (k, v) => { if (!/^bibley_nb_v1_/.test(k)) return false; try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast(tr("Couldn't save: storage is full")); return false; } };
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const COLORS = [["gold", "#c9a867"], ["sage", "#8fa58a"], ["sky", "#7fa3b8"], ["slate", "#8590a8"], ["clay", "#b98a6e"], ["rose", "#b88a96"], ["lavender", "#9c90b8"]];
   const colorOf = c => (COLORS.find(x => x[0] === c) || COLORS[0])[1];
@@ -214,7 +216,7 @@
 
 /* ---------- share / copy ---------- */
   function noteText(it) {
-    const lines = [it.title || "Untitled", bookName(it.nb) + " \u00b7 " + fmtDate(it.updated)];
+    const lines = [it.title || tr("Untitled"), bookName(it.nb) + " \u00b7 " + fmtDate(it.updated)];
     if (it.verseText && it.ref0) lines.push("", `"${it.verseText}" (${refLabel(it.ref0)}${it.version ? ", " + vname(it.version) : ""})`);
     lines.push("", plain(it.body).trim());
     if (it.tags && it.tags.length) lines.push("", it.tags.map(t => "#" + t).join(" "));
@@ -228,8 +230,8 @@
   async function copy(text) { toast(await copyText(text) ? "Copied" : "Couldn't copy"); }
   const refLabel = r => BOOKS[r.b][1] + " " + r.c + (r.v ? ":" + r.v + (r.ve ? "\u2013" + r.ve : "") : "");
   function fmtDate(t) { if (!t) return ""; const d = new Date(t), now = new Date(); const sameY = d.getFullYear() === now.getFullYear();
-    if (d.toDateString() === now.toDateString()) return "Today " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-    return d.toLocaleDateString(undefined, sameY ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" }); }
+    if (d.toDateString() === now.toDateString()) return tr("Today") + " " + d.toLocaleTimeString(window.BibleyLocale?.get() === "es" ? "es" : undefined, { hour: "numeric", minute: "2-digit" });
+    return d.toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : undefined, sameY ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" }); }
 
   /* ---------- state ---------- */
   const st = { tab: "notes", nb: "all", tag: null, q: "", hl: "all", hlTab: "hl" };
@@ -275,8 +277,8 @@
   }
   function build() {
     if (root && root.isConnected) return;
-    root = h(`<div class="snbx snb" role="dialog" aria-modal="true" aria-label="Study Notebook" data-view="list">
-      <aside class="snbx-side" aria-label="Notebooks"></aside><section class="snbx-list" aria-label="Notes"></section><section class="snbx-ed" aria-label="Editor"></section>
+    root = h(`<div class="snbx snb" role="dialog" aria-modal="true" aria-label="${tx("Study Notebook")}" data-view="list">
+      <aside class="snbx-side" aria-label="${tx("Notebooks")}"></aside><section class="snbx-list" aria-label="${tx("Notes")}"></section><section class="snbx-ed" aria-label="${tx("Editor")}"></section>
       <div class="snbx-modal" hidden></div></div>`);
     document.body.appendChild(root); document.documentElement.classList.add("snbx-on");
     root.dataset.paper = paper();
@@ -313,16 +315,16 @@
     const tags = [...new Set(items.flatMap(i => i.tags))].sort();
     const on = (tab, nb) => st.tab === tab && (tab === "hl" || st.nb === nb) ? " on" : "";
     const nav = (nb, ic, label, n, tab) => `<button type="button" class="snbx-nav${on(tab || "notes", nb)}" data-nb="${esc(nb)}" data-tab="${tab || "notes"}">${ic}<span>${esc(label)}</span><em>${n}</em></button>`;
-    const row = b => `<div class="snbx-nbrow"><button type="button" class="snbx-nav${on("notes", b.id)}" data-nb="${esc(b.id)}" data-tab="notes"><i class="snb-dot" style="background:${colorOf(b.color)}"></i><span>${esc(b.name)}</span><em>${count(b.id)}</em></button>${b.imported ? "" : `<button type="button" class="snb-ib sm" data-edit="${esc(b.id)}" aria-label="Notebook options">${I.more}</button>`}</div>`;
-    side.innerHTML = `<div class="snbx-sh"><div class="snbx-brand">${I.book}<b>Study Notebook</b></div><button type="button" class="snb-ib" data-a="close" aria-label="Close notebook">${I.x}</button></div>
+    const row = b => `<div class="snbx-nbrow"><button type="button" class="snbx-nav${on("notes", b.id)}" data-nb="${esc(b.id)}" data-tab="notes"><i class="snb-dot" style="background:${colorOf(b.color)}"></i><span>${esc(b.name)}</span><em>${count(b.id)}</em></button>${b.imported ? "" : `<button type="button" class="snb-ib sm" data-edit="${esc(b.id)}" aria-label="${tx("Notebook options")}">${I.more}</button>`}</div>`;
+    side.innerHTML = `<div class="snbx-sh"><div class="snbx-brand">${I.book}<b>${tx("Study Notebook")}</b></div><button type="button" class="snb-ib" data-a="close" aria-label="${tx("Close notebook")}">${I.x}</button></div>
       <div class="snbx-scroll">
-        ${nav("all", I.book, "All Notes", items.length)}${nav("pinned", I.pin, "Pinned", items.filter(i => i.pinned).length)}${nav("hl", I.marker, "Highlights & Bookmarks", hlCount(), "hl")}
-        <div class="snbx-sec"><span>Notebooks</span><button type="button" class="snb-ib sm" data-a="newnb" aria-label="New notebook" title="New notebook">${I.plus}</button></div>
+        ${nav("all", I.book, tr("All Notes"), items.length)}${nav("pinned", I.pin, tr("Pinned"), items.filter(i => i.pinned).length)}${nav("hl", I.marker, tr("Highlights & Bookmarks"), hlCount(), "hl")}
+        <div class="snbx-sec"><span>${tx("Notebooks")}</span><button type="button" class="snb-ib sm" data-a="newnb" aria-label="${tx("New notebook")}" title="${tx("New notebook")}">${I.plus}</button></div>
         ${nbs.map(row).join("")}
-        ${vb.length ? `<div class="snbx-sec"><span>From earlier versions</span></div>${vb.map(row).join("")}<button type="button" class="snb-link" data-a="classic">Open the classic notebook pages</button>` : ""}
-        ${tags.length ? `<div class="snbx-sec"><span>Tags</span></div><div class="snbx-tags">${tags.map(t => `<button type="button" class="snb-chip small${st.tag === t ? " on" : ""}" data-tag="${esc(t)}">${I.tag}${esc(t)}</button>`).join("")}</div>` : ""}
+        ${vb.length ? `<div class="snbx-sec"><span>${tx("From earlier versions")}</span></div>${vb.map(row).join("")}<button type="button" class="snb-link" data-a="classic">${tx("Open the classic notebook pages")}</button>` : ""}
+        ${tags.length ? `<div class="snbx-sec"><span>${tx("Tags")}</span></div><div class="snbx-tags">${tags.map(t => `<button type="button" class="snb-chip small${st.tag === t ? " on" : ""}" data-tag="${esc(t)}">${I.tag}${esc(t)}</button>`).join("")}</div>` : ""}
       </div>
-      <div class="snbx-sfoot"><span>${I.paper}Paper</span><div class="snbx-seg sm" role="radiogroup" aria-label="Paper style">${PAPERS.map(([k, l]) => `<button type="button" role="radio" aria-checked="${paper() === k}" class="${paper() === k ? "on" : ""}" data-paper="${k}">${esc(l.replace("Warm ", "").replace(" Paper", ""))}</button>`).join("")}</div></div>`;
+      <div class="snbx-sfoot"><span>${I.paper}${tx("Paper")}</span><div class="snbx-seg sm" role="radiogroup" aria-label="${tx("Paper style")}">${PAPERS.map(([k, l]) => `<button type="button" role="radio" aria-checked="${paper() === k}" class="${paper() === k ? "on" : ""}" data-paper="${k}">${tx(l.replace("Warm ", "").replace(" Paper", ""))}</button>`).join("")}</div></div>`;
     side.querySelectorAll(".snbx-nav").forEach(b => b.onclick = () => { st.tab = b.dataset.tab; if (st.tab === "notes") { st.nb = b.dataset.nb; } drawSide(); drawList(); setView("list"); });
     side.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => editBook(b.dataset.edit));
     side.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => { st.tag = st.tag === b.dataset.tag ? null : b.dataset.tag; st.tab = "notes"; drawSide(); drawList(); setView("list"); });
@@ -334,14 +336,14 @@
   function setPaper(p) { setMeta({ paper: p }); if (root) root.dataset.paper = p; drawSide(); toast("Paper: " + PAPERS.find(x => x[0] === p)[1]); }
 
   /* notes list */
-  function listTitle() { if (st.tab === "hl") return "Highlights & Bookmarks"; if (st.nb === "all") return st.tag ? "#" + st.tag : "All Notes"; if (st.nb === "pinned") return "Pinned"; return bookName(st.nb); }
+  function listTitle() { if (st.tab === "hl") return tr("Highlights & Bookmarks"); if (st.nb === "all") return st.tag ? "#" + st.tag : tr("All Notes"); if (st.nb === "pinned") return tr("Pinned"); return bookName(st.nb); }
   function drawList() {
     const pane = $(".snbx-list"), own_ = books().some(b => b.id === st.nb) && st.tab === "notes";
-    pane.innerHTML = `<div class="snbx-lh"><button type="button" class="snb-ib snbx-mob" data-a="close" aria-label="Back to Bible">${I.back}</button><h2>${esc(wide() ? listTitle() : "Notebook")}</h2><button type="button" class="snb-ib snbx-mob${st.q || st.qOpen ? " on" : ""}" data-a="srch" aria-label="Search notes">${I.search}</button><button type="button" class="fx-btn primary small snbx-mob snbx-newm" data-a="new">${I.plus}New</button></div>
+    pane.innerHTML = `<div class="snbx-lh"><button type="button" class="snb-ib snbx-mob" data-a="close" aria-label="${tx("Back to Bible")}">${I.back}</button><h2>${esc(wide() ? listTitle() : tr("Notebook"))}</h2><button type="button" class="snb-ib snbx-mob${st.q || st.qOpen ? " on" : ""}" data-a="srch" aria-label="${tx("Search notes")}">${I.search}</button><button type="button" class="fx-btn primary small snbx-mob snbx-newm" data-a="new">${I.plus}${tx("New")}</button></div>
       ${wide() ? "" : pills()}
-      <div class="snb-search${!wide() && !st.q && !st.qOpen ? " snbx-hide" : ""}">${I.search}<input type="search" class="snb-q" placeholder="Search notes, tags, verses" aria-label="Search notebook" value="${esc(st.q)}"></div>
-      ${st.tab === "hl" ? `<div class="snbx-seg" role="tablist">${[["hl", "Highlights"], ["saved", "Bookmarks"]].map(([k, l]) => `<button type="button" class="${st.hlTab === k ? "on" : ""}" data-hl="${k}">${l}</button>`).join("")}</div>`
-        : `<div class="snb-bar"><button type="button" class="fx-btn primary small snb-new">${I.plus}New note</button><span class="snbx-lt snbx-mob">${esc(listTitle())}${own_ ? `<button type="button" class="snb-ib sm" data-edit="${esc(st.nb)}" aria-label="Notebook options">${I.more}</button>` : ""}</span><label class="snb-sort"><span>Sort</span><select aria-label="Sort notes">${[["recent", "Recent"], ["title", "Title"], ["book", "Book order"]].map(([k, l]) => `<option value="${k}" ${sortMode() === k ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>`}
+      <div class="snb-search${!wide() && !st.q && !st.qOpen ? " snbx-hide" : ""}">${I.search}<input type="search" class="snb-q" placeholder="${tx("Search notes, tags, verses")}" aria-label="${tx("Search notebook")}" value="${esc(st.q)}"></div>
+      ${st.tab === "hl" ? `<div class="snbx-seg" role="tablist">${[["hl", "Highlights"], ["saved", "Bookmarks"]].map(([k, l]) => `<button type="button" class="${st.hlTab === k ? "on" : ""}" data-hl="${k}">${tx(l)}</button>`).join("")}</div>`
+        : `<div class="snb-bar"><button type="button" class="fx-btn primary small snb-new">${I.plus}${tx("New note")}</button><span class="snbx-lt snbx-mob">${esc(listTitle())}${own_ ? `<button type="button" class="snb-ib sm" data-edit="${esc(st.nb)}" aria-label="${tx("Notebook options")}">${I.more}</button>` : ""}</span><label class="snb-sort"><span>${tx("Sort")}</span><select aria-label="${tx("Sort notes")}">${[["recent", "Recent"], ["title", "Title"], ["book", "Book order"]].map(([k, l]) => `<option value="${k}" ${sortMode() === k ? "selected" : ""}>${tx(l)}</option>`).join("")}</select></label></div>`}
       <div class="snbx-items"></div>`;
     pane.querySelector('[data-a="close"]').onclick = close;
     pane.querySelector('[data-a="new"]').onclick = () => pickTemplate(null);
@@ -362,21 +364,21 @@
     const items = allItems(), cnt = id => items.filter(i => i.nb === id).length, tags = [...new Set(items.flatMap(i => i.tags))].sort();
     const on = (tab, nb) => !st.tag && st.tab === tab && (tab === "hl" || st.nb === nb) ? " on" : "";
     const P = (nb, label, n, tab, dot) => `<button type="button" class="snbx-pill${on(tab || "notes", nb)}" data-nb="${esc(nb)}" data-tab="${tab || "notes"}">${dot ? `<i class="snb-dot" style="background:${dot}"></i>` : ""}${esc(label)}<em>${n}</em></button>`;
-    return `<div class="snbx-pills" role="tablist" aria-label="Notebooks">${P("all", "All", items.length)}${P("pinned", "Pinned", items.filter(i => i.pinned).length)}${P("hl", "Highlights", hlCount(), "hl")}${books().concat(virtBooks()).map(b => P(b.id, b.name, cnt(b.id), "notes", colorOf(b.color))).join("")}${tags.map(g => `<button type="button" class="snbx-pill${st.tag === g ? " on" : ""}" data-tag="${esc(g)}">#${esc(g)}</button>`).join("")}<button type="button" class="snbx-pill add" data-a="newnb">${I.plus}Notebook</button></div>`;
+    return `<div class="snbx-pills" role="tablist" aria-label="${tx("Notebooks")}">${P("all", tr("All"), items.length)}${P("pinned", tr("Pinned"), items.filter(i => i.pinned).length)}${P("hl", tr("Highlights"), hlCount(), "hl")}${books().concat(virtBooks()).map(b => P(b.id, b.name, cnt(b.id), "notes", colorOf(b.color))).join("")}${tags.map(g => `<button type="button" class="snbx-pill${st.tag === g ? " on" : ""}" data-tag="${esc(g)}">#${esc(g)}</button>`).join("")}<button type="button" class="snbx-pill add" data-a="newnb">${I.plus}${tx("Notebook")}</button></div>`;
   }
   const relist = () => { if (wide()) drawItems(); else { const p = root && $(".snbx-pills"), x = p ? p.scrollLeft : 0; drawList(); const q = root && $(".snbx-pills"); if (q) q.scrollLeft = x; } };
   function drawItems() {
     const box = $(".snbx-items"); if (!box) return; box.innerHTML = "";
     if (st.tab === "hl") { (st.hlTab === "saved" ? savedPane : hlPane)(box); return; }
     const list = filtered();
-    box.innerHTML = list.length ? list.map(card).join("") : `<div class="snb-empty">${st.q || st.tag ? "Nothing matches that search." : st.nb === "pinned" ? "No pinned notes yet." : "No notes here yet."}</div>`;
+    box.innerHTML = list.length ? list.map(card).join("") : `<div class="snb-empty">${st.q || st.tag ? tr("Nothing matches that search.") : st.nb === "pinned" ? tr("No pinned notes yet.") : tr("No notes here yet.")}</div>`;
     box.querySelectorAll(".snb-card").forEach(c => { c.classList.toggle("on", !!(cur && cur.n.id === c.dataset.id)); const go = () => openNote(c.dataset.id); c.onclick = go; c.onkeydown = e => { if (e.key === "Enter") go(); }; });
   }
   function card(it) {
     const nb = books().concat(virtBooks()).find(b => b.id === it.nb);
     return `<article class="snb-card" data-id="${esc(it.id)}" tabindex="0">
-      <div class="snb-card-top"><span class="snb-nbl"><i class="snb-dot" style="background:${colorOf(nb && nb.color)}"></i>${esc(nb ? nb.name : "No notebook")}</span>${it.pinned ? `<span class="snb-pinned">${I.pin}</span>` : ""}<span class="snb-date">${esc(fmtDate(it.updated))}</span></div>
-      <h3>${esc(it.title || "Untitled")}</h3>
+      <div class="snb-card-top"><span class="snb-nbl"><i class="snb-dot" style="background:${colorOf(nb && nb.color)}"></i>${esc(nb ? nb.name : tr("No notebook"))}</span>${it.pinned ? `<span class="snb-pinned">${I.pin}</span>` : ""}<span class="snb-date">${esc(fmtDate(it.updated))}</span></div>
+      <h3>${esc(it.title || tr("Untitled"))}</h3>
       ${snippet(it.body) ? `<p>${esc(snippet(it.body))}</p>` : (it.verseText ? `<p class="snb-vq">${esc(it.verseText.slice(0, 140))}</p>` : "")}
       ${it.refs.length || it.tags.length ? `<div class="snb-card-refs">${it.refs.slice(0, 3).map(r => `<button type="button" class="snb-ref chip" data-ref="${r.b},${r.c},${r.v || 0},${r.ve || 0}">${esc(refLabel(r))}</button>`).join("")}${it.refs.length > 3 ? `<span class="snb-more">+${it.refs.length - 3}</span>` : ""}${it.tags.slice(0, 3).map(t => `<span class="snb-tg">#${esc(t)}</span>`).join("")}</div>` : ""}
     </article>`;
@@ -385,7 +387,7 @@
   /* editor */
   function drawEmpty() {
     const ed = $(".snbx-ed"); if (!ed) return;
-    ed.innerHTML = `<div class="snbx-empty">${I.edit}<b>Pick a note or start a new one</b><button type="button" class="fx-btn primary small">${I.plus}New note</button></div>`;
+    ed.innerHTML = `<div class="snbx-empty">${I.edit}<b>${tx("Pick a note or start a new one")}</b><button type="button" class="fx-btn primary small">${I.plus}${tx("New note")}</button></div>`;
     ed.querySelector("button").onclick = () => pickTemplate(null);
   }
   function openNote(id, quiet) {
@@ -407,32 +409,32 @@
   function drawEditor() {
     const ed = $(".snbx-ed"), c = cur, n = c.n, imp = c.imp, nbs = books(), md = imp ? "preview" : mode();
     const nb = books().concat(virtBooks()).find(b => b.id === n.nb);
-    const tb = (f, ic, l, txt) => `<button type="button" data-f="${f}" aria-label="${l}" title="${l}"${txt ? ' class="txt"' : ""}>${ic}${txt ? `<span>${txt}</span>` : ""}</button>`;
-    const segH = (cls, ms) => `<div class="snbx-seg sm ${cls}" role="tablist" aria-label="Editor view">${ms.map(([k, l]) => `<button type="button" role="tab" class="${md === k || (md === "split" && k === "write" && cls === "snbx-mseg" && narrow()) ? "on" : ""}" data-mode="${k}">${l}</button>`).join("")}</div>`;
+    const tb = (f, ic, l, txt) => `<button type="button" data-f="${f}" aria-label="${tx(l)}" title="${tx(l)}"${txt ? ' class="txt"' : ""}>${ic}${txt ? `<span>${tx(txt)}</span>` : ""}</button>`;
+    const segH = (cls, ms) => `<div class="snbx-seg sm ${cls}" role="tablist" aria-label="${tx("Editor view")}">${ms.map(([k, l]) => `<button type="button" role="tab" class="${md === k || (md === "split" && k === "write" && cls === "snbx-mseg" && narrow()) ? "on" : ""}" data-mode="${k}">${tx(l)}</button>`).join("")}</div>`;
     ed.innerHTML = `<div class="snbx-eh">
-        <button type="button" class="snb-ib snbx-mob" data-a="back" aria-label="Back to notes">${I.back}</button>
+        <button type="button" class="snb-ib snbx-mob" data-a="back" aria-label="${tx("Back to notes")}">${I.back}</button>
         ${imp ? `<span class="snb-nbl"><i class="snb-dot" style="background:${colorOf(nb && nb.color)}"></i>${esc(nb ? nb.name : "Imported")}</span>` : ""}
         <span class="snbx-grow"></span>
         ${imp ? "" : segH("snbx-hseg", MODES)}
-        ${imp ? "" : `<button type="button" class="snbx-hb" data-a="grammar" aria-label="AI Grammar Fix" title="AI Grammar Fix: fix spelling and grammar (selection or whole note)">${I.spark}<span>Grammar</span></button><button type="button" class="snbx-hb snbx-mob" data-a="verse" aria-label="Insert Verse">${I.plus}<span>Verse</span></button>`}
-        <button type="button" class="snb-ib snbx-dsk ${n.pinned ? "on" : ""}" data-a="pin" aria-label="Pin" title="Pin">${I.pin}</button>
-        <button type="button" class="snb-ib snbx-dsk" data-a="focus" aria-label="Focus mode" title="Focus mode">${I.focus}</button>
-        <button type="button" class="snb-ib" data-a="more" aria-label="More: templates, paper, focus, export, delete" title="More">${I.more}</button></div>
-      ${imp ? "" : `<div class="snbx-tools" role="toolbar" aria-label="Formatting">${tb("h1", "", "Heading 1", "H1")}${tb("h2", "", "Heading 2", "H2")}${tb("b", I.bold, "Bold")}${tb("i", I.ital, "Italic")}<span class="sep"></span>${tb("quote", I.quote, "Blockquote")}${tb("callout", I.callout, "Callout box")}${tb("ul", I.list, "Bullet list")}${tb("ol", I.ol, "Numbered list")}${tb("cl", I.check, "Checklist")}${tb("hr", I.hr, "Divider")}<span class="sep"></span>${tb("undo", I.undo, "Undo")}${tb("redo", I.redo, "Redo")}<span class="sep snbx-dsk"></span>${tb("verse", I.book, "Insert Verse", "Verse")}${tb("mic", I.mic, "Dictate")}</div>`}
+        ${imp ? "" : `<button type="button" class="snbx-hb" data-a="grammar" aria-label="${tx("AI Grammar Fix")}" title="${tx("AI Grammar Fix: fix spelling and grammar (selection or whole note)")}">${I.spark}<span>${tx("Grammar")}</span></button><button type="button" class="snbx-hb snbx-mob" data-a="verse" aria-label="${tx("Insert Verse")}">${I.plus}<span>${tx("Verse")}</span></button>`}
+        <button type="button" class="snb-ib snbx-dsk ${n.pinned ? "on" : ""}" data-a="pin" aria-label="${tx("Pin")}" title="${tx("Pin")}">${I.pin}</button>
+        <button type="button" class="snb-ib snbx-dsk" data-a="focus" aria-label="${tx("Focus mode")}" title="${tx("Focus mode")}">${I.focus}</button>
+        <button type="button" class="snb-ib" data-a="more" aria-label="${tx("More: templates, paper, focus, export, delete")}" title="${tx("More")}">${I.more}</button></div>
+      ${imp ? "" : `<div class="snbx-tools" role="toolbar" aria-label="${tx("Formatting")}">${tb("h1", "", "Heading 1", "H1")}${tb("h2", "", "Heading 2", "H2")}${tb("b", I.bold, "Bold")}${tb("i", I.ital, "Italic")}<span class="sep"></span>${tb("quote", I.quote, "Blockquote")}${tb("callout", I.callout, "Callout box")}${tb("ul", I.list, "Bullet list")}${tb("ol", I.ol, "Numbered list")}${tb("cl", I.check, "Checklist")}${tb("hr", I.hr, "Divider")}<span class="sep"></span>${tb("undo", I.undo, "Undo")}${tb("redo", I.redo, "Redo")}<span class="sep snbx-dsk"></span>${tb("verse", I.book, "Insert Verse", "Verse")}${tb("mic", I.mic, "Dictate")}</div>`}
       <div class="snbx-paper"><div class="snbx-page">
-        ${imp ? `<h1 class="snbx-tv">${esc(n.title || "Untitled")}</h1><div class="snb-imp">${I.book}<span>Imported from your earlier notes. The original is kept as it was.</span><button type="button" class="fx-btn small primary" data-a="convert">${I.edit}Edit as study note</button></div>
+        ${imp ? `<h1 class="snbx-tv">${esc(n.title || tr("Untitled"))}</h1><div class="snb-imp">${I.book}<span>${tx("Imported from your earlier notes. The original is kept as it was.")}</span><button type="button" class="fx-btn small primary" data-a="convert">${I.edit}${tx("Edit as study note")}</button></div>
           ${n.verseText ? `<blockquote class="snb-vq">${esc(n.verseText)}<cite>${n.ref0 ? refBtn(n.ref0) : ""}${n.version ? " \u00b7 " + esc(vname(n.version)) : ""}</cite></blockquote>` : ""}`
-          : `<input class="snb-tin" maxlength="100" placeholder="Title" aria-label="Title" value="${esc(n.title || "")}">`}
-        <div class="snbx-meta">${imp ? "" : `<select class="snb-nbsel" aria-label="Notebook">${nbs.map(b => `<option value="${esc(b.id)}" ${b.id === n.nb ? "selected" : ""}>${esc(b.name)}</option>`).join("")}<option value="" ${!n.nb ? "selected" : ""}>No notebook</option></select>`}<span class="snbx-mdate">${n.tpl && n.tpl !== "blank" ? esc(tplOf(n.tpl).name) + " \u00b7 " : ""}${n.created ? esc(fmtDate(n.created)) : "New note"}</span>${imp ? "" : segH("snbx-mseg", MODES)}</div>
-        <div class="snbx-work" data-mode="${md === "split" && narrow() ? "write" : md}">${imp ? "" : `<textarea class="snb-ta" aria-label="Note" placeholder="Write here. Verse references like John 3:16 become links. Tap Verse to insert scripture.">${esc(n.body || "")}</textarea>`}<div class="snbx-pv snb-body" aria-label="Preview"></div></div>
+          : `<input class="snb-tin" maxlength="100" placeholder="${tx("Title")}" aria-label="${tx("Title")}" value="${esc(n.title || "")}">`}
+        <div class="snbx-meta">${imp ? "" : `<select class="snb-nbsel" aria-label="${tx("Notebook")}">${nbs.map(b => `<option value="${esc(b.id)}" ${b.id === n.nb ? "selected" : ""}>${esc(b.name)}</option>`).join("")}<option value="" ${!n.nb ? "selected" : ""}>${tx("No notebook")}</option></select>`}<span class="snbx-mdate">${n.tpl && n.tpl !== "blank" ? tx(tplOf(n.tpl).name) + " \u00b7 " : ""}${n.created ? esc(fmtDate(n.created)) : tx("New note")}</span>${imp ? "" : segH("snbx-mseg", MODES)}</div>
+        <div class="snbx-work" data-mode="${md === "split" && narrow() ? "write" : md}">${imp ? "" : `<textarea class="snb-ta" aria-label="${tx("Note")}" placeholder="${tx("Write here. Verse references like John 3:16 become links. Tap Verse to insert scripture.")}">${esc(n.body || "")}</textarea>`}<div class="snbx-pv snb-body" aria-label="${tx("Preview")}"></div></div>
         <div class="snb-live"></div>
-        ${imp ? "" : `<label class="snb-lbl">Tags</label><input class="fx-input snb-tags-in" placeholder="faith, prayer, youth group" value="${esc((n.tags || []).join(", "))}">`}
+        ${imp ? "" : `<label class="snb-lbl">${tx("Tags")}</label><input class="fx-input snb-tags-in" placeholder="${tx("faith, prayer, youth group")}" value="${esc((n.tags || []).join(", "))}">`}
       </div></div>
-      <div class="snbx-foot"><span class="snbx-wc"></span><span class="snbx-saved" aria-live="polite">${imp ? "Read only" : c.fresh && !n.id ? "Not saved yet" : "Saved"}</span></div>`;
+      <div class="snbx-foot"><span class="snbx-wc"></span><span class="snbx-saved" aria-live="polite">${imp ? tr("Read only") : c.fresh && !n.id ? tr("Not saved yet") : tr("Saved")}</span></div>`;
     const ta = $(".snb-ta", ed), tin = $(".snb-tin", ed);
     $('[data-a="back"]', ed).onclick = () => { commit(); cur = null; relist(); drawEmpty(); setView("list"); };
     $('[data-a="pin"]', ed).onclick = e => { if (imp) { const m = meta(); if (m.pins[n.id]) delete m.pins[n.id]; else m.pins[n.id] = 1; wr(KM, m); n.pinned = !!m.pins[n.id]; } else { n.pinned = !n.pinned; dirty(); }
-      e.currentTarget.classList.toggle("on", n.pinned); toast(n.pinned ? "Pinned to the top" : "Unpinned"); drawSide(); drawItems(); };
+      e.currentTarget.classList.toggle("on", n.pinned); toast(n.pinned ? tr("Pinned to the top") : tr("Unpinned")); drawSide(); drawItems(); };
     $('[data-a="focus"]', ed).onclick = () => toggleFocus();
     $('[data-a="more"]', ed).onclick = moreMenu;
     if (!imp) { $('[data-a="grammar"]', ed).onclick = grammar; $('[data-a="verse"]', ed).onclick = insertVerse; }
@@ -449,21 +451,21 @@
       ed.querySelectorAll(".snbx-tools [data-f]").forEach(b => { b.addEventListener("mousedown", e => e.preventDefault()); b.onclick = () => tool(b.dataset.f, b); });
       snap();
     }
-    $(".snbx-pv", ed).addEventListener("click", e => { const cb = e.target.closest(".snb-cb"); if (!cb) return; e.preventDefault(); if (imp) { toast("Tap Edit as study note to tick items"); return; } toggleLine(+cb.dataset.line); });
+    $(".snbx-pv", ed).addEventListener("click", e => { const cb = e.target.closest(".snb-cb"); if (!cb) return; e.preventDefault(); if (imp) { toast(tr("Tap Edit as study note to tick items")); return; } toggleLine(+cb.dataset.line); });
     refresh(true);
   }
   let rt;
   function grow() { const ta = root && $(".snb-ta"); if (!ta || !ta.offsetParent) return; const y = $(".snbx-paper").scrollTop; ta.style.height = "auto"; ta.style.height = Math.max(ta.scrollHeight + 4, Math.round(innerHeight * 0.46)) + "px"; $(".snbx-paper").scrollTop = y; }
   function refresh(now) { clearTimeout(rt); grow(); const go = () => { preview(); counts(); linked(); }; if (now) go(); else rt = setTimeout(go, 140); }
   const bodyNow = () => { const ta = root && $(".snb-ta"); return ta ? ta.value : (cur ? cur.n.body || "" : ""); };
-  function preview() { const pv = root && $(".snbx-pv"); if (!pv || !cur) return; const w = $(".snbx-work"); if (w && w.dataset.mode === "write") return; pv.innerHTML = render(bodyNow()) || '<p class="snb-faint">Nothing written yet</p>'; }
+  function preview() { const pv = root && $(".snbx-pv"); if (!pv || !cur) return; const w = $(".snbx-work"); if (w && w.dataset.mode === "write") return; pv.innerHTML = render(bodyNow()) || `<p class="snb-faint">${tx("Nothing written yet")}</p>`; }
   function counts() { const el = root && $(".snbx-wc"); if (!el) return; const t = bodyNow(), w = (t.match(/[A-Za-z0-9\u00c0-\u024f']+/g) || []).length;
-    el.textContent = `${w} word${w === 1 ? "" : "s"} \u00b7 ${t.length} character${t.length === 1 ? "" : "s"} \u00b7 ${Math.max(1, Math.ceil(w / 200))} min read`; }
+    el.textContent = window.BibleyLocale?.get() === "es" ? `${w} palabra${w === 1 ? "" : "s"} · ${t.length} car${t.length === 1 ? "ácter" : "acteres"} · ${Math.max(1, Math.ceil(w / 200))} min de lectura` : `${w} word${w === 1 ? "" : "s"} · ${t.length} character${t.length === 1 ? "" : "s"} · ${Math.max(1, Math.ceil(w / 200))} min read`; }
   function linked() { const live = root && $(".snb-live"); if (!live || !cur) return; const tin = $(".snb-tin"); const rs = uniqRefs((cur.n.ref0 ? [cur.n.ref0] : []).concat(findRefs((tin ? tin.value : cur.n.title || "") + "\n" + bodyNow())));
-    live.innerHTML = rs.length ? `<span class="snb-live-l">${I.link}Linked verses</span>` + rs.slice(0, 12).map(refBtn).join("") : ""; }
-  function savedLabel(t) { const el = root && $(".snbx-saved"); if (el) el.textContent = t; }
+    live.innerHTML = rs.length ? `<span class="snb-live-l">${I.link}${tx("Linked verses")}</span>` + rs.slice(0, 12).map(refBtn).join("") : ""; }
+  function savedLabel(t) { const el = root && $(".snbx-saved"); if (el) el.textContent = tr(t); }
   let saveT;
-  function dirty() { if (!cur || cur.imp) return; cur.saved = false; savedLabel("Saving\u2026"); clearTimeout(saveT); saveT = setTimeout(() => { const id = commit(); savedLabel(id ? "Saved" : "Not saved yet"); if (id) { drawSide(); relist(); } }, 650); }
+  function dirty() { if (!cur || cur.imp) return; cur.saved = false; savedLabel("Saving\u2026"); clearTimeout(saveT); saveT = setTimeout(() => { const id = commit(); savedLabel(id ? tr("Saved") : tr("Not saved yet")); if (id) { drawSide(); relist(); } }, 650); }
   function commit() {
     clearTimeout(saveT);
     if (!cur || cur.imp || cur.gone || !root) return cur && cur.n.id;
@@ -544,14 +546,14 @@
     const old = $(".snbx-ins"); if (old) { old.remove(); return; }
     let sel = [ta.selectionStart, ta.selectionEnd];
     if (document.activeElement !== ta && sel[0] === 0 && ta.value) { const k = ta.value.indexOf("## Scripture"), at = k >= 0 ? ta.value.indexOf("\n", k) + 1 : ta.value.length; sel = [at, at]; }
-    const box = h(`<div class="snbx-ins" role="dialog" aria-label="Insert verse"><div class="snb-search">${I.book}<input type="search" class="snbx-ins-q" placeholder="John 3:16, Psalm 23:1-3 or a word like peace" aria-label="Verse reference or keywords" enterkeyhint="search"><button type="button" class="snb-ib sm" data-a="x" aria-label="Close">${I.x}</button></div><div class="snbx-ins-res"><p class="snb-hint">Type a reference or keywords. Results come from the King James Bible.</p></div></div>`);
+    const box = h(`<div class="snbx-ins" role="dialog" aria-label="${tx("Insert verse")}"><div class="snb-search">${I.book}<input type="search" class="snbx-ins-q" placeholder="${tx("John 3:16, Psalm 23:1-3 or a word like peace")}" aria-label="${tx("Verse reference or keywords")}" enterkeyhint="search"><button type="button" class="snb-ib sm" data-a="x" aria-label="${tx("Close")}">${I.x}</button></div><div class="snbx-ins-res"><p class="snb-hint">${tx("Type a reference or keywords. Results come from the King James Bible.")}</p></div></div>`);
     $(".snbx-tools", ed).after(box);
     const q = $(".snbx-ins-q", box), res = $(".snbx-ins-res", box); let found = [], tk = 0;
     const put = vs => { box.remove(); ta.focus(); ta.setSelectionRange(sel[0], sel[1]); insertAt(quoteOf(vs), true); toast("Inserted " + (vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)); };
-    const run = async () => { const my = ++tk, v = q.value; if (!v.trim()) { res.innerHTML = '<p class="snb-hint">Type a reference or keywords.</p>'; found = []; return; }
-      if (!(LAI() && LAI().kjvReady && LAI().kjvReady())) res.innerHTML = '<p class="snb-hint">Opening the King James Bible\u2026</p>';
+    const run = async () => { const my = ++tk, v = q.value; if (!v.trim()) { res.innerHTML = `<p class="snb-hint">${tx("Type a reference or keywords.")}</p>`; found = []; return; }
+      if (!(LAI() && LAI().kjvReady && LAI().kjvReady())) res.innerHTML = `<p class="snb-hint">${tx("Opening the King James Bible…")}</p>`;
       try { const g = await lookupVerses(v); if (my !== tk) return; found = g;
-        res.innerHTML = g.length ? g.map((vs, i) => `<button type="button" class="snbx-ins-r" data-i="${i}"><b>${esc(vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)}</b><span>${esc(vs.map(x => x.text).join(" ").slice(0, 220))}</span></button>`).join("") : '<p class="snb-hint">No verses found. Try "John 3:16" or a word like "shepherd".</p>';
+        res.innerHTML = g.length ? g.map((vs, i) => `<button type="button" class="snbx-ins-r" data-i="${i}"><b>${esc(vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)}</b><span>${esc(vs.map(x => x.text).join(" ").slice(0, 220))}</span></button>`).join("") : `<p class="snb-hint">${tx("No verses found. Try \"John 3:16\" or a word like \"shepherd\".")}</p>`;
         res.querySelectorAll("[data-i]").forEach(b => b.onclick = () => put(found[+b.dataset.i]));
       } catch (e) { if (my === tk) res.innerHTML = `<p class="snb-hint">Couldn't open the Bible text (${esc(String(e && e.message || e).slice(0, 80))}).</p>`; } };
     let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 220); });
@@ -565,8 +567,8 @@
   async function showPop(anchor, r) {
     closePop();
     const canIns = cur && !cur.imp && $(".snb-ta");
-    const p = popEl = h(`<div class="snbx-pop" role="dialog" aria-label="${esc(refLabel(r))}"><div class="snbx-pop-h"><b>${esc(refLabel(r))}</b><span>KJV</span><button type="button" class="snb-ib sm" data-a="x" aria-label="Close">${I.x}</button></div>
-      <div class="snbx-pop-t">Loading verse\u2026</div><div class="snbx-pop-a"><button type="button" class="fx-btn small primary" data-a="jump">${I.book}Jump to Chapter</button><button type="button" class="fx-btn small" data-a="copy">${I.copy}Copy Verse</button>${canIns ? `<button type="button" class="fx-btn small" data-a="ins">${I.plus}Insert</button>` : ""}</div></div>`);
+    const p = popEl = h(`<div class="snbx-pop" role="dialog" aria-label="${esc(refLabel(r))}"><div class="snbx-pop-h"><b>${esc(refLabel(r))}</b><span>KJV</span><button type="button" class="snb-ib sm" data-a="x" aria-label="${tx("Close")}">${I.x}</button></div>
+      <div class="snbx-pop-t">${tx("Loading verse…")}</div><div class="snbx-pop-a"><button type="button" class="fx-btn small primary" data-a="jump">${I.book}${tx("Jump to Chapter")}</button><button type="button" class="fx-btn small" data-a="copy">${I.copy}${tx("Copy Verse")}</button>${canIns ? `<button type="button" class="fx-btn small" data-a="ins">${I.plus}${tx("Insert")}</button>` : ""}</div></div>`);
     root.appendChild(p);
     if (wide()) { const a = anchor.getBoundingClientRect(), W = Math.min(360, innerWidth - 16); p.style.width = W + "px"; p.style.left = Math.max(8, Math.min(a.left, innerWidth - W - 8)) + "px";
       const below = a.bottom + 8; if (below + 220 < innerHeight) p.style.top = below + "px"; else p.style.bottom = (innerHeight - a.top + 8) + "px"; } else p.classList.add("sheet");
@@ -648,7 +650,7 @@
     const Q = []; const masked = orig.split("\n").map(l => /^\s*>\s*["\u201c]/.test(l) ? (Q.push(l), "[[Q" + Q.length + "]]") : l).join("\n");
     if (!masked.replace(/\[\[Q\d+\]\]/g, "").trim()) { toast("Only Bible quotes here: nothing to check"); return; }
     const btn = $('[data-a="grammar"]'); gBusy = true; if (btn) { btn.classList.add("busy"); btn.disabled = true; }
-    modal("Grammar Check", `<div class="snbx-gm"><div class="snbx-gload"><span class="snbx-spin"></span>Checking grammar\u2026</div></div>`, () => {});
+    modal("Grammar Check", `<div class="snbx-gm"><div class="snbx-gload"><span class="snbx-spin"></span>${tx("Checking grammar…")}</div></div>`, () => {});
     try {
       // long notes go in chunks of whole paragraphs
       const parts = [], paras = masked.split(/(\n{2,})/); let buf = "";
@@ -666,24 +668,24 @@
       gReview(orig, out, s, e, !!sel, by);
     } catch (x) {
       const msg = String(x && x.message || x);
-      if ($(".snbx-modal") && !$(".snbx-modal").hidden) $(".snbx-gm").innerHTML = `<p class="snbx-gerr">${esc(/offline/i.test(msg) ? "You're offline. Grammar Fix needs the internet (or an on-device model that's already loaded)." : "Couldn't check grammar: " + msg.slice(0, 140))}</p><div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="x">Close</button></div>`, $('[data-g="x"]').onclick = closeModal;
+      if ($(".snbx-modal") && !$(".snbx-modal").hidden) $(".snbx-gm").innerHTML = `<p class="snbx-gerr">${esc(/offline/i.test(msg) ? "You're offline. Grammar Fix needs the internet (or an on-device model that's already loaded)." : "Couldn't check grammar: " + msg.slice(0, 140))}</p><div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="x">${tx("Close")}</button></div>`, $('[data-g="x"]').onclick = closeModal;
     } finally { gBusy = false; if (btn && btn.isConnected) { btn.classList.remove("busy"); btn.disabled = false; } }
   }
   function gReview(orig, out, s, e, isSel, by) {
     const same = out.replace(/\s+$/, "") === orig.replace(/\s+$/, "");
     const box = $(".snbx-gm"); if (!box) return;
-    if (same) { box.innerHTML = `<div class="snbx-gok">${I.tick}<b>Looks great \u2014 no grammar issues found!</b><span>${isSel ? "Checked your selection" : "Checked the whole note"} \u00b7 ${esc(by)}</span></div><div class="snbx-gbtns"><button type="button" class="fx-btn small primary" data-g="x">Done</button></div>`; $('[data-g="x"]').onclick = closeModal; return; }
+    if (same) { box.innerHTML = `<div class="snbx-gok">${I.tick}<b>Looks great \u2014 no grammar issues found!</b><span>${isSel ? "Checked your selection" : "Checked the whole note"} \u00b7 ${esc(by)}</span></div><div class="snbx-gbtns"><button type="button" class="fx-btn small primary" data-g="x">${tx("Done")}</button></div>`; $('[data-g="x"]').onclick = closeModal; return; }
     const d = diff(orig, out), n = d.filter(x => x[0] === "+").length || d.filter(x => x[0] === "-").length;
     const view = v => v === "orig" ? esc(orig) : v === "fixed" ? esc(out) : d.map(([op, t]) => op === "=" ? esc(t) : op === "+" ? `<ins>${esc(t)}</ins>` : `<del>${esc(t)}</del>`).join("");
     box.innerHTML = `<div class="snbx-gsum"><b>${n} change${n === 1 ? "" : "s"} suggested</b><span>${isSel ? "Your selection" : "Whole note"} \u00b7 ${esc(by)} \u00b7 Bible quotes left as they are</span></div>
-      <div class="snbx-seg snbx-gtabs" role="tablist">${[["diff", "Changes"], ["fixed", "Corrected"], ["orig", "Original"]].map(([k, l], i) => `<button type="button" class="${i ? "" : "on"}" data-gv="${k}">${l}</button>`).join("")}</div>
+      <div class="snbx-seg snbx-gtabs" role="tablist">${[["diff", "Changes"], ["fixed", "Corrected"], ["orig", "Original"]].map(([k, l], i) => `<button type="button" class="${i ? "" : "on"}" data-gv="${k}">${tx(l)}</button>`).join("")}</div>
       <div class="snbx-gtext">${view("diff")}</div>
-      <div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="no">Discard</button><button type="button" class="fx-btn small primary" data-g="ok">${I.tick}Apply Changes</button></div>`;
+      <div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="no">${tx("Discard")}</button><button type="button" class="fx-btn small primary" data-g="ok">${I.tick}${tx("Apply Changes")}</button></div>`;
     box.querySelectorAll("[data-gv]").forEach(b => b.onclick = () => { box.querySelectorAll("[data-gv]").forEach(x => x.classList.toggle("on", x === b)); $(".snbx-gtext", box).innerHTML = view(b.dataset.gv); });
-    $('[data-g="no"]', box).onclick = () => { closeModal(); toast("Kept your note as it was"); };
+    $('[data-g="no"]', box).onclick = () => { closeModal(); toast(tr("Kept your note as it was")); };
     $('[data-g="ok"]', box).onclick = () => {
       const ta = $(".snb-ta"); if (!ta) return closeModal();
-      if (ta.value.slice(s, e) !== orig) { toast("The note changed while checking: run Grammar again"); return closeModal(); }
+      if (ta.value.slice(s, e) !== orig) { toast(tr("The note changed while checking: run Grammar again")); return closeModal(); }
       snap(); ta.setRangeText(out, s, e, "select"); if (!isSel) ta.setSelectionRange(0, 0); snap(); dirty(); refresh(true); closeModal();
       toast(n + " change" + (n === 1 ? "" : "s") + " applied \u00b7 Undo reverts them", 3500);
     };
@@ -691,14 +693,14 @@
   /* modal */
   function modal(title, html, wire) {
     const m = $(".snbx-modal");
-    m.innerHTML = `<div class="snbx-mbox" role="dialog" aria-label="${esc(title)}"><div class="snbx-mh"><b>${esc(title)}</b><button type="button" class="snb-ib" data-a="mx" aria-label="Close">${I.x}</button></div><div class="snbx-mb"></div></div>`;
+    m.innerHTML = `<div class="snbx-mbox" role="dialog" aria-label="${tx(title)}"><div class="snbx-mh"><b>${tx(title)}</b><button type="button" class="snb-ib" data-a="mx" aria-label="${tx("Close")}">${I.x}</button></div><div class="snbx-mb"></div></div>`;
     m.hidden = false; $(".snbx-mb", m).append(h(html)); $('[data-a="mx"]', m).onclick = closeModal; m.onclick = e => { if (e.target === m) closeModal(); };
     wire($(".snbx-mb", m));
   }
   function closeModal() { const m = root && $(".snbx-modal"); if (m) { m.hidden = true; m.innerHTML = ""; } }
 
   /* export / print */
-  const mdOf = it => { const lines = ["# " + (it.title || "Untitled"), "", "_" + bookName(it.nb) + " \u00b7 " + fmtDate(it.updated || Date.now()) + "_", ""];
+  const mdOf = it => { const lines = ["# " + (it.title || tr("Untitled")), "", "_" + bookName(it.nb) + " \u00b7 " + fmtDate(it.updated || Date.now()) + "_", ""];
     if (it.verseText && it.ref0) lines.push(`> "${it.verseText}" \u2014 ${refLabel(it.ref0)}`, "");
     lines.push(String(it.body || "").trim()); if (it.tags && it.tags.length) lines.push("", it.tags.map(t => "#" + t).join(" ")); return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n"; };
   const fileName = (t, ext) => (String(t || "note").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").slice(0, 60) || "note") + "." + ext;
@@ -718,14 +720,14 @@
   function moreMenu() {
     const it = curItem(); if (!it) return; const listNow = filtered(), lt = listTitle();
     const nbMd = () => ["# " + lt, ""].concat(listNow.map(x => mdOf(x).replace(/^# /, "## "))).join("\n---\n\n");
-    const B = (a, ic, l) => `<button type="button" class="snbx-mi" data-m="${a}">${ic}<span>${l}</span></button>`;
+    const B = (a, ic, l) => `<button type="button" class="snbx-mi" data-m="${a}">${ic}<span>${tx(l)}</span></button>`;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition, nbs = books();
     modal("This note", `<div class="snbx-menu">
-      ${cur.imp ? "" : `<div class="snbx-mt">Note</div>${B("pin", I.pin, cur.n.pinned ? "Unpin" : "Pin to the top")}${B("focus", I.focus, "Focus mode")}${SR ? B("mic", I.mic, rec ? "Stop dictation" : "Dictate with your voice") : ""}${B("tpl", I.plus, "New note from a template")}
-      ${nbs.length > 1 ? `<div class="snbx-mt">Move to notebook</div><div class="snbx-mvs">${nbs.map(b => `<button type="button" class="snbx-pill${b.id === ($(".snb-nbsel") || {}).value ? " on" : ""}" data-mv="${esc(b.id)}"><i class="snb-dot" style="background:${colorOf(b.color)}"></i>${esc(b.name)}</button>`).join("")}</div>` : ""}`}
-      <div class="snbx-mt">Export note</div>${B("md", I.dl, "Export as Markdown (.md)")}${B("txt", I.dl, "Export as text (.txt)")}${B("copy", I.copy, "Copy formatted text")}${B("print", I.print, "Print / Save as PDF")}${B("share", I.share, "Share")}
+      ${cur.imp ? "" : `<div class="snbx-mt">${tx("Note")}</div>${B("pin", I.pin, cur.n.pinned ? "Unpin" : "Pin to the top")}${B("focus", I.focus, "Focus mode")}${SR ? B("mic", I.mic, rec ? "Stop dictation" : "Dictate with your voice") : ""}${B("tpl", I.plus, "New note from a template")}
+      ${nbs.length > 1 ? `<div class="snbx-mt">${tx("Move to notebook")}</div><div class="snbx-mvs">${nbs.map(b => `<button type="button" class="snbx-pill${b.id === ($(".snb-nbsel") || {}).value ? " on" : ""}" data-mv="${esc(b.id)}"><i class="snb-dot" style="background:${colorOf(b.color)}"></i>${esc(b.name)}</button>`).join("")}</div>` : ""}`}
+      <div class="snbx-mt">${tx("Export note")}</div>${B("md", I.dl, "Export as Markdown (.md)")}${B("txt", I.dl, "Export as text (.txt)")}${B("copy", I.copy, "Copy formatted text")}${B("print", I.print, "Print / Save as PDF")}${B("share", I.share, "Share")}
       <div class="snbx-mt">${esc(lt)} \u00b7 ${listNow.length} note${listNow.length === 1 ? "" : "s"}</div>${B("nbmd", I.dl, "Export notebook as Markdown")}${B("nbtxt", I.dl, "Export notebook as text")}${B("nbprint", I.print, "Print notebook")}
-      <div class="snbx-mt">Paper</div><div class="snbx-seg snbx-mpaper">${PAPERS.map(([k, l]) => `<button type="button" class="${paper() === k ? "on" : ""}" data-paper="${k}">${l.replace("Warm ", "").replace(" Paper", "")}</button>`).join("")}</div>
+      <div class="snbx-mt">${tx("Paper")}</div><div class="snbx-seg snbx-mpaper">${PAPERS.map(([k, l]) => `<button type="button" class="${paper() === k ? "on" : ""}" data-paper="${k}">${tx(l.replace("Warm ", "").replace(" Paper", ""))}</button>`).join("")}</div>
       ${cur.imp ? "" : `<div class="snbx-mt"></div>${B("del", I.trash, "Delete note")}`}</div>`, b => {
       b.querySelectorAll("[data-paper]").forEach(x => x.onclick = () => { setPaper(x.dataset.paper); b.querySelectorAll("[data-paper]").forEach(y => y.classList.toggle("on", y === x)); });
       b.querySelectorAll("[data-mv]").forEach(x => x.onclick = () => { const s = $(".snb-nbsel"); if (s) { s.value = x.dataset.mv; dirty(); } closeModal(); toast("Moved to " + bookName(x.dataset.mv)); });
@@ -738,11 +740,11 @@
         if (a === "txt") download(fileName(it.title, "txt"), noteText(it), "text/plain");
         if (a === "copy") copy(noteText(it));
         if (a === "share") shareText(it.title || "Note", noteText(it));
-        if (a === "print") printHtml(it.title || "Untitled", noteHtml(it));
-        if (a === "nbmd") listNow.length ? download(fileName(lt, "md"), nbMd(), "text/markdown") : toast("No notes to export");
-        if (a === "nbtxt") listNow.length ? download(fileName(lt, "txt"), [lt.toUpperCase(), ""].concat(listNow.map(noteText).join("\n\n\u2014\u2014\u2014\n\n")).join("\n"), "text/plain") : toast("No notes to export");
-        if (a === "nbprint") listNow.length ? printHtml(lt, listNow.map(x => `<h2>${esc(x.title || "Untitled")}</h2>` + noteHtml(x)).join("<hr>")) : toast("No notes to print");
-        if (a === "del") { if (!confirm("Move this note to trash?")) return; cur.gone = true; const data = own().find(y => y.id === it.id); if (data) { window.BibleyTools?.pushTrash("Study note", data.title, { key: KT, id: it.id, data }); wr(KT, own().filter(y => y.id !== it.id)); } cur = null; toast("Note deleted"); drawSide(); drawItems(); drawEmpty(); setView("list"); }
+        if (a === "print") printHtml(it.title || tr("Untitled"), noteHtml(it));
+        if (a === "nbmd") listNow.length ? download(fileName(lt, "md"), nbMd(), "text/markdown") : toast(tr("No notes to export"));
+        if (a === "nbtxt") listNow.length ? download(fileName(lt, "txt"), [lt.toUpperCase(), ""].concat(listNow.map(noteText).join("\n\n\u2014\u2014\u2014\n\n")).join("\n"), "text/plain") : toast(tr("No notes to export"));
+        if (a === "nbprint") listNow.length ? printHtml(lt, listNow.map(x => `<h2>${esc(x.title || "Untitled")}</h2>` + noteHtml(x)).join("<hr>")) : toast(tr("No notes to print"));
+        if (a === "del") { if (!confirm(tr("Move this note to trash?"))) return; cur.gone = true; const data = own().find(y => y.id === it.id); if (data) { window.BibleyTools?.pushTrash("Study note", data.title, { key: KT, id: it.id, data }); wr(KT, own().filter(y => y.id !== it.id)); } cur = null; toast(tr("Note deleted")); drawSide(); drawItems(); drawEmpty(); setView("list"); }
       }); });
   }
 
@@ -752,31 +754,31 @@
     const items = b ? allItems().filter(i => i.nb === b.id) : [];
     let color = b ? b.color : COLORS[nbs.length % COLORS.length][0];
     modal(b ? "Notebook" : "New notebook", `<div class="snb-form">
-        <label class="snb-lbl">Name</label><input class="fx-input snb-bn" maxlength="40" placeholder="e.g. Romans study, Youth group" value="${esc(b ? b.name : "")}">
-        <label class="snb-lbl">Colour</label><div class="snb-colors">${COLORS.map(([k, v]) => `<button type="button" class="snb-col ${k === color ? "on" : ""}" data-c="${k}" style="--c:${v}" aria-label="${k}"></button>`).join("")}</div>
-        <div class="snb-actions"><button type="button" class="fx-btn primary" data-a="save" style="flex:1">${b ? "Save" : "Create notebook"}</button></div>
+        <label class="snb-lbl">${tx("Name")}</label><input class="fx-input snb-bn" maxlength="40" placeholder="${tx("e.g. Romans study, Youth group")}" value="${esc(b ? b.name : "")}">
+        <label class="snb-lbl">${tx("Colour")}</label><div class="snb-colors">${COLORS.map(([k, v]) => `<button type="button" class="snb-col ${k === color ? "on" : ""}" data-c="${k}" style="--c:${v}" aria-label="${k}"></button>`).join("")}</div>
+        <div class="snb-actions"><button type="button" class="fx-btn primary" data-a="save" style="flex:1">${b ? tr("Save") : tr("Create notebook")}</button></div>
         ${b ? `<div class="snb-h">This notebook \u00b7 ${items.length} note${items.length === 1 ? "" : "s"}</div><div class="snb-actions">
-          <button type="button" class="fx-btn small" data-a="share">${I.share}Share as text</button><button type="button" class="fx-btn small" data-a="copy">${I.copy}Copy all</button>
-          <button type="button" class="fx-btn small danger" data-a="del">${I.trash}Delete</button></div>` : ""}</div>`, el => {
+          <button type="button" class="fx-btn small" data-a="share">${I.share}${tx("Share as text")}</button><button type="button" class="fx-btn small" data-a="copy">${I.copy}${tx("Copy all")}</button>
+          <button type="button" class="fx-btn small danger" data-a="del">${I.trash}${tx("Delete")}</button></div>` : ""}</div>`, el => {
       el.querySelectorAll(".snb-col").forEach(c => c.onclick = () => { color = c.dataset.c; el.querySelectorAll(".snb-col").forEach(x => x.classList.toggle("on", x === c)); });
       const after = () => { closeModal(); drawSide(); drawList(); if (cur) drawEditor(); };
       el.querySelector('[data-a="save"]').onclick = () => {
-        const name = el.querySelector(".snb-bn").value.trim(); if (!name) { toast("Give the notebook a name"); return; }
+        const name = el.querySelector(".snb-bn").value.trim(); if (!name) { toast(tr("Give the notebook a name")); return; }
         commit(); const all = books(); if (b) { const x = all.find(y => y.id === b.id); x.name = name; x.color = color; } else { const nid = uid("nb_"); all.push({ id: nid, name, color, created: Date.now() }); st.nb = nid; st.tab = "notes"; }
-        wr(KN, all); toast(b ? "Notebook saved" : "Notebook created"); after(); setView("list");
+        wr(KN, all); toast(b ? tr("Notebook saved") : tr("Notebook created")); after(); setView("list");
       };
       setTimeout(() => { try { el.querySelector(".snb-bn").focus(); } catch {} }, 60);
       if (b) {
         const txt = () => [b.name.toUpperCase(), ""].concat(items.map(noteText).join("\n\n\u2014\u2014\u2014\n\n")).join("\n");
-        el.querySelector('[data-a="share"]').onclick = () => items.length ? shareText(b.name, txt()) : toast("This notebook is empty");
-        el.querySelector('[data-a="copy"]').onclick = () => items.length ? copy(txt()) : toast("This notebook is empty");
+        el.querySelector('[data-a="share"]').onclick = () => items.length ? shareText(b.name, txt()) : toast(tr("This notebook is empty"));
+        el.querySelector('[data-a="copy"]').onclick = () => items.length ? copy(txt()) : toast(tr("This notebook is empty"));
         el.querySelector('[data-a="del"]').onclick = () => {
           const n = items.filter(i => i.src === "new").length;
           if (!confirm(`Delete the notebook "${b.name}"?` + (n ? ` Its ${n} note${n > 1 ? "s" : ""} will be kept under All notes.` : ""))) return;
           commit(); wr(KN, books().filter(x => x.id !== b.id));
           if (n) { const all = own(); all.forEach(x => { if (x.nb === b.id) x.nb = ""; }); wr(KT, all); }
           if (cur && cur.n.nb === b.id) cur.n.nb = "";
-          if (st.nb === b.id) st.nb = "all"; toast("Notebook deleted"); after();
+          if (st.nb === b.id) st.nb = "all"; toast(tr("Notebook deleted")); after();
         };
       }
     });
@@ -790,11 +792,11 @@
     if (q) list = list.filter(x => ((x.text || "") + " " + (x.ref || "")).toLowerCase().includes(q));
     list.sort((a, b) => sortMode() === "recent" ? (b.added || 0) - (a.added || 0) : (a.bookIdx - b.bookIdx) || (a.chapter - b.chapter) || (a.verseNum - b.verseNum));
     const el = h(`<div>
-      <div class="snb-chips">${["all"].concat(Object.keys(HLC)).map(c => `<button type="button" class="snb-chip ${st.hl === c ? "on" : ""}" data-c="${c}">${c === "all" ? "All colours" : `<i class="snb-dot lg" style="background:${HLC[c]}"></i>${c[0].toUpperCase() + c.slice(1)}`}</button>`).join("")}</div>
-      <p class="snb-hint">Tap a verse in the reader, then pick a colour to highlight it.</p>
+      <div class="snb-chips">${["all"].concat(Object.keys(HLC)).map(c => `<button type="button" class="snb-chip ${st.hl === c ? "on" : ""}" data-c="${c}">${c === "all" ? tr("All colours") : `<i class="snb-dot lg" style="background:${HLC[c]}"></i>${c[0].toUpperCase() + c.slice(1)}`}</button>`).join("")}</div>
+      <p class="snb-hint">${tx("Tap a verse in the reader, then pick a colour to highlight it.")}</p>
       <div class="snb-list">${list.length ? list.map(x => `<article class="snb-hl" data-k="${esc(x.key)}" style="--hc:${HLC[x.color] || HLC.yellow}">
-        <div class="snb-hl-top"><b>${esc(x.ref || (BOOKS[x.bookIdx][1] + " " + x.chapter + ":" + x.verseNum))}</b><button type="button" class="snb-ib" data-n="${esc(x.key)}" aria-label="Start a note on this verse" title="New note">${I.edit}</button></div>
-        <p>${esc(x.text || "")}</p></article>`).join("") : `<div class="snb-empty">${q ? "No highlights match." : "No highlights yet."}</div>`}</div></div>`);
+        <div class="snb-hl-top"><b>${esc(x.ref || (BOOKS[x.bookIdx][1] + " " + x.chapter + ":" + x.verseNum))}</b><button type="button" class="snb-ib" data-n="${esc(x.key)}" aria-label="${tx("Start a note on this verse")}" title="${tx("New note")}">${I.edit}</button></div>
+        <p>${esc(x.text || "")}</p></article>`).join("") : `<div class="snb-empty">${q ? tr("No highlights match.") : tr("No highlights yet.")}</div>`}</div></div>`);
     pane.append(el);
     el.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { st.hl = b.dataset.c; reopenPane(pane, hlPane); });
     el.querySelectorAll(".snb-hl").forEach(a => a.onclick = e => { const x = list.find(y => y.key === a.dataset.k); if (!x) return;
@@ -809,10 +811,10 @@
     if (q) { vl = vl.filter(x => ((x.text || "") + " " + (x.ref || "")).toLowerCase().includes(q)); cl = cl.filter(x => (BOOKS[x.bookIdx][1] + " " + x.chapter).toLowerCase().includes(q)); }
     vl.sort((a, b) => (b.added || 0) - (a.added || 0));
     const el = h(`<div>
-      <div class="snb-h">Bookmarked verses</div>
-      <div class="snb-list">${vl.length ? vl.map(x => `<article class="snb-hl snb-bmk" data-k="${esc(x.key)}"><div class="snb-hl-top"><b>${SB}${esc(x.ref || "")}</b><span class="snb-date">${esc(fmtDate(x.added))}</span></div>${x.text ? `<p>${esc(x.text)}</p>` : ""}</article>`).join("") : `<div class="snb-empty sm">No bookmarked verses yet.</div>`}</div>
-      <div class="snb-h">Bookmarked chapters</div>
-      <div class="snb-group">${cl.length ? cl.map((x, i) => `<div class="snb-row" data-i="${i}">${I.bm}<div class="t"><b>${esc(BOOKS[x.bookIdx][1] + " " + x.chapter)}</b></div>${I.chev}</div>`).join("") : `<div class="snb-empty sm">No bookmarked chapters yet.</div>`}</div></div>`);
+      <div class="snb-h">${tx("Bookmarked verses")}</div>
+      <div class="snb-list">${vl.length ? vl.map(x => `<article class="snb-hl snb-bmk" data-k="${esc(x.key)}"><div class="snb-hl-top"><b>${SB}${esc(x.ref || "")}</b><span class="snb-date">${esc(fmtDate(x.added))}</span></div>${x.text ? `<p>${esc(x.text)}</p>` : ""}</article>`).join("") : `<div class="snb-empty sm">${tx("No bookmarked verses yet.")}</div>`}</div>
+      <div class="snb-h">${tx("Bookmarked chapters")}</div>
+      <div class="snb-group">${cl.length ? cl.map((x, i) => `<div class="snb-row" data-i="${i}">${I.bm}<div class="t"><b>${esc(BOOKS[x.bookIdx][1] + " " + x.chapter)}</b></div>${I.chev}</div>`).join("") : `<div class="snb-empty sm">${tx("No bookmarked chapters yet.")}</div>`}</div></div>`);
     pane.append(el);
     el.querySelectorAll(".snb-bmk").forEach(a => a.onclick = () => { const x = vl.find(y => y.key === a.dataset.k); if (x) jumpRef({ b: x.bookIdx, c: x.chapter, v: x.verseNum, ve: x.verseEnd || null }); });
     el.querySelectorAll(".snb-row[data-i]").forEach(r => r.onclick = () => { const x = cl[+r.dataset.i]; jumpRef({ b: x.bookIdx, c: x.chapter, v: null }); });
@@ -822,8 +824,8 @@
   function pickTemplate(verse) {
     if (!isOpen()) open({});
     modal("New note", `<div>${verse ? `<div class="snb-attach">${I.link}<span>${esc(verse.ref)}</span></div>` : ""}
-        <p class="snb-hint">Pick a study template.</p>
-        <div class="snb-tpls">${TPL.map(t => `<button type="button" class="snb-tpl" data-t="${t.id}"><span class="ic">${t.ic}</span><b>${esc(t.name)}</b><span>${esc(t.d)}</span></button>`).join("")}</div></div>`, el => {
+        <p class="snb-hint">${tx("Pick a study template.")}</p>
+        <div class="snb-tpls">${TPL.map(t => `<button type="button" class="snb-tpl" data-t="${t.id}"><span class="ic">${t.ic}</span><b>${tx(t.name)}</b><span>${tx(t.d)}</span></button>`).join("")}</div></div>`, el => {
       el.querySelectorAll(".snb-tpl").forEach(b => b.onclick = () => {
         const t = tplOf(b.dataset.t), now = Date.now();
         const nb = books().some(x => x.id === st.nb) ? st.nb : (ensureDefault()[0] || {}).id;

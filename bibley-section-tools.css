@@ -155,3 +155,8 @@ button.bp-vrow span { display: block; margin-top: 4px; }
 .bp-interlinear{display:flex;flex-wrap:wrap;gap:.55rem;align-items:stretch;list-style:none;margin:0;padding:.6rem}
 .bp-interlinear li{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.18rem;border:1px solid var(--fx-line, rgba(128,128,128,.35));border-radius:10px;padding:.4rem .55rem;max-width:100%;overflow-wrap:anywhere;text-align:center}
 .bp-interlinear .bp-source-word{font-size:1.28rem;font-weight:600}.bp-interlinear .bp-morphology{font-size:.72rem}
+
+/* Source numbering is independent of the active reader translation. */
+.bp-source-navigation { display:flex; gap:12px; flex-wrap:wrap; margin:12px 0; }
+.bp-source-navigation label { display:flex; flex:1; min-width:120px; flex-direction:column; gap:6px; }
+.bp-source-navigation select { width:100%; min-height:44px; font:inherit; border:1px solid var(--line, #bdb3a3); border-radius:10px; padding:8px; background:var(--bg, #101827); color:var(--ink, #eee6d2); }
