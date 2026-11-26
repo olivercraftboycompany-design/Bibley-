@@ -35,3 +35,9 @@ New-template scaffolding, opt-in grammar feedback, transport-error accuracy and 
 Engine/call/reader locale regression checks are in `tests/engine-call-locale-regression.py`, including phone/desktop language round-trips, microphone-denial guidance, unchanged captions/scripture and escaped provider errors. These use synthetic microphone/API states and do not prove real-device calls or local model compatibility.
 
 Ordered chapter-range creation, overlap handling, invalid-range validation, every-day chapter links, saved-plan resume, and the WEB Classic source-note browser are tested on phone and desktop by `tests/plans-canon-regression.py`. Source notes remain separate from the reader and do not change its selected translation.
+
+## Source alignment and complete linked-passage lists
+
+- Original words and the source-order interlinear now link to a separate ULT v92 word-alignment view. Explicit publisher-supplied English-to-original-language groups retain many-to-many relationships, morphology, lemmas, original forms and source codes. 25,408 source verses from 61 book files; 5 absent books and 2 malformed source verses remain unavailable. No alignment is transferred to the active translation. Source navigation preserves numbering and does not alter the reader.
+- All 344,781 unique OpenBible suggestions are retained (20,968 more than the earlier capped files), browsable 24 at a time. Votes rank suggestions, not guaranteed relevance; coverage still excludes deuterocanon and does not resolve numbering differences.
+- Full ULT release/license attribution, source hashes, extraction and regression tests are included. UI controls support Spanish; source English/Hebrew/Greek/Aramaic remain untranslated.

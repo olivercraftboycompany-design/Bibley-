@@ -29,7 +29,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
 refs = collections.defaultdict(lambda: collections.defaultdict(dict))
 for (book, ch, v), linked in sorted(xref.items()):
     ordered = sorted(linked, key=lambda x: (-x[0], x[1]))
-    refs[book][ch][v] = list(dict.fromkeys(tuple(r) for _, r in ordered))[:24]
+    refs[book][ch][v] = list(dict.fromkeys(tuple(r) for _, r in ordered))
 assert len(refs) == 66
 for book, data in refs.items(): store('linked', book, data)
 
