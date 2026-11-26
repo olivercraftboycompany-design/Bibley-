@@ -742,7 +742,7 @@
         if (a === "nbmd") listNow.length ? download(fileName(lt, "md"), nbMd(), "text/markdown") : toast("No notes to export");
         if (a === "nbtxt") listNow.length ? download(fileName(lt, "txt"), [lt.toUpperCase(), ""].concat(listNow.map(noteText).join("\n\n\u2014\u2014\u2014\n\n")).join("\n"), "text/plain") : toast("No notes to export");
         if (a === "nbprint") listNow.length ? printHtml(lt, listNow.map(x => `<h2>${esc(x.title || "Untitled")}</h2>` + noteHtml(x)).join("<hr>")) : toast("No notes to print");
-        if (a === "del") { if (!confirm("Delete this note? This can't be undone.")) return; cur.gone = true; if (it.id) wr(KT, own().filter(y => y.id !== it.id)); cur = null; toast("Note deleted"); drawSide(); drawItems(); drawEmpty(); setView("list"); }
+        if (a === "del") { if (!confirm("Move this note to trash?")) return; cur.gone = true; const data = own().find(y => y.id === it.id); if (data) { window.BibleyTools?.pushTrash("Study note", data.title, { key: KT, id: it.id, data }); wr(KT, own().filter(y => y.id !== it.id)); } cur = null; toast("Note deleted"); drawSide(); drawItems(); drawEmpty(); setView("list"); }
       }); });
   }
 

@@ -975,6 +975,6 @@
     applyAll();
   }
   const isOpen = () => !!(root && root.classList.contains("open"));
-  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
+  window.BibleySettings = { open, close, isOpen, setTheme, currentTheme, afterPrefs, apply: applyAll, setMode, setTtsRate: tts => setS({ tts }), ttsRate: () => S().tts || 0.95, modes: MODES.map(m => m.id), _test: { S, flagsState, setFlag, exportLog, buildInfo, storageRows, sunsetMin, nightWindow, pages: () => Object.keys(PAGES).filter(k => PAGES[k]) } };
   logp("info", "ready");
 })();
