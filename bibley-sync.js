@@ -75,9 +75,9 @@
     if (opts.auth !== false && acc) headers.Authorization = "Bearer " + acc.token;
     let r;
     try { r = await fetch(API + path, { method: opts.method || "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined, keepalive: !!opts.keepalive, cache: "no-store" }); }
-    catch (e) { const err = new Error("You're offline. Bibley will sync when you're back online."); err.offline = true; throw err; }
+    catch (e) { const offline = navigator.onLine === false; const err = new Error(offline ? "You're offline. Bibley will sync when you're back online." : "Couldn't reach the account service. Please try again."); err.offline = offline; throw err; }
     let j = null; try { j = await r.json(); } catch {}
-    if (!r.ok || !j || j.ok === false) { const err = new Error((j && j.error) || ("Server error " + r.status)); err.status = r.status; throw err; }
+    if (!r.ok || !j || j.ok === false) { const err = new Error((j && j.error) || (!r.ok ? "Server error " + r.status : "The account service returned an invalid response. Please try again.")); err.status = r.status; throw err; }
     return j;
   }
 

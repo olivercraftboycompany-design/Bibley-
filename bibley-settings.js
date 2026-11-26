@@ -624,8 +624,15 @@
     if (d < 86400) return tr("{n} h ago").replace("{n}", Math.round(d / 3600));
     return new Date(t).toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : undefined);
   };
+  // Translate only app-defined errors; arbitrary server details stay verbatim.
+  const accountError = value => {
+    const msg = String(value || ""), match = msg.match(/^Server error (\d{3})$/);
+    if (match) return tr("Server error {status}").replace("{status}", match[1]);
+    const known = ["The account service returned an invalid response. Please try again.", "Couldn't reach the account service. Please try again.", "You're offline. Bibley will sync when you're back online."];
+    return known.includes(msg) ? tr(msg) : msg;
+  };
   const syncWord = s => tr(s.state === "syncing" ? "Syncing…" : s.state === "offline" ? "Offline" : s.state === "error" ? "Sync paused" : !s.auto ? "Auto-sync off" : s.lastSync ? "Synced" : "Signed in");
-  const syncDetail = x => x.state === "syncing" ? tr("Syncing…") : x.state === "offline" ? tr("Offline · will sync when you're back online") : x.state === "error" ? tr("Couldn't sync: {error}").replace("{error}", String(x.error || "")) : tr("{n} items synced · last synced {time}").replace("{n}", x.keys || 0).replace("{time}", ago(x.lastSync));
+  const syncDetail = x => x.state === "syncing" ? tr("Syncing…") : x.state === "offline" ? tr("Offline · will sync when you're back online") : x.state === "error" ? tr("Couldn't sync: {error}").replace("{error}", accountError(x.error)) : tr("{n} items synced · last synced {time}").replace("{n}", x.keys || 0).replace("{time}", ago(x.lastSync));
   function acctSub() {
     const B = window.BibleySync; if (!B) return tr("Loading…");
     const s = B.status();
@@ -650,7 +657,7 @@
           '<p class="bs-acct-err" role="alert" hidden></p>' +
           '<button type="submit" class="fx-btn primary block bs-acct-go">' + (up ? "Create Account" : "Sign In") + "</button>" +
         "</form>" +
-        (s.error ? '<p class="bs-note">' + esc(s.error) + "</p>" : "");
+        (s.error ? '<p class="bs-note">' + esc(accountError(s.error)) + "</p>" : "");
       const f = el.querySelector("form"), err = el.querySelector(".bs-acct-err"), go = el.querySelector(".bs-acct-go");
       f.onsubmit = e => {
         e.preventDefault(); if (acctBusy) return;
@@ -662,7 +669,7 @@
           acctBusy = false; acctPw = false;
           toast(tr(up ? "Account created" : "Signed in") + " · " + tr(st2.state === "ok" ? "Synced ✓" : "will sync when online"));
           if (el.isConnected) rerender();
-        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = tr(up ? "Create Account" : "Sign In"); err.textContent = String(x && x.message || x); err.hidden = false; });
+        }).catch(x => { acctBusy = false; if (!el.isConnected) return; go.disabled = false; go.textContent = tr(up ? "Create Account" : "Sign In"); err.textContent = accountError(x && x.message || x); err.hidden = false; });
       };
       wire(el, { seg: (k, v) => { if (k === "acctab") { acctTab = v; rerender(); } } });
       return;
@@ -685,18 +692,18 @@
     if (pwf) pwf.onsubmit = e => {
       e.preventDefault(); const er = pwf.querySelector(".bs-acct-err");
       if (pwf.nw.value.length < 6) { er.textContent = tr("New password must be at least 6 characters"); er.hidden = false; return; }
-      B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = String(x && x.message || x); er.hidden = false; });
+      B.changePassword(pwf.cur.value, pwf.nw.value).then(() => { acctPw = false; toast("Password changed"); rerender(); }).catch(x => { er.textContent = accountError(x && x.message || x); er.hidden = false; });
     };
     wire(el, {
       sw: (k, v) => { if (k === "autosync") { B.setAuto(v); toast(v ? "Auto-sync is on" : "Auto-sync is off"); } },
       act: a => {
-        if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast("Couldn't sync: " + String(x && x.message || x).slice(0, 80), 4000));
+        if (a === "syncnow") B.sync().then(x => toast(x.state === "ok" ? "Synced \u2713" : "Couldn't sync")).catch(x => toast(tr("Couldn't sync: {error}").replace("{error}", accountError(x && x.message || x).slice(0, 80)), 4000));
         if (a === "pw") { acctPw = !acctPw; rerender(); }
         if (a === "out" && confirm(tr("Sign out of @{username}? Everything stays on this device.").replace("{username}",u.username))) B.logout().then(() => { toast("Signed out"); rerender(); });
         if (a === "del") {
           if (!confirm(tr("Delete the account @{username} and all of its cloud data? Your data on this device stays.").replace("{username}",u.username))) return;
           const pw = prompt(tr("Type your password to delete @{username}:").replace("{username}",u.username)); if (!pw) return;
-          B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast("Couldn't delete: " + String(x && x.message || x).slice(0, 80), 4000));
+          B.deleteAccount(pw).then(() => { toast("Account deleted"); rerender(); }).catch(x => toast(tr("Couldn't delete: {error}").replace("{error}", accountError(x && x.message || x).slice(0, 80)), 4000));
         }
       }
     });
