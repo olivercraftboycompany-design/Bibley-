@@ -14,6 +14,52 @@
   if (!FX || !C) { console.warn("Bibley device: features missing"); return; }
   const NAT = (window.BibleyDeviceNative && typeof window.BibleyDeviceNative.state === "function") ? window.BibleyDeviceNative : null;
   const { h, esc, toast, openSheet, closeSheet } = FX.ui;
+  const tx = value => window.BibleyLocale?.text(value) || value;
+  const fmt = (value, vars) => Object.entries(vars).reduce((s, [key, v]) => s.replaceAll('{' + key + '}', String(v)), tx(value));
+  const rawFmt = (value, vars) => Object.entries(vars).reduce((s, [key, v]) => s.replaceAll('{' + key + '}', String(v)), value);
+  function label(value) {
+    const patterns = [
+      [/^Daily verse at (.+)$/, 'Daily verse at {time}', ['time']],
+      [/^Quiet (.+) – (.+)$/, 'Quiet {start} – {end}', ['start','end']],
+      [/^(\d+) on your home screen$/, '{n} on your home screen', ['n']],
+      [/^(\d+)-day streak$/, '{n}-day streak', ['n']],
+      [/^(\d+) min left · tap to return$/, '{n} min left · tap to return', ['n']],
+      [/^You spent (\d+) minute with God\.$/, 'You spent {n} minute with God.', ['n']],
+      [/^You spent (\d+) minutes with God\.$/, 'You spent {n} minutes with God.', ['n']]
+    ];
+    for (const [pattern, template, keys] of patterns) {
+      const match = pattern.exec(value);
+      if (match) return fmt(template, Object.fromEntries(keys.map((key, i) => [key, match[i+1]])));
+    }
+    return tx(value);
+  }
+  const rawText = new WeakMap(), rawAttrs = new WeakMap();
+  // Only this module's own UI. Bible quotations, references and form values are excluded.
+  function localize(root) {
+    if (!root) return;
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walk.nextNode())) {
+      if (node.parentElement?.closest('[data-v],[data-vr],[data-votd],[data-votdref],.dv-fx-vt,.dv-wm-ref')) continue;
+      const original = rawText.get(node) ?? node.nodeValue;
+      const text = original.trim();
+      const translated = text && label(text);
+      // Don't cache changing counters or untranslated source labels.
+      if (text && (translated !== text || rawText.has(node))) {
+        rawText.set(node, original);
+        node.nodeValue = original.replace(text, translated);
+      }
+    }
+    for (const el of [root, ...root.querySelectorAll('[aria-label],[title],[placeholder]')]) {
+      const attrs = rawAttrs.get(el) || {};
+      for (const attr of ['aria-label','title','placeholder']) {
+        const value = attrs[attr] ?? el.getAttribute(attr);
+        if (value) { attrs[attr] = value; el.setAttribute(attr, tx(value)); }
+      }
+      rawAttrs.set(el, attrs);
+    }
+  }
+  const notify = (text, duration) => toast(tx(text), duration);
   const K_DEV = "bibley_device_v1", K_FOCUS = "bibley_focus_v1", K_POS = "bible_last_pos_v1";
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -23,7 +69,7 @@
   const pad = n => String(n).padStart(2, "0");
   const toHM = m => pad(Math.floor(m / 60)) + ":" + pad(m % 60);
   const fromHM = s => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ""); return m ? (+m[1]) * 60 + (+m[2]) : 0; };
-  const nice = m => { const d = new Date(); d.setHours(Math.floor(m / 60), m % 60, 0, 0); return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); };
+  const nice = m => { const d = new Date(); d.setHours(Math.floor(m / 60), m % 60, 0, 0); return d.toLocaleTimeString(window.BibleyLocale?.get() === "es" ? "es" : "en", { hour: "numeric", minute: "2-digit" }); };
   const S = (p, w) => '<svg class="ui-ic" viewBox="0 0 24 24" width="' + (w || 20) + '" height="' + (w || 20) + '" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + p + "</svg>";
   const IC = {
     moon: S('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
@@ -100,19 +146,19 @@
     const t = el.querySelector('[data-t="wpt"]'), g = el.querySelector('[data-g="wp"]'), time = (t && t.value) || "07:00";
     if (inp.checked) {
       inp.disabled = true;
-      try { await pushOn(time); savePush({ on: true, time, synced: today() }); g.classList.remove("off"); toast("Daily verse at " + nice(fromHM(time))); }
+      try { await pushOn(time); savePush({ on: true, time, synced: today() }); g.classList.remove("off"); notify(fmt("Daily verse at {time}", {time: nice(fromHM(time))})); }
       catch (e) {
         inp.checked = false; savePush(Object.assign(pushPrefs(), { on: false }));
-        toast(e.message === "denied" ? "Notifications are blocked for Bibley in your browser settings" : e.message === "dismissed" ? "Notifications were not allowed" : "Couldn't turn on the daily verse. Try again.");
+        notify(e.message === "denied" ? "Notifications are blocked for Bibley in your browser settings" : e.message === "dismissed" ? "Notifications were not allowed" : "Couldn't turn on the daily verse. Try again.");
       }
       inp.disabled = false;
-    } else { savePush({ on: false, time, synced: "" }); g.classList.add("off"); pushOff(); toast("Daily verse off"); }
+    } else { savePush({ on: false, time, synced: "" }); g.classList.add("off"); pushOff(); notify("Daily verse off"); }
   }
   async function pushTime(inp) {
     const p = pushPrefs(), time = inp.value || "07:00";
     savePush(Object.assign(p, { time }));
     if (!p.on || Notification.permission !== "granted") return;
-    try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await pushSend(sub, time); savePush(Object.assign(pushPrefs(), { synced: today() })); toast("Daily verse at " + nice(fromHM(time))); } } catch { toast("Couldn't save the time. Try again."); }
+    try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await pushSend(sub, time); savePush(Object.assign(pushPrefs(), { synced: today() })); notify(fmt("Daily verse at {time}", {time: nice(fromHM(time))})); } } catch { notify("Couldn't save the time. Try again."); }
   }
 
   /* ---------------- verse of the day (reads the app's own daily cache, else fetches it) ---------------- */
@@ -142,16 +188,17 @@
   /* ---------------- small UI parts ---------------- */
   const sw = (id, on, dis) => '<label class="dv-sw' + (dis ? " dis" : "") + '"><input type="checkbox" data-k="' + id + '"' + (on ? " checked" : "") + (dis ? " disabled" : "") + '><span></span></label>';
   function row(icon, title, sub, right) {
+    if (right) right = right.replace('<input ', '<input aria-label="' + esc(title) + '" ');
     return '<div class="dv-line"><span class="dv-ic">' + icon + '</span><span class="dv-t">' + esc(title) + (sub ? "<small>" + sub + "</small>" : "") + "</span>" + (right || "") + "</div>";
   }
 
   /* ---------------- Settings > Device (inline section) ---------------- */
   function summary() {
-    if (!NAT) { const p = pushPrefs(); return { w: "Verse of the Day, Quick actions", n: !WRAPPED && p.on ? "Daily verse at " + nice(fromHM(p.time)) : "Daily verse, quiet hours and pause", f: "Do not disturb my relationship with God" }; }
+    if (!NAT) { const p = pushPrefs(); return { w: "Verse of the Day, Quick actions", n: !WRAPPED && p.on ? rawFmt("Daily verse at {time}", {time: nice(fromHM(p.time))}) : "Daily verse, quiet hours and pause", f: "Do not disturb my relationship with God" }; }
     const s = nstate(); const f = s.focus || {};
-    const n = s.paused ? "All paused" : s.quietOn ? "Quiet " + nice(s.quietStart) + " \u2013 " + nice(s.quietEnd) : "Quiet hours off";
+    const n = s.paused ? "All paused" : s.quietOn ? rawFmt("Quiet {start} – {end}", {start: nice(s.quietStart), end: nice(s.quietEnd)}) : "Quiet hours off";
     const wc = s.widgets ? (s.widgets.verse || 0) + (s.widgets.quick || 0) : 0;
-    return { w: wc ? wc + " on your home screen" : "Verse of the Day, Quick actions", n, f: f.active ? "In session now" : "Do not disturb my relationship with God" };
+    return { w: wc ? rawFmt("{n} on your home screen", {n: wc}) : "Verse of the Day, Quick actions", n, f: f.active ? "In session now" : "Do not disturb my relationship with God" };
   }
   function mountSettings(slot) {
     if (!slot) return;
@@ -161,6 +208,7 @@
       '<button type="button" class="dv-row" data-a="notif"><span class="dv-ic">' + IC.bellOff + '</span><span class="dv-t">Notifications<small>' + esc(s.n) + "</small></span>" + IC.chev + "</button>" +
       '<button type="button" class="dv-row" data-a="focus"><span class="dv-ic">' + IC.moon + '</span><span class="dv-t">Time with God<small>' + esc(s.f) + "</small></span>" + IC.chev + "</button>" +
       "</div></div>";
+    localize(slot);
     slot.querySelectorAll(".dv-row").forEach(b => b.onclick = () => deviceSheet(b.dataset.a));
   }
 
@@ -168,7 +216,7 @@
   function widgetMock(kind) {
     if (kind === "verse") return '<div class="dv-wmock v"><div class="dv-wm-eb">' + IC.sun + 'Verse of the day</div><div class="dv-wm-tx" data-votd>&nbsp;</div><div class="dv-wm-ref" data-votdref>' + esc(votdRef()) + " \u00b7 WEB</div></div>";
     const pos = lastPosLabel(), st = streakN();
-    return '<div class="dv-wmock q"><div class="dv-wm-h"><b>Bibley</b><span>' + IC.flame + (st ? st + "-day streak" : "Today") + '</span></div><div class="dv-wm-cont">' + IC.book + '<span>Continue reading<small>' + esc(pos || "Open the reader") + '</small></span></div><div class="dv-wm-btns"><span>' + IC.sun + "Today</span><span>" + IC.notes + "Notes</span><span>" + IC.moon + "Time with God</span></div></div>";
+    return '<div class="dv-wmock q"><div class="dv-wm-h"><b>Bibley</b><span>' + IC.flame + (st ? rawFmt("{n}-day streak", {n: st}) : "Today") + '</span></div><div class="dv-wm-cont">' + IC.book + '<span>Continue reading<small>' + esc(pos || "Open the reader") + '</small></span></div><div class="dv-wm-btns"><span>' + IC.sun + "Today</span><span>" + IC.notes + "Notes</span><span>" + IC.moon + "Time with God</span></div></div>";
   }
   function deviceSheet(focusOn) {
     openSheet("device", "Device", body => {
@@ -201,13 +249,13 @@
         '<button type="button" class="fx-btn primary block dv-start" data-a="focus">' + IC.moon + (session() ? "Return to Time with God" : "Start Time with God") + "</button>" +
         "</section></div>");
       if (!NAT) { const w = el.querySelector("#dv-widgets"); if (w) w.remove(); }
-      body.append(el);
+      body.append(el); localize(el);
       // verse text in the widget preview
       votd().then(v => { const t = el.querySelector("[data-votd]"); if (t && v.text) t.textContent = "\u201c" + v.text + "\u201d"; });
       el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => pin(b.dataset.pin));
       const nb = el.querySelector('[data-a="nset"]'); if (nb) nb.onclick = () => { try { NAT.openNotificationSettings(); } catch {} };
       const gb = el.querySelector('[data-a="grant"]'); if (gb) gb.onclick = () => explainDnd(() => deviceSheet("focus"));
-      el.querySelector('[data-a="focus"]').onclick = () => { closeSheet(); openFocus(); };
+      el.querySelector('[data-a="focus"]').onclick = () => openFocus();
       const q = () => { const qs = el.querySelector('[data-t="qs"]'), qe = el.querySelector('[data-t="qe"]'); return [fromHM(qs.value), fromHM(qe.value)]; };
       el.querySelectorAll(".dv-sw input").forEach(inp => inp.onchange = () => {
         const k = inp.dataset.k, on = inp.checked;
@@ -215,11 +263,11 @@
         if (k === "webpush") { pushToggle(inp, el); return; }
         if (!NAT) return;
         try {
-          if (k === "paused") { NAT.setPaused(on); toast(on ? "Bibley notifications paused" : "Bibley notifications back on"); }
+          if (k === "paused") { NAT.setPaused(on); notify(on ? "Bibley notifications paused" : "Bibley notifications back on"); }
           if (k === "quietOn") { const [a, b] = q(); NAT.setQuiet(on, a, b); el.querySelector('[data-g="quiet"]').classList.toggle("off", !on); }
           if (k === "reminderOn") {
             NAT.setReminder(on, fromHM(el.querySelector('[data-t="rt"]').value)); el.querySelector('[data-g="rem"]').classList.toggle("off", !on);
-            if (on) { try { if (window.AndroidApp && AndroidApp.notifPermission && AndroidApp.notifPermission() !== "granted") AndroidApp.requestNotifPermission(); } catch {} toast("Daily verse at " + nice(fromHM(el.querySelector('[data-t="rt"]').value))); }
+            if (on) { try { if (window.AndroidApp && AndroidApp.notifPermission && AndroidApp.notifPermission() !== "granted") AndroidApp.requestNotifPermission(); } catch {} notify(fmt("Daily verse at {time}", {time: nice(fromHM(el.querySelector('[data-t="rt"]').value))})); }
           }
         } catch {}
       });
@@ -235,10 +283,10 @@
     });
   }
   function pin(kind) {
-    if (!NAT) { toast("Widgets are available in the Android app"); return; }
+    if (!NAT) { notify("Widgets are available in the Android app"); return; }
     let r = "error"; try { r = NAT.pinWidget(kind); } catch {}
-    if (r === "requested") toast("Check your home screen to place it");
-    else toast("Long-press your home screen, tap Widgets, then find Bibley", 4200);
+    if (r === "requested") notify("Check your home screen to place it");
+    else notify("Long-press your home screen, tap Widgets, then find Bibley", 4200);
   }
   function explainDnd(after) {
     const d = dev();
@@ -248,7 +296,7 @@
       "<p>So nothing interrupts your Time with God, Bibley can switch on your phone's Do Not Disturb when you start a session and switch it back off when it ends.</p>" +
       "<p>Android asks you to allow this once. On the next screen, find <b>Bibley</b>, turn it on, then come back.</p>" +
       '<div class="fx-row dv-mrow"><button type="button" class="fx-btn" data-a="no">Not now</button><button type="button" class="fx-btn primary" data-a="go">Open settings</button></div></div></div>');
-    document.body.appendChild(wrap);
+    document.body.appendChild(wrap); localize(wrap);
     const close = () => wrap.remove();
     wrap.onclick = e => { if (e.target === wrap) close(); };
     wrap.querySelector('[data-a="no"]').onclick = close;
@@ -323,6 +371,7 @@
       "</div>" +
       '<p class="dv-fx-note">' + IC.bellOff + "<span>Bibley's own notifications are muted while you pray.</span></p>" +
       '<button type="button" class="fx-btn primary block dv-fx-go" data-a="start">Begin</button>';
+    localize(fv);
     votd().then(v => { const t = box.querySelector("[data-v]"); if (t) t.textContent = v.text ? "\u201c" + v.text + "\u201d" : "\u201c" + BE_STILL.t + "\u201d"; if (!v.text) box.querySelector("[data-vr]").textContent = BE_STILL.r; });
     box.querySelector(".dv-fx-x").onclick = () => hideFocus();
     box.querySelector('[data-a="read"]').onclick = () => { const r = box.querySelector("[data-vr]").textContent; hideFocus(); setTimeout(() => openRef(r), 60); };
@@ -341,7 +390,7 @@
     let s = null;
     if (NAT) {
       try { const r = JSON.parse(NAT.startFocus(mins, !!d.dnd, !!d.chime)); if (r && r.endAt) s = { endAt: r.endAt, startAt: r.startAt, minutes: r.minutes, chime: r.chime, dnd: !!r.dndApplied, native: true }; } catch {}
-      if (s && d.dnd && !s.dnd && nstate().dndAccess) toast("Your phone was already in Do Not Disturb", 3000);
+      if (s && d.dnd && !s.dnd && nstate().dndAccess) notify("Your phone was already in Do Not Disturb", 3000);
     }
     if (!s) s = { endAt: Date.now() + mins * 60000, startAt: Date.now(), minutes: mins, chime: !!d.chime, dnd: false };
     save(K_FOCUS, { endAt: s.endAt, startAt: s.startAt, minutes: s.minutes, chime: s.chime });
@@ -363,6 +412,7 @@
       '<div class="dv-status">' + (s.dnd ? IC.phone + "<span>Phone Do Not Disturb is on</span>" : IC.bellOff + "<span>Bibley notifications are muted</span>") + "</div>" +
       '<div class="dv-fx-verse soft"><div class="dv-fx-vt" data-v>\u201c' + esc(BE_STILL.t) + '\u201d</div><div class="dv-fx-vr"><span data-vr>' + esc(BE_STILL.r) + "</span></div></div>" +
       '<button type="button" class="fx-btn block dv-fx-end" data-a="end">End session</button>';
+    localize(fv);
     votd().then(v => { if (!v.text) return; const t = box.querySelector("[data-v]"), r = box.querySelector("[data-vr]"); if (t) t.textContent = "\u201c" + v.text + "\u201d"; if (r) r.textContent = v.ref; });
     box.querySelector(".dv-fx-x").onclick = () => hideFocus();
     box.querySelector('[data-a="end"]').onclick = () => { const old = stop(false); renderDone(box, old, false); };
@@ -381,9 +431,10 @@
     endedShown = true;
     const mins = s ? Math.round((Math.min(Date.now(), s.endAt) - (s.startAt || Date.now())) / 60000) : 0;
     box.innerHTML = '<div class="dv-done"><div class="dv-done-ic">' + IC.check + "</div><h2>" + (completed ? "Amen." : "Session ended") + "</h2>" +
-      "<p>" + (mins ? "You spent " + mins + " minute" + (mins === 1 ? "" : "s") + " with God." : "") + (NAT ? " Your phone is back to normal." : "") + "</p>" +
+      '<p><span>' + (mins ? rawFmt(mins === 1 ? "You spent {n} minute with God." : "You spent {n} minutes with God.", {n: mins}) : "") + '</span><span>' + (NAT ? " Your phone is back to normal." : "") + "</span></p>" +
       '<p class="dv-fx-vt small">\u201cThe Lord bless you, and keep you.\u201d <span>Numbers 6:24</span></p>' +
       '<button type="button" class="fx-btn primary block" data-a="ok">Done</button></div>';
+    localize(fv);
     box.querySelector('[data-a="ok"]').onclick = () => { endedShown = false; hideFocus(); };
     refreshSlots();
   }
@@ -393,7 +444,8 @@
     if (!slot) return;
     const s = session();
     const left = s ? Math.max(1, Math.ceil((s.endAt - Date.now()) / 60000)) : 0;
-    slot.innerHTML = '<button type="button" class="dv-today' + (s ? " on" : "") + '"><span class="dv-ic">' + IC.moon + '</span><span class="dv-t">Time with God<small>' + (s ? left + " min left \u00b7 tap to return" : "Do not disturb my relationship with God") + '</small></span><span class="dv-today-b">' + (s ? "Open" : "Start") + "</span></button>";
+    slot.innerHTML = '<button type="button" class="dv-today' + (s ? " on" : "") + '"><span class="dv-ic">' + IC.moon + '</span><span class="dv-t">Time with God<small>' + (s ? rawFmt("{n} min left · tap to return", {n: left}) : "Do not disturb my relationship with God") + '</small></span><span class="dv-today-b">' + (s ? "Open" : "Start") + "</span></button>";
+    localize(slot);
     slot.querySelector("button").onclick = () => openFocus();
   }
   function refreshSlots() {
@@ -453,6 +505,10 @@
   const reminderInfo = () => { if (NAT) { const s = nstate(); return { on: !!s.reminderOn, time: s.reminderTime != null ? pad(Math.floor(s.reminderTime / 60)) + ":" + pad(s.reminderTime % 60) : "07:00" }; } const p = pushPrefs(); return { on: !!p.on, time: p.time }; };
   window.BibleyDevice = { setReminderTime, reminderInfo, mountSettings, renderToday, openFocus, deviceSheet, pullAction, refresh: refreshSlots, hasNative: !!NAT, _test: { session, stop, votd } };
   if (!NAT) document.documentElement.classList.add("dv-web");
+  window.addEventListener('bibley:localechange', () => {
+    refreshSlots();
+    document.querySelectorAll('.dv-sheet,.dv-modal-wrap,.dv-focus').forEach(localize);
+  });
   refreshSlots();
   setTimeout(() => { pushWidgetData(); pullAction(); }, 900);
   // a web session that was running when the page closed comes back
