@@ -18,6 +18,7 @@
   const { openSheet, closeSheet, toast, copyText, h, esc, vname } = FX.ui;
   const tr = s => window.BibleyLocale?.text(s) ?? s;
   const tx = s => esc(tr(s));
+  const countNotes = n => tr(n === 1 ? "{n} note" : "{n} notes").replace("{n}", n);
   const BOOKS = C.BOOKS;
   const KN = "bibley_nb_v1_notebooks", KT = "bibley_nb_v1_notes", KM = "bibley_nb_v1_meta";
   const OLD = { NOTES: "bibley_notes_v1", NB: "bibley_notebook_v1", HL: "bible_highlights_v2", BM: "bible_bookmarks_v2", VBM: "bibley_vbm_v1" };
@@ -141,13 +142,13 @@
     const close = () => { if (list) { out += END[list]; list = null; } };
     const flush = () => { if (!bq) return; const m = bq[0].match(/^\[!(\w+)\]\s*(.*)$/); const rows = bq.slice(); if (m) rows[0] = m[2];
       const inner = rows.map(x => x.trim() ? inline(x) : "").join("<br>").replace(/^(<br>)+|(<br>)+$/g, "");
-      out += m ? `<div class="snb-callout" data-k="${esc(m[1].toLowerCase())}"><b>${esc(CALL[m[1].toUpperCase()] || m[1])}</b><div>${inner}</div></div>` : `<blockquote class="snb-bq">${inner}</blockquote>`; bq = null; };
+      out += m ? `<div class="snb-callout" data-k="${esc(m[1].toLowerCase())}"><b>${esc(CALL[m[1].toUpperCase()] ? tr(CALL[m[1].toUpperCase()]) : m[1])}</b><div>${inner}</div></div>` : `<blockquote class="snb-bq">${inner}</blockquote>`; bq = null; };
     lines.forEach((ln, i) => {
       let m;
       if ((m = ln.match(/^\s*>\s?(.*)$/))) { close(); (bq || (bq = [])).push(m[1]); return; }
       flush();
       if ((m = ln.match(/^\s*[-*]\s\[( |x|X)\]\s?(.*)$/))) { open("cl");
-        out += `<li class="${m[1] !== " " ? "done" : ""}"><button type="button" class="snb-cb" data-line="${i}" aria-label="Toggle item" aria-pressed="${m[1] !== " "}">${m[1] !== " " ? sv('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) : ""}</button><span>${inline(m[2])}</span></li>`; return; }
+        out += `<li class="${m[1] !== " " ? "done" : ""}"><button type="button" class="snb-cb" data-line="${i}" aria-label="${tx("Toggle item")}" aria-pressed="${m[1] !== " "}">${m[1] !== " " ? sv('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) : ""}</button><span>${inline(m[2])}</span></li>`; return; }
       if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(ln)) { close(); out += "<hr>"; return; }
       if ((m = ln.match(/^\s*(?:[-*\u2022])\s+(.*)$/))) { open("ul"); out += `<li>${inline(m[1])}</li>`; return; }
       if ((m = ln.match(/^\s*(\d+)[.)]\s+(.*)$/))) { open("ol"); out += `<li>${inline(m[2])}</li>`; return; }
@@ -199,7 +200,7 @@
     if (n.from) clean.from = n.from; if (i >= 0) all[i] = clean; else all.unshift(clean); return wr(KT, all); }
 
     /* ---------- templates ---------- */
-  const today = () => new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const today = () => new Date().toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : "en", { month: "short", day: "numeric", year: "numeric" });
   const vq = v => v ? (v.text ? `> "${v.text}" \u2014 ${v.ref}` : v.ref) : "";
   const TPL = [
     { id: "blank", name: "Blank", ic: I.t_blank, d: "A clean page", body: () => "" },
@@ -213,6 +214,131 @@
     { id: "word", name: "Word Study", ic: I.t_word, d: "One word, its meaning and uses", body: v => `## Word\n\n\n## Original language\nHebrew or Greek: \n\n## Where it appears\n${v ? v.ref : ""}\n\n## Meaning in context\n\n\n## Takeaway\n` }
   ];
   const tplOf = id => TPL.find(t => t.id === id) || TPL[0];
+  // Generate translated scaffolding only for a newly chosen template. Never translate
+  // an existing note, verse quotation, or anything the person has already typed.
+  const ES_BODY = {
+    blank: () => "",
+    soap: v => `## Escritura
+${vq(v)}
+
+## Observación
+
+
+## Aplicación
+
+
+## Oración
+`,
+    sermon: v => `# Sermón
+Predicador:\u0020
+Fecha: ${today()}
+Pasaje: ${v ? v.ref : ""}
+
+## Puntos principales
+1.\u0020
+
+## Versículos clave
+${vq(v)}
+
+## Para recordar
+- [ ] `,
+    verse: v => `## El versículo
+${vq(v)}
+
+## Palabras y frases clave
+-\u0020
+
+## Contexto (antes y después)
+
+
+## Referencias cruzadas
+-\u0020
+
+> [!KEY] Qué significa
+
+
+## Ponerlo en práctica
+- [ ] `,
+    prayer: v => `# ${today()}
+${v ? vq(v) + "\n" : ""}
+## Alabanza
+
+
+## Confesión
+
+
+## Gratitud
+
+
+## Peticiones
+- [ ]\u0020
+
+## Respuestas
+`,
+    char: v => `# Quién
+
+
+## Pasajes clave
+${vq(v)}
+
+## Fortalezas
+-\u0020
+
+## Dificultades
+-\u0020
+
+## Lo que Dios hizo por medio de esta persona
+
+
+## Lecciones para mí
+`,
+    chapter: v => `# Capítulo: ${v ? v.ref.replace(/:\d+.*$/, "") : ""}
+
+## Idea principal
+
+
+## Bosquejo
+1.\u0020
+
+## Versículo clave
+${vq(v)}
+
+## Preguntas
+-\u0020
+
+---
+## Algo para recordar
+`,
+    devo: v => `# Devocional · ${today()}
+
+## Leer
+${vq(v)}
+
+## Reflexionar
+
+
+> [!PRAYER] Responder en oración
+
+
+## Llevarlo conmigo hoy
+- [ ] `,
+    word: v => `## Palabra
+
+
+## Idioma original
+Hebreo o griego:\u0020
+
+## Dónde aparece
+${v ? v.ref : ""}
+
+## Significado en contexto
+
+
+## Para recordar
+`
+  };
+  const templateBody = (t, v) => window.BibleyLocale?.get() === "es" ? ES_BODY[t.id](v) : t.body(v);
+
 
 /* ---------- share / copy ---------- */
   function noteText(it) {
@@ -484,7 +610,7 @@
   /* undo / redo */
   function snap() { const ta = root && $(".snb-ta"); if (!ta || !cur) return; const c = cur, v = ta.value; if (c.hist[c.hi] && c.hist[c.hi].v === v) return;
     c.hist = c.hist.slice(0, c.hi + 1); c.hist.push({ v, s: ta.selectionStart }); if (c.hist.length > 200) c.hist.shift(); c.hi = c.hist.length - 1; }
-  function step(d) { const ta = $(".snb-ta"); snap(); const c = cur, j = c.hi + d; if (j < 0 || j >= c.hist.length) { toast(d < 0 ? "Nothing to undo" : "Nothing to redo"); return; }
+  function step(d) { const ta = $(".snb-ta"); snap(); const c = cur, j = c.hi + d; if (j < 0 || j >= c.hist.length) { toast(d < 0 ? tr("Nothing to undo") : tr("Nothing to redo")); return; }
     c.hi = j; ta.value = c.hist[j].v; const p = Math.min(c.hist[j].s, ta.value.length); ta.setSelectionRange(p, p); dirty(); refresh(); }
   function keys(e) {
     const ta = e.target, mod = e.ctrlKey || e.metaKey;
@@ -529,7 +655,7 @@
     const ta = $(".snb-ta"); if (!ta) return; snap(); const lines = ta.value.split("\n"); if (!lines[ln]) return;
     lines[ln] = lines[ln].replace(/\[( |x|X)\]/, m => m === "[ ]" ? "[x]" : "[ ]"); ta.value = lines.join("\n"); snap(); dirty(); refresh(true);
   }
-  function toggleFocus(on) { if (!root) return; const v = on == null ? !root.classList.contains("focus") : on; root.classList.toggle("focus", v); if (v) setView("ed"); toast(v ? "Focus mode \u00b7 Esc or the corners button to exit" : "Focus mode off"); }
+  function toggleFocus(on) { if (!root) return; const v = on == null ? !root.classList.contains("focus") : on; root.classList.toggle("focus", v); if (v) setView("ed"); toast(v ? tr("Focus mode · Esc or the corners button to exit") : tr("Focus mode off")); }
 
   /* Insert Verse: a reference ("John 3:16", "Ps 23:1-3", "Rom 8:28") or keywords ("peace", "love one another") */
   const groupVerses = vs => { const g = []; vs.forEach(v => { const l = g[g.length - 1]; if (l && l[0].b === v.b && l[0].c === v.c && l[l.length - 1].v === v.v - 1) l.push(v); else g.push([v]); }); return g; };
@@ -549,13 +675,13 @@
     const box = h(`<div class="snbx-ins" role="dialog" aria-label="${tx("Insert verse")}"><div class="snb-search">${I.book}<input type="search" class="snbx-ins-q" placeholder="${tx("John 3:16, Psalm 23:1-3 or a word like peace")}" aria-label="${tx("Verse reference or keywords")}" enterkeyhint="search"><button type="button" class="snb-ib sm" data-a="x" aria-label="${tx("Close")}">${I.x}</button></div><div class="snbx-ins-res"><p class="snb-hint">${tx("Type a reference or keywords. Results come from the King James Bible.")}</p></div></div>`);
     $(".snbx-tools", ed).after(box);
     const q = $(".snbx-ins-q", box), res = $(".snbx-ins-res", box); let found = [], tk = 0;
-    const put = vs => { box.remove(); ta.focus(); ta.setSelectionRange(sel[0], sel[1]); insertAt(quoteOf(vs), true); toast("Inserted " + (vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)); };
+    const put = vs => { box.remove(); ta.focus(); ta.setSelectionRange(sel[0], sel[1]); insertAt(quoteOf(vs), true); toast(tr("Inserted") + " " + (vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)); };
     const run = async () => { const my = ++tk, v = q.value; if (!v.trim()) { res.innerHTML = `<p class="snb-hint">${tx("Type a reference or keywords.")}</p>`; found = []; return; }
       if (!(LAI() && LAI().kjvReady && LAI().kjvReady())) res.innerHTML = `<p class="snb-hint">${tx("Opening the King James Bible…")}</p>`;
       try { const g = await lookupVerses(v); if (my !== tk) return; found = g;
         res.innerHTML = g.length ? g.map((vs, i) => `<button type="button" class="snbx-ins-r" data-i="${i}"><b>${esc(vs.length > 1 ? vs[0].ref + "\u2013" + vs[vs.length - 1].v : vs[0].ref)}</b><span>${esc(vs.map(x => x.text).join(" ").slice(0, 220))}</span></button>`).join("") : `<p class="snb-hint">${tx("No verses found. Try \"John 3:16\" or a word like \"shepherd\".")}</p>`;
         res.querySelectorAll("[data-i]").forEach(b => b.onclick = () => put(found[+b.dataset.i]));
-      } catch (e) { if (my === tk) res.innerHTML = `<p class="snb-hint">Couldn't open the Bible text (${esc(String(e && e.message || e).slice(0, 80))}).</p>`; } };
+      } catch (e) { if (my === tk) res.innerHTML = `<p class="snb-hint">${tx("Couldn't open the Bible text")} (${esc(String(e && e.message || e).slice(0, 80))}).</p>`; } };
     let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 220); });
     q.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(t); run().then(() => { if (found[0]) put(found[0]); }); } });
     $('[data-a="x"]', box).onclick = () => { box.remove(); ta.focus(); };
@@ -581,22 +707,22 @@
       const L = LAI(); if (!L || !L.passage) throw new Error("Bible text isn't available");
       const v1 = r.v || 1, v2 = r.v ? (r.ve || r.v) : 5; vs = await L.passage(r.b, r.c, v1, v2);
       if (popEl !== p) return;
-      $(".snbx-pop-t", p).innerHTML = vs.length ? vs.map(v => (vs.length > 1 ? `<sup>${v.v}</sup>` : "") + esc(v.text)).join(" ") + (!r.v ? ' <span class="snb-faint">\u2026</span>' : "") : "That verse isn't in the King James Bible.";
-    } catch (e) { if (popEl === p) $(".snbx-pop-t", p).textContent = "Couldn't load the verse (" + String(e && e.message || e).slice(0, 80) + ")."; }
+      $(".snbx-pop-t", p).innerHTML = vs.length ? vs.map(v => (vs.length > 1 ? `<sup>${v.v}</sup>` : "") + esc(v.text)).join(" ") + (!r.v ? ' <span class="snb-faint">\u2026</span>' : "") : tx("That verse isn't in the King James Bible.");
+    } catch (e) { if (popEl === p) $(".snbx-pop-t", p).textContent = tr("Couldn't load the verse") + " (" + String(e && e.message || e).slice(0, 80) + ")."; }
   }
 
   /* dictation */
   function stopDictation() { if (rec) { try { rec.stop(); } catch {} rec = null; } }
   function dictate(btn) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { toast("Voice dictation isn't supported in this browser. Try Chrome, Edge or Safari.", 3500); return; }
+    if (!SR) { toast(tr("Voice dictation isn't supported in this browser. Try Chrome, Edge or Safari."), 3500); return; }
     if (rec) { stopDictation(); return; }
-    try { rec = new SR(); } catch { toast("Couldn't start dictation"); return; }
+    try { rec = new SR(); } catch { toast(tr("Couldn't start dictation")); return; }
     rec.lang = navigator.language || "en-US"; rec.continuous = true; rec.interimResults = false;
     rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); const ta = $(".snb-ta"); if (t && ta) { const s = ta.selectionStart; insertAt((s > 0 && !/\s$/.test(ta.value.slice(0, s)) ? " " : "") + t); } } };
-    rec.onerror = e => { toast(e.error === "not-allowed" ? "Microphone permission was blocked" : "Dictation stopped (" + e.error + ")"); };
+    rec.onerror = e => { toast(e.error === "not-allowed" ? tr("Microphone permission was blocked") : tr("Dictation stopped ({error})").replace("{error}", e.error)); };
     rec.onend = () => { rec = null; if (btn) btn.classList.remove("rec"); };
-    try { rec.start(); if (btn) btn.classList.add("rec"); toast("Listening\u2026 tap the mic again to stop"); } catch { rec = null; toast("Couldn't start dictation"); }
+    try { rec.start(); if (btn) btn.classList.add("rec"); toast(tr("Listening… tap the mic again to stop")); } catch { rec = null; toast(tr("Couldn't start dictation")); }
   }
 
 
@@ -605,6 +731,7 @@
     "Do NOT rewrite, reword, shorten or expand the author's sentences, voice or ideas. Do NOT add commentary, notes, explanations or a preamble. " +
     "Keep every line break and blank line exactly where it is. Keep all Markdown exactly as it is: # and ## headings, **bold**, *italic*, > quotes, > [!NOTE] callouts, - and 1. lists, - [ ] and - [x] checklists, --- dividers. " +
     "Capitalize Bible book names in references (john 3:16 becomes John 3:16) but never change chapter or verse numbers. " +
+    "Keep the original language: never translate the text to the interface language or any other language. " +
     "Tokens like [[Q1]] stand for quoted Bible verses: copy them unchanged, each on its own line. " +
     "Reply with the corrected text only, wrapped exactly like this: <corrected>\n...text...\n</corrected>";
   let gBusy = false;
@@ -619,11 +746,11 @@
     const user = "Proofread this text:\n<text>\n" + text + "\n</text>", L = LAI(), s = L && L.status ? L.status() : {};
     if (L && L.isLocal && L.isLocal() && s.state === "ready" && L.loadModel) {
       try { const e = await L.loadModel(null, L.getConfig().modelId); let raw = ""; await e.gen([{ role: "user", content: G_SYS + "\n\n" + user }], d => { raw += d; });
-        const t = gClean(raw); if (t && gOk(text, t)) return { text: t, by: L.label ? L.label() : "On-Device AI" }; } catch (x) {}
+        const t = gClean(raw); if (t && gOk(text, t)) return { text: t, by: L.label ? L.label() : tr("On-Device AI") }; } catch (x) {}
     }
     const A = window.BibleyAI; if (!A || !A.raw) throw new Error("The AI isn't available here");
     const raw = await A.raw(G_SYS, user, { maxTokens: Math.min(1200, Math.ceil(text.length / 2.6) + 120), accept: r => /<corrected>/i.test(r) || r.trim().length > 0 });
-    return { text: gClean(raw), by: "Cloud AI" };
+    return { text: gClean(raw), by: tr("Cloud AI") };
   }
   // the corrected text must keep every protected verse token and not be wildly different in length
   const gOk = (a, b) => (a.match(/\[\[Q\d+\]\]/g) || []).every(q => b.includes(q)) && b.length > a.length * 0.6 && b.length < a.length * 1.5 + 40;
@@ -644,11 +771,11 @@
     let s = ta.selectionStart, e = ta.selectionEnd; const sel = e > s && ta.value.slice(s, e).trim();
     if (!sel) { s = 0; e = ta.value.length; }
     const orig = ta.value.slice(s, e);
-    if (!orig.trim()) { toast("Write something first to check grammar"); return; }
-    if (orig.length > 12000) { toast("That's a long note: select a part (up to 12,000 characters) to check", 4000); return; }
+    if (!orig.trim()) { toast(tr("Write something first to check grammar")); return; }
+    if (orig.length > 12000) { toast(tr("That's a long note: select a part (up to 12,000 characters) to check"), 4000); return; }
     // protect quoted Bible verses ("> \"...\"" lines): the AI never sees or changes them
     const Q = []; const masked = orig.split("\n").map(l => /^\s*>\s*["\u201c]/.test(l) ? (Q.push(l), "[[Q" + Q.length + "]]") : l).join("\n");
-    if (!masked.replace(/\[\[Q\d+\]\]/g, "").trim()) { toast("Only Bible quotes here: nothing to check"); return; }
+    if (!masked.replace(/\[\[Q\d+\]\]/g, "").trim()) { toast(tr("Only Bible quotes here: nothing to check")); return; }
     const btn = $('[data-a="grammar"]'); gBusy = true; if (btn) { btn.classList.add("busy"); btn.disabled = true; }
     modal("Grammar Check", `<div class="snbx-gm"><div class="snbx-gload"><span class="snbx-spin"></span>${tx("Checking grammar…")}</div></div>`, () => {});
     try {
@@ -668,16 +795,23 @@
       gReview(orig, out, s, e, !!sel, by);
     } catch (x) {
       const msg = String(x && x.message || x);
-      if ($(".snbx-modal") && !$(".snbx-modal").hidden) $(".snbx-gm").innerHTML = `<p class="snbx-gerr">${esc(/offline/i.test(msg) ? "You're offline. Grammar Fix needs the internet (or an on-device model that's already loaded)." : "Couldn't check grammar: " + msg.slice(0, 140))}</p><div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="x">${tx("Close")}</button></div>`, $('[data-g="x"]').onclick = closeModal;
+      if ($(".snbx-modal") && !$(".snbx-modal").hidden) $(".snbx-gm").innerHTML = `<p class="snbx-gerr">${esc(grammarError(msg))}</p><div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="x">${tx("Close")}</button></div>`, $('[data-g="x"]').onclick = closeModal;
     } finally { gBusy = false; if (btn && btn.isConnected) { btn.classList.remove("busy"); btn.disabled = false; } }
+  }
+  // Unknown provider errors are escaped and retained verbatim, never reinterpreted as
+  // a rejected login, lost data or an offline diagnosis.
+  function grammarError(msg) {
+    if (navigator.onLine === false) return tr("You're offline. Grammar Fix needs the internet (or an on-device model that's already loaded).");
+    const known = ["The AI isn't available here", "The AI's answer didn't look right. Try again, or select a smaller part."];
+    return tr("Couldn't check grammar") + ": " + (known.includes(msg) ? tr(msg) : msg.slice(0, 140));
   }
   function gReview(orig, out, s, e, isSel, by) {
     const same = out.replace(/\s+$/, "") === orig.replace(/\s+$/, "");
     const box = $(".snbx-gm"); if (!box) return;
-    if (same) { box.innerHTML = `<div class="snbx-gok">${I.tick}<b>Looks great \u2014 no grammar issues found!</b><span>${isSel ? "Checked your selection" : "Checked the whole note"} \u00b7 ${esc(by)}</span></div><div class="snbx-gbtns"><button type="button" class="fx-btn small primary" data-g="x">${tx("Done")}</button></div>`; $('[data-g="x"]').onclick = closeModal; return; }
+    if (same) { box.innerHTML = `<div class="snbx-gok">${I.tick}<b>${tx("No grammar changes suggested")}</b><span>${tx(isSel ? "Checked your selection" : "Checked the whole note")} \u00b7 ${esc(by)}</span></div><div class="snbx-gbtns"><button type="button" class="fx-btn small primary" data-g="x">${tx("Done")}</button></div>`; $('[data-g="x"]').onclick = closeModal; return; }
     const d = diff(orig, out), n = d.filter(x => x[0] === "+").length || d.filter(x => x[0] === "-").length;
     const view = v => v === "orig" ? esc(orig) : v === "fixed" ? esc(out) : d.map(([op, t]) => op === "=" ? esc(t) : op === "+" ? `<ins>${esc(t)}</ins>` : `<del>${esc(t)}</del>`).join("");
-    box.innerHTML = `<div class="snbx-gsum"><b>${n} change${n === 1 ? "" : "s"} suggested</b><span>${isSel ? "Your selection" : "Whole note"} \u00b7 ${esc(by)} \u00b7 Bible quotes left as they are</span></div>
+    box.innerHTML = `<div class="snbx-gsum"><b>${esc(tr(n === 1 ? "{n} change suggested" : "{n} changes suggested").replace("{n}", n))}</b><span>${tx(isSel ? "Your selection" : "Whole note")} \u00b7 ${esc(by)} \u00b7 ${tx("Bible quotes left as they are")}</span></div>
       <div class="snbx-seg snbx-gtabs" role="tablist">${[["diff", "Changes"], ["fixed", "Corrected"], ["orig", "Original"]].map(([k, l], i) => `<button type="button" class="${i ? "" : "on"}" data-gv="${k}">${tx(l)}</button>`).join("")}</div>
       <div class="snbx-gtext">${view("diff")}</div>
       <div class="snbx-gbtns"><button type="button" class="fx-btn small" data-g="no">${tx("Discard")}</button><button type="button" class="fx-btn small primary" data-g="ok">${I.tick}${tx("Apply Changes")}</button></div>`;
@@ -687,7 +821,7 @@
       const ta = $(".snb-ta"); if (!ta) return closeModal();
       if (ta.value.slice(s, e) !== orig) { toast(tr("The note changed while checking: run Grammar again")); return closeModal(); }
       snap(); ta.setRangeText(out, s, e, "select"); if (!isSel) ta.setSelectionRange(0, 0); snap(); dirty(); refresh(true); closeModal();
-      toast(n + " change" + (n === 1 ? "" : "s") + " applied \u00b7 Undo reverts them", 3500);
+      toast(tr(n === 1 ? "{n} change applied · Undo reverts it" : "{n} changes applied · Undo reverts them").replace("{n}", n), 3500);
     };
   }
   /* modal */
@@ -705,13 +839,13 @@
     lines.push(String(it.body || "").trim()); if (it.tags && it.tags.length) lines.push("", it.tags.map(t => "#" + t).join(" ")); return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n"; };
   const fileName = (t, ext) => (String(t || "note").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").slice(0, 60) || "note") + "." + ext;
   function download(name, text, type) {
-    try { const u = URL.createObjectURL(new Blob([text], { type: (type || "text/plain") + ";charset=utf-8" })); const a = document.createElement("a"); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); toast("Saved " + name); }
+    try { const u = URL.createObjectURL(new Blob([text], { type: (type || "text/plain") + ";charset=utf-8" })); const a = document.createElement("a"); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); toast(tr("Saved file: {name}").replace("{name}", name)); }
     catch { copy(text); }
   }
   const curItem = () => { if (!cur) return null; commit(); const n = cur.n; return Object.assign({}, n, { body: bodyNow(), title: ($(".snb-tin") || {}).value || n.title }); };
   function printHtml(title, html) {
     let el = document.getElementById("snbx-print"); if (el) el.remove();
-    el = h(`<div id="snbx-print"><h1>${esc(title)}</h1>${html}<p class="snbx-pf">Bibley Study Notebook \u00b7 ${esc(today())}</p></div>`); document.body.appendChild(el);
+    el = h(`<div id="snbx-print"><h1>${esc(title)}</h1>${html}<p class="snbx-pf">Bibley · ${tx("Study Notebook")} \u00b7 ${esc(today())}</p></div>`); document.body.appendChild(el);
     document.documentElement.classList.add("snbx-printing");
     const done = () => { document.documentElement.classList.remove("snbx-printing"); el.remove(); window.removeEventListener("afterprint", done); };
     window.addEventListener("afterprint", done); setTimeout(() => { try { window.print(); } catch {} setTimeout(done, 1500); }, 60);
@@ -726,11 +860,11 @@
       ${cur.imp ? "" : `<div class="snbx-mt">${tx("Note")}</div>${B("pin", I.pin, cur.n.pinned ? "Unpin" : "Pin to the top")}${B("focus", I.focus, "Focus mode")}${SR ? B("mic", I.mic, rec ? "Stop dictation" : "Dictate with your voice") : ""}${B("tpl", I.plus, "New note from a template")}
       ${nbs.length > 1 ? `<div class="snbx-mt">${tx("Move to notebook")}</div><div class="snbx-mvs">${nbs.map(b => `<button type="button" class="snbx-pill${b.id === ($(".snb-nbsel") || {}).value ? " on" : ""}" data-mv="${esc(b.id)}"><i class="snb-dot" style="background:${colorOf(b.color)}"></i>${esc(b.name)}</button>`).join("")}</div>` : ""}`}
       <div class="snbx-mt">${tx("Export note")}</div>${B("md", I.dl, "Export as Markdown (.md)")}${B("txt", I.dl, "Export as text (.txt)")}${B("copy", I.copy, "Copy formatted text")}${B("print", I.print, "Print / Save as PDF")}${B("share", I.share, "Share")}
-      <div class="snbx-mt">${esc(lt)} \u00b7 ${listNow.length} note${listNow.length === 1 ? "" : "s"}</div>${B("nbmd", I.dl, "Export notebook as Markdown")}${B("nbtxt", I.dl, "Export notebook as text")}${B("nbprint", I.print, "Print notebook")}
+      <div class="snbx-mt">${esc(lt)} \u00b7 ${esc(countNotes(listNow.length))}</div>${B("nbmd", I.dl, "Export notebook as Markdown")}${B("nbtxt", I.dl, "Export notebook as text")}${B("nbprint", I.print, "Print notebook")}
       <div class="snbx-mt">${tx("Paper")}</div><div class="snbx-seg snbx-mpaper">${PAPERS.map(([k, l]) => `<button type="button" class="${paper() === k ? "on" : ""}" data-paper="${k}">${tx(l.replace("Warm ", "").replace(" Paper", ""))}</button>`).join("")}</div>
       ${cur.imp ? "" : `<div class="snbx-mt"></div>${B("del", I.trash, "Delete note")}`}</div>`, b => {
       b.querySelectorAll("[data-paper]").forEach(x => x.onclick = () => { setPaper(x.dataset.paper); b.querySelectorAll("[data-paper]").forEach(y => y.classList.toggle("on", y === x)); });
-      b.querySelectorAll("[data-mv]").forEach(x => x.onclick = () => { const s = $(".snb-nbsel"); if (s) { s.value = x.dataset.mv; dirty(); } closeModal(); toast("Moved to " + bookName(x.dataset.mv)); });
+      b.querySelectorAll("[data-mv]").forEach(x => x.onclick = () => { const s = $(".snb-nbsel"); if (s) { s.value = x.dataset.mv; dirty(); } closeModal(); toast(tr("Moved to {name}").replace("{name}", bookName(x.dataset.mv))); });
       b.querySelectorAll("[data-m]").forEach(x => x.onclick = () => { const a = x.dataset.m; closeModal();
         if (a === "pin") { const p = $('[data-a="pin"]'); if (p) p.click(); }
         if (a === "focus") toggleFocus(true);
@@ -755,9 +889,9 @@
     let color = b ? b.color : COLORS[nbs.length % COLORS.length][0];
     modal(b ? "Notebook" : "New notebook", `<div class="snb-form">
         <label class="snb-lbl">${tx("Name")}</label><input class="fx-input snb-bn" maxlength="40" placeholder="${tx("e.g. Romans study, Youth group")}" value="${esc(b ? b.name : "")}">
-        <label class="snb-lbl">${tx("Colour")}</label><div class="snb-colors">${COLORS.map(([k, v]) => `<button type="button" class="snb-col ${k === color ? "on" : ""}" data-c="${k}" style="--c:${v}" aria-label="${k}"></button>`).join("")}</div>
+        <label class="snb-lbl">${tx("Colour")}</label><div class="snb-colors">${COLORS.map(([k, v]) => `<button type="button" class="snb-col ${k === color ? "on" : ""}" data-c="${k}" style="--c:${v}" aria-label="${tx(k[0].toUpperCase() + k.slice(1))}"></button>`).join("")}</div>
         <div class="snb-actions"><button type="button" class="fx-btn primary" data-a="save" style="flex:1">${b ? tr("Save") : tr("Create notebook")}</button></div>
-        ${b ? `<div class="snb-h">This notebook \u00b7 ${items.length} note${items.length === 1 ? "" : "s"}</div><div class="snb-actions">
+        ${b ? `<div class="snb-h">${tx("This notebook")} \u00b7 ${esc(countNotes(items.length))}</div><div class="snb-actions">
           <button type="button" class="fx-btn small" data-a="share">${I.share}${tx("Share as text")}</button><button type="button" class="fx-btn small" data-a="copy">${I.copy}${tx("Copy all")}</button>
           <button type="button" class="fx-btn small danger" data-a="del">${I.trash}${tx("Delete")}</button></div>` : ""}</div>`, el => {
       el.querySelectorAll(".snb-col").forEach(c => c.onclick = () => { color = c.dataset.c; el.querySelectorAll(".snb-col").forEach(x => x.classList.toggle("on", x === c)); });
@@ -774,7 +908,7 @@
         el.querySelector('[data-a="copy"]').onclick = () => items.length ? copy(txt()) : toast(tr("This notebook is empty"));
         el.querySelector('[data-a="del"]').onclick = () => {
           const n = items.filter(i => i.src === "new").length;
-          if (!confirm(`Delete the notebook "${b.name}"?` + (n ? ` Its ${n} note${n > 1 ? "s" : ""} will be kept under All notes.` : ""))) return;
+          if (!confirm(tr('Delete the notebook "{name}"?').replace("{name}", b.name) + (n ? " " + tr(n === 1 ? "Its note will be kept under All notes." : "Its {n} notes will be kept under All notes.").replace("{n}", n) : ""))) return;
           commit(); wr(KN, books().filter(x => x.id !== b.id));
           if (n) { const all = own(); all.forEach(x => { if (x.nb === b.id) x.nb = ""; }); wr(KT, all); }
           if (cur && cur.n.nb === b.id) cur.n.nb = "";
@@ -792,7 +926,7 @@
     if (q) list = list.filter(x => ((x.text || "") + " " + (x.ref || "")).toLowerCase().includes(q));
     list.sort((a, b) => sortMode() === "recent" ? (b.added || 0) - (a.added || 0) : (a.bookIdx - b.bookIdx) || (a.chapter - b.chapter) || (a.verseNum - b.verseNum));
     const el = h(`<div>
-      <div class="snb-chips">${["all"].concat(Object.keys(HLC)).map(c => `<button type="button" class="snb-chip ${st.hl === c ? "on" : ""}" data-c="${c}">${c === "all" ? tr("All colours") : `<i class="snb-dot lg" style="background:${HLC[c]}"></i>${c[0].toUpperCase() + c.slice(1)}`}</button>`).join("")}</div>
+      <div class="snb-chips">${["all"].concat(Object.keys(HLC)).map(c => `<button type="button" class="snb-chip ${st.hl === c ? "on" : ""}" data-c="${c}">${c === "all" ? tr("All colours") : `<i class="snb-dot lg" style="background:${HLC[c]}"></i>${tx(c[0].toUpperCase() + c.slice(1))}`}</button>`).join("")}</div>
       <p class="snb-hint">${tx("Tap a verse in the reader, then pick a colour to highlight it.")}</p>
       <div class="snb-list">${list.length ? list.map(x => `<article class="snb-hl" data-k="${esc(x.key)}" style="--hc:${HLC[x.color] || HLC.yellow}">
         <div class="snb-hl-top"><b>${esc(x.ref || (BOOKS[x.bookIdx][1] + " " + x.chapter + ":" + x.verseNum))}</b><button type="button" class="snb-ib" data-n="${esc(x.key)}" aria-label="${tx("Start a note on this verse")}" title="${tx("New note")}">${I.edit}</button></div>
@@ -829,9 +963,9 @@
       el.querySelectorAll(".snb-tpl").forEach(b => b.onclick = () => {
         const t = tplOf(b.dataset.t), now = Date.now();
         const nb = books().some(x => x.id === st.nb) ? st.nb : (ensureDefault()[0] || {}).id;
-        const ttl = t.id === "blank" ? (verse ? verse.ref : "") : t.name + (verse ? " \u00b7 " + verse.ref : " \u00b7 " + new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+        const ttl = t.id === "blank" ? (verse ? verse.ref : "") : tr(t.name) + (verse ? " \u00b7 " + verse.ref : " \u00b7 " + new Date().toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : "en", { month: "short", day: "numeric" }));
         closeModal();
-        openNew({ id: null, nb, title: ttl, body: t.body(verse) + (t.id === "blank" && verse ? vq(verse) + "\n\n" : ""), tags: [], pinned: false, tpl: t.id, created: now, updated: now });
+        openNew({ id: null, nb, title: ttl, body: templateBody(t, verse) + (t.id === "blank" && verse ? vq(verse) + "\n\n" : ""), tags: [], pinned: false, tpl: t.id, created: now, updated: now });
       });
     });
   }
@@ -846,5 +980,5 @@
   }
   function newFromVerse(t) { if (!t) return; ensureDefault(); open({}); pickTemplate({ ref: t.ref, text: t.text }); }
 
-  window.BibleyStudyNB = { version: "7.1", grammar: () => grammar(), open, close, isOpen, newFromVerse, exportData, importData, KEYS: [KN, KT, KM], TEMPLATES: TPL.map(t => ({ id: t.id, name: t.name })), _test: { findRefs, render, allItems, plain, lookupVerses, quoteOf, mdOf, gClean, diff } };
+  window.BibleyStudyNB = { version: "7.1", grammar: () => grammar(), open, close, isOpen, newFromVerse, exportData, importData, KEYS: [KN, KT, KM], TEMPLATES: TPL.map(t => ({ id: t.id, name: t.name })), _test: { findRefs, render, allItems, plain, lookupVerses, quoteOf, mdOf, gClean, diff, templateBody: (id, verse) => templateBody(tplOf(id), verse), grammarError } };
 })();

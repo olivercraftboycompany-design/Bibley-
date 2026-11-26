@@ -9,7 +9,10 @@
   "use strict";
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !FX.ui || !C) { console.warn("Bibley notes: features bridge missing"); return; }
-  const { openSheet, closeSheet, toast, jumpTo, copyText, h, esc, vname } = FX.ui;
+  const { openSheet, closeSheet, toast: rawToast, jumpTo, copyText, h, esc, vname } = FX.ui;
+  const tr = s => window.BibleyLocale?.text(s) ?? s;
+  const tx = s => esc(tr(s));
+  const toast = s => rawToast(tr(s));
   const LEG = FX.legacyNotes;
   const BOOKS = C.BOOKS;
   const KEY = "bibley_notebook_v1";
@@ -17,7 +20,7 @@
   const CHECK = "&#10003;";
   const ICON_NOTE = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h6M10 12h6M10 16h4"/></svg>';
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const fmtDate = t => { try { return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch { return ""; } };
+  const fmtDate = t => { try { return new Date(t).toLocaleDateString(window.BibleyLocale?.get() === "es" ? "es" : undefined, { month: "short", day: "numeric", year: "numeric" }); } catch { return ""; } };
 
   /* ================= storage ================= */
   function load() {
@@ -64,7 +67,7 @@
     const p = { id: uid("p_"), name, created: Date.now() }; d.pages.push(p); return p;
   }
   function promptNewPage(d) {
-    const name = prompt("Name the new page (e.g. Romans study, Youth group)", "");
+    const name = prompt(tr("Name the new page (e.g. Romans study, Youth group)"), "");
     if (name == null) return null;
     const p = addPage(d, name); if (!p) { toast("Page needs a name"); return null; }
     return p;
@@ -95,25 +98,25 @@
   }
   const sameNote = (a, b) => a.ref === b.ref && (a.summaryOrig || a.summary) === b.summary;
   function pageOptions(d, sel) {
-    return d.pages.map(p => `<option value="${esc(p.id)}"${p.id === sel ? " selected" : ""}>${esc(p.name)}</option>`).join("") + '<option value="__new">+ New page...</option>';
+    return d.pages.map(p => `<option value="${esc(p.id)}"${p.id === sel ? " selected" : ""}>${esc(p.name)}</option>`).join("") + `<option value="__new">${tx("+ New page...")}</option>`;
   }
   function insertBar(kind, anchor, before) {
     const info0 = kind === "verse" ? verseInfo() : chapterInfo(); if (!info0 || !info0.summary) return;
     const d = load();
     const existing = d.notes.find(n => sameNote(n, info0));
     const bar = h(`<div class="nb-add" data-for="${kind}">
-      <button class="nb-add-btn" type="button">${ICON_NOTE}<span>Add to notes</span></button>
-      <label class="nb-add-to"><span>Page</span><select aria-label="Notes page">${pageOptions(d, existing ? existing.pageId : d.lastPage)}</select></label></div>`);
+      <button class="nb-add-btn" type="button">${ICON_NOTE}<span>${tx("Add to notes")}</span></button>
+      <label class="nb-add-to"><span>${tx("Page")}</span><select aria-label="${tx("Notes page")}">${pageOptions(d, existing ? existing.pageId : d.lastPage)}</select></label></div>`);
     if (before) anchor.parentNode.insertBefore(bar, anchor); else anchor.parentNode.insertBefore(bar, anchor.nextSibling);
     const btn = bar.querySelector(".nb-add-btn"), sel = bar.querySelector("select");
     let lastSel = sel.value, addedId = existing ? existing.id : null;
-    const markAdded = () => { btn.classList.add("added"); btn.innerHTML = `<span>Added ${CHECK}</span><small>View</small>`; btn.setAttribute("aria-label", "Added to notes. Open notes"); };
+    const markAdded = () => { btn.classList.add("added"); btn.innerHTML = `<span>${tx("Added")} ${CHECK}</span><small>${tx("View")}</small>`; btn.setAttribute("aria-label", tr("Added to notes. Open notes")); };
     if (existing) markAdded();
     sel.addEventListener("change", () => {
       if (sel.value !== "__new") { lastSel = sel.value; return; }
       const dd = load(); const p = promptNewPage(dd);
       if (!p) { sel.value = lastSel; return; }
-      save(dd); sel.innerHTML = pageOptions(dd, p.id); lastSel = p.id; toast("Page \u201c" + p.name + "\u201d created");
+      save(dd); sel.innerHTML = pageOptions(dd, p.id); lastSel = p.id; toast(tr("Page \"{name}\" created").replace("{name}",p.name));
     });
     btn.addEventListener("click", () => {
       const dd = load();
@@ -125,7 +128,7 @@
       dd.notes.push(n); dd.lastPage = pageId; dd.viewPage = pageId;
       if (!save(dd)) return;
       addedId = n.id; markAdded();
-      toast("Added to notes \u00b7 " + pageOf(dd, pageId).name);
+      toast(tr("Added to notes") + " · " + pageOf(dd, pageId).name);
     });
   }
   function scan() {
@@ -151,7 +154,7 @@
   }
   function go(delta) {
     const d = load(); const i = d.pages.findIndex(p => p.id === d.viewPage);
-    const j = i + delta; if (j < 0 || j >= d.pages.length) { toast(delta < 0 ? "This is the first page" : "This is the last page"); return; }
+    const j = i + delta; if (j < 0 || j >= d.pages.length) { toast(tr(delta < 0 ? "This is the first page" : "This is the last page")); return; }
     d.viewPage = d.pages[j].id; save(d); flipDir = delta; openSheet("notes", "Notes", renderNotebook);
   }
   function renderNotebook(body) {
@@ -159,29 +162,29 @@
     const items = pageItems(d, page.id);
     const wrap = h(`<div class="nb">
       <div class="nb-pagebar">
-        <button class="nb-arrow" type="button" data-a="prev" aria-label="Previous page"${i === 0 ? " disabled" : ""}>&#8249;</button>
-        <button class="nb-pagehead" type="button" data-a="rename" title="Rename page"><span class="nb-pagename">${esc(page.name)}</span><span class="nb-pageof">Page ${i + 1} of ${d.pages.length}</span></button>
-        <button class="nb-arrow" type="button" data-a="next" aria-label="Next page"${i === d.pages.length - 1 ? " disabled" : ""}>&#8250;</button>
+        <button class="nb-arrow" type="button" data-a="prev" aria-label="${tx("Previous page")}"${i === 0 ? " disabled" : ""}>&#8249;</button>
+        <button class="nb-pagehead" type="button" data-a="rename" title="${tx("Rename page")}"><span class="nb-pagename">${esc(page.name)}</span><span class="nb-pageof">${esc(tr("Page {page} of {total}").replace("{page}", i+1).replace("{total}", d.pages.length))}</span></button>
+        <button class="nb-arrow" type="button" data-a="next" aria-label="${tx("Next page")}"${i === d.pages.length - 1 ? " disabled" : ""}>&#8250;</button>
       </div>
-      <div class="nb-dots" role="tablist" aria-label="Pages">${d.pages.map((p, k) => `<button type="button" class="nb-dot${k === i ? " on" : ""}" data-k="${k}" aria-label="${esc(p.name)}" title="${esc(p.name)}"></button>`).join("")}</div>
+      <div class="nb-dots" role="tablist" aria-label="${tx("Pages")}">${d.pages.map((p, k) => `<button type="button" class="nb-dot${k === i ? " on" : ""}" data-k="${k}" aria-label="${esc(p.name)}" title="${esc(p.name)}"></button>`).join("")}</div>
       <div class="nb-tools">
-        <button class="fx-btn primary small" type="button" data-a="newnote">+ New note</button>
-        <button class="fx-btn small" type="button" data-a="newpage">+ New page</button>
-        <button class="fx-btn small" type="button" data-a="more" aria-expanded="false">Page &#8943;</button>
+        <button class="fx-btn primary small" type="button" data-a="newnote">${tx("+ New note")}</button>
+        <button class="fx-btn small" type="button" data-a="newpage">${tx("+ New page")}</button>
+        <button class="fx-btn small" type="button" data-a="more" aria-expanded="false">${tx("Page")} &#8943;</button>
       </div>
       <div class="nb-menu" hidden>
-        <button class="fx-btn small" type="button" data-a="rename">Rename</button>
-        <button class="fx-btn small" type="button" data-a="copy">Copy page</button>
-        <button class="fx-btn small" type="button" data-a="share">Share page</button>
-        <button class="fx-btn small danger" type="button" data-a="delpage">Delete page</button>
+        <button class="fx-btn small" type="button" data-a="rename">${tx("Rename")}</button>
+        <button class="fx-btn small" type="button" data-a="copy">${tx("Copy page")}</button>
+        <button class="fx-btn small" type="button" data-a="share">${tx("Share page")}</button>
+        <button class="fx-btn small danger" type="button" data-a="delpage">${tx("Delete page")}</button>
       </div>
       <div class="nb-paper${flipDir ? (flipDir > 0 ? " flip-next" : " flip-prev") : ""}"></div>
-      <div class="nb-hint">Swipe left or right to flip pages</div>
+      <div class="nb-hint">${tx("Swipe left or right to flip pages")}</div>
     </div>`);
     flipDir = 0;
     const paper = wrap.querySelector(".nb-paper");
     if (!items.length) {
-      paper.append(h(`<div class="nb-empty"><div class="nb-empty-ico">${ICON_NOTE}</div><p>No notes on this page yet.</p><p class="nb-sub">Open Study on a verse, and when the summary shows up tap <b>Add to notes</b>. Or write your own with <b>+ New note</b>.</p></div>`));
+      paper.append(h(`<div class="nb-empty"><div class="nb-empty-ico">${ICON_NOTE}</div><p>${tx("No notes on this page yet.")}</p><p class="nb-sub">${tx("Open Study on a verse, then tap Add to notes below the summary. Or tap + New note to write your own.")}</p></div>`));
     }
     items.forEach(it => {
       const first = (it.summary || "").split("\n\n")[0];
@@ -192,7 +195,7 @@
         <span class="nb-card-top"><span class="nb-card-ref">${esc(title)}${it.version && it.kind !== "free" ? ` <span class="nb-ver">${esc(vname(it.version))}</span>` : ""}</span><span class="nb-card-date">${esc(fmtDate(it.created || it.updated))}</span></span>
         <span class="nb-card-sum">${esc(snippet)}</span>
         ${it.thoughts && it.kind !== "free" && it.kind !== "verse-note" ? `<span class="nb-card-mine">${esc(it.thoughts)}</span>` : ""}
-        <span class="nb-card-tag">${tag}</span></button>`);
+        <span class="nb-card-tag">${tx(tag)}</span></button>`);
       card.addEventListener("click", () => openNote(it));
       paper.append(card);
     });
@@ -202,10 +205,10 @@
     q("next").forEach(b => b.onclick = () => go(1));
     wrap.querySelectorAll(".nb-dot").forEach(b => b.onclick = () => { const dd = load(); const k = +b.dataset.k; const cur = dd.pages.findIndex(p => p.id === dd.viewPage); if (k === cur) return; dd.viewPage = dd.pages[k].id; save(dd); flipDir = k > cur ? 1 : -1; openSheet("notes", "Notes", renderNotebook); });
     q("newnote").forEach(b => b.onclick = () => openNote({ id: null, kind: "free", pageId: page.id, title: "", thoughts: "", summary: "", created: Date.now() }));
-    q("newpage").forEach(b => b.onclick = () => { const dd = load(); const p = promptNewPage(dd); if (!p) return; dd.viewPage = p.id; dd.lastPage = p.id; save(dd); flipDir = 1; toast("Page \u201c" + p.name + "\u201d created"); openSheet("notes", "Notes", renderNotebook); });
+    q("newpage").forEach(b => b.onclick = () => { const dd = load(); const p = promptNewPage(dd); if (!p) return; dd.viewPage = p.id; dd.lastPage = p.id; save(dd); flipDir = 1; toast(tr("Page \"{name}\" created").replace("{name}",p.name)); openSheet("notes", "Notes", renderNotebook); });
     q("more").forEach(b => b.onclick = () => { const m = wrap.querySelector(".nb-menu"); m.hidden = !m.hidden; b.setAttribute("aria-expanded", String(!m.hidden)); });
     q("rename").forEach(b => b.onclick = () => {
-      const name = prompt("Rename this page", page.name); if (name == null) return;
+      const name = prompt(tr("Rename this page"), page.name); if (name == null) return;
       const nm = name.trim().slice(0, 60); if (!nm) { toast("Page needs a name"); return; }
       const dd = load(); const p = pageOf(dd, page.id); if (!p) return; p.name = nm; save(dd); toast("Page renamed"); openSheet("notes", "Notes", renderNotebook);
     });
@@ -214,7 +217,7 @@
       if (dd.pages.length <= 1) { toast("You need at least one page. Rename this one instead."); return; }
       const own = dd.notes.filter(n => n.pageId === page.id).length;
       const leg = items.filter(x => x.legacy).length;
-      const msg = `Delete the page \u201c${page.name}\u201d` + (own ? ` and its ${own} note${own === 1 ? "" : "s"}` : "") + "? This can't be undone." + (leg ? `\n\n${leg} verse note${leg === 1 ? "" : "s"} from the reader will move to another page, not be deleted.` : "");
+      const msg = tr(own ? 'Delete page "{name}" and {n} notes? This cannot be undone.' : 'Delete page "{name}"? This cannot be undone.').replace("{name}",page.name).replace("{n}",own) + (leg ? "\n\n" + tr("{n} verse notes from the reader will move to another page, not be deleted.").replace("{n}",leg) : "");
       if (!confirm(msg)) return;
       const idx = dd.pages.findIndex(p => p.id === page.id);
       dd.pages.splice(idx, 1); dd.notes = dd.notes.filter(n => n.pageId !== page.id);
@@ -222,7 +225,7 @@
       dd.viewPage = dd.pages[Math.max(0, idx - 1)].id; if (dd.lastPage === page.id) dd.lastPage = dd.viewPage;
       save(dd); toast("Page deleted"); openSheet("notes", "Notes", renderNotebook);
     });
-    q("copy").forEach(b => b.onclick = async () => toast(await copyText(pageText(page, items)) ? "Page copied " + "\u2713" : "Couldn't copy"));
+    q("copy").forEach(b => b.onclick = async () => toast(await copyText(pageText(page, items)) ? tr("Page copied") + " \u2713" : "Couldn't copy"));
     q("share").forEach(b => b.onclick = async () => {
       const text = pageText(page, items);
       if (navigator.share) { try { await navigator.share({ title: "Bibley Notes: " + page.name, text }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
@@ -259,16 +262,16 @@
       const d = load();
       const canJump = it.bookIdx != null && BOOKS[it.bookIdx] && it.chapter;
       const box = h(`<div class="nb-note">
-        ${it.kind !== "free" ? `<button type="button" class="nb-ref" ${canJump ? "" : "disabled"}>${esc(it.ref || "")}${it.version ? " \u00b7 " + esc(vname(it.version)) : ""}${canJump ? ' <span class="nb-go">Go to verse &#8250;</span>' : ""}</button>` : ""}
+        ${it.kind !== "free" ? `<button type="button" class="nb-ref" ${canJump ? "" : "disabled"}>${esc(it.ref || "")}${it.version ? " \u00b7 " + esc(vname(it.version)) : ""}${canJump ? ` <span class="nb-go">${tx("Go to verse")} &#8250;</span>` : ""}</button>` : ""}
         ${it.verseText ? `<div class="fx-vtext nb-vtext">${esc(it.verseText)}</div>` : ""}
-        ${it.kind === "free" ? `<label class="nb-lbl">Title</label><input class="fx-input nb-title" type="text" maxlength="80" placeholder="Title (optional)" value="${esc(it.title || "")}">` : ""}
-        ${it.kind === "verse" || it.kind === "chapter" ? `<label class="nb-lbl">${it.kind === "chapter" ? "AI chapter summary" : "AI summary"}</label><textarea class="fx-textarea nb-sum" aria-label="Summary">${esc(it.summary || "")}</textarea>` : ""}
-        <label class="nb-lbl">${it.kind === "free" ? "Note" : it.kind === "verse-note" ? "Your note" : "Your thoughts"}</label>
-        <textarea class="fx-textarea nb-mine" aria-label="Your thoughts" placeholder="${it.kind === "free" ? "Write anything: sermon notes, prayers, questions..." : "What stands out to you? A prayer, a question, a thought..."}">${esc(it.thoughts || "")}</textarea>
-        <label class="nb-lbl">Page</label>
-        <select class="fx-input nb-move" aria-label="Move to page">${pageOptions(d, pageId0)}</select>
-        ${it.id ? `<div class="nb-meta">Added ${esc(fmtDate(it.created))}${it.legacy ? " from the verse note in the reader" : ""}</div>` : ""}
-        <div class="fx-row nb-btns"><button class="fx-btn primary" type="button" data-a="done" style="flex:1">Save</button>${it.id ? '<button class="fx-btn danger" type="button" data-a="del">Delete</button>' : ""}<button class="fx-btn" type="button" data-a="back">Back</button></div>
+        ${it.kind === "free" ? `<label class="nb-lbl">${tx("Title")}</label><input class="fx-input nb-title" type="text" maxlength="80" placeholder="${tx("Title (optional)")}" value="${esc(it.title || "")}">` : ""}
+        ${it.kind === "verse" || it.kind === "chapter" ? `<label class="nb-lbl">${tx(it.kind === "chapter" ? "AI chapter summary" : "AI summary")}</label><textarea class="fx-textarea nb-sum" aria-label="${tx("Summary")}">${esc(it.summary || "")}</textarea>` : ""}
+        <label class="nb-lbl">${tx(it.kind === "free" ? "Note" : it.kind === "verse-note" ? "Your note" : "Your thoughts")}</label>
+        <textarea class="fx-textarea nb-mine" aria-label="${tx("Your thoughts")}" placeholder="${tx(it.kind === "free" ? "Write anything: sermon notes, prayers, questions..." : "What stands out to you? A prayer, a question, a thought...")}">${esc(it.thoughts || "")}</textarea>
+        <label class="nb-lbl">${tx("Page")}</label>
+        <select class="fx-input nb-move" aria-label="${tx("Move to page")}">${pageOptions(d, pageId0)}</select>
+        ${it.id ? `<div class="nb-meta">${tx("Added")} ${esc(fmtDate(it.created))}${it.legacy ? " · " + tx("From the verse note in the reader") : ""}</div>` : ""}
+        <div class="fx-row nb-btns"><button class="fx-btn primary" type="button" data-a="done" style="flex:1">${tx("Save")}</button>${it.id ? `<button class="fx-btn danger" type="button" data-a="del">${tx("Delete")}</button>` : ""}<button class="fx-btn" type="button" data-a="back">${tx("Back")}</button></div>
       </div>`);
       body.append(box);
       const tEl = box.querySelector(".nb-title"), sEl = box.querySelector(".nb-sum"), mEl = box.querySelector(".nb-mine"), mv = box.querySelector(".nb-move");
@@ -305,11 +308,11 @@
       };
       FX.ui.onClose(() => commit(true));
       const backTo = pid => { const dd = load(); if (pid && pageOf(dd, pid)) { dd.viewPage = pid; save(dd); } openSheet("notes", "Notes", renderNotebook); };
-      box.querySelector('[data-a="done"]').onclick = () => { FX.ui.onClose(null); const pid = commit(false); toast(pid !== pageId0 && it.id ? "Saved and moved to " + (pageOf(load(), pid) || {}).name : "Saved " + "\u2713"); backTo(pid); };
+      box.querySelector('[data-a="done"]').onclick = () => { FX.ui.onClose(null); const pid = commit(false); toast(pid !== pageId0 && it.id ? tr("Saved and moved to {name}").replace("{name}", (pageOf(load(), pid) || {}).name) : tr("Saved") + " \u2713"); backTo(pid); };
       box.querySelector('[data-a="back"]').onclick = () => { FX.ui.onClose(null); const pid = commit(true); backTo(pid); };
       const del = box.querySelector('[data-a="del"]');
       if (del) del.onclick = () => {
-        if (!confirm(it.legacy ? "Delete this note? It's your verse note from the reader, so it will be removed there too." : "Delete this note? This can't be undone.")) return;
+        if (!confirm(tr(it.legacy ? "Delete this note? It's your verse note from the reader, so it will be removed there too." : "Delete this note? This can't be undone."))) return;
         discard = true; FX.ui.onClose(null);
         if (it.legacy) { LEG.set(it.key, ""); const dd = load(); delete dd.legacyPage[it.key]; save(dd); }
         else { const dd = load(); dd.notes = dd.notes.filter(x => x.id !== it.id); save(dd); }
