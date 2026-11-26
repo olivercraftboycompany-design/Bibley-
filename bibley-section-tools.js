@@ -1036,30 +1036,53 @@
   }
 
   function openInterlinear(b, c, v) {
-    const greek = b >= 39;
-    openPanel("interlinear", tr(greek ? "Greek interlinear" : "Hebrew interlinear") + " · " + refOf(b,c,v), async body => {
-      body.append(h('<p class="bp-muted">Source-order words and English glosses from <a href="https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c" target="_blank" rel="noopener noreferrer">STEPBible Data (CC BY 4.0)</a>. ' + (greek ? 'Greek rows tagged NA28.' : 'Main Hebrew and Aramaic readings.') + ' This is not an alignment to the selected Bible translation; verse numbers can differ.</p>'));
+    if (!availableRefs(b)) return;
+    const greek = b >= 39, readerChapter = c, readerVerse = v;
+    openPanel("interlinear", tr(greek ? "Greek interlinear" : "Hebrew interlinear") + " · " + BOOKS[b][1], async body => {
+      const credits = h('<p class="bp-muted"></p>');
+      credits.append(document.createTextNode(tr("Source-order words and English glosses from") + " "), h('<a href="https://github.com/STEPBible/STEPBible-Data/tree/5de0a47f35f0fc13dfe1430d104e5db8a4285f9c" target="_blank" rel="noopener noreferrer">STEPBible Data (CC BY 4.0)</a>'), document.createTextNode(". " + tr(greek ? "Greek rows tagged NA28." : "Main Hebrew and Aramaic readings.") + " " + tr("English-reference numbering from the source. This is not word alignment to your selected translation; chapter and verse numbers can differ.")));
+      body.append(credits);
       const result = h('<div role="status">' + esc(tr("Loading interlinear…")) + '</div>');
       body.append(result);
       try {
         const book = await getStudyFile("interlinear/" + (b + 1));
         if (!result.isConnected) return;
-        const words = book?.[c]?.[v];
-        if (!words?.length) { result.textContent = tr("No source words for this verse number."); return; }
-        const tokens = h('<ol class="bp-card bp-interlinear"></ol>');
-        tokens.setAttribute("aria-label", tr("Interlinear words"));
-        tokens.dir = greek ? 'ltr' : 'rtl';
-        for (const [word, translit, gloss, codes, morphology] of words) {
-          const token = h('<li><bdi class="bp-source-word" lang="' + (greek ? 'grc' : 'he') + '">' + esc(word) + '</bdi><bdi class="bp-muted">' + esc(translit) + '</bdi><bdi>' + esc(gloss) + '</bdi></li>');
-          if (codes.length || morphology) {
-            const hint = h('<bdi class="bp-muted bp-morphology">' + esc([...codes, morphology].filter(Boolean).join(' · ')) + '</bdi>');
-            token.append(hint);
+        const chapters = Object.keys(book || {}).filter(k => /^\d+$/.test(k)).map(Number).sort((a,b) => a-b);
+        const controls = h('<div class="bp-form bp-source-navigation"><label>' + esc(tr("Source chapter")) + '<select aria-label="' + esc(tr("Source chapter")) + '"></select></label><label>' + esc(tr("Source verse")) + '<select aria-label="' + esc(tr("Source verse")) + '"></select></label></div>');
+        const [chapterSelect, verseSelect] = controls.querySelectorAll("select");
+        const ref = h('<p class="bp-source-reference" role="status" aria-live="polite"></p>');
+        const option = (select, number, absent) => {
+          const opt = document.createElement("option"); opt.value = String(number);
+          opt.textContent = String(number) + (absent ? " · " + tr("Not available in this source") : "");
+          select.append(opt);
+        };
+        if (!chapters.includes(c)) option(chapterSelect, c, true);
+        chapters.forEach(n => option(chapterSelect, n, false)); chapterSelect.value = String(c);
+        const versesFor = chapter => Object.keys(book?.[chapter] || {}).filter(k => /^\d+$/.test(k) && book[chapter][k]?.length).map(Number).sort((a,b) => a-b);
+        const draw = () => {
+          ref.textContent = tr("Source reference") + ": " + refOf(b,c,v);
+          const words = book?.[c]?.[v];
+          if (!words?.length) { result.replaceChildren(document.createTextNode(tr("No source words for this verse number."))); return; }
+          const tokens = h('<ol class="bp-card bp-interlinear"></ol>');
+          tokens.setAttribute("aria-label", tr("Interlinear words")); tokens.dir = greek ? 'ltr' : 'rtl';
+          for (const [word, translit, gloss, codes, morphology] of words) {
+            const token = h('<li><bdi class="bp-source-word" lang="' + (greek ? 'grc' : 'he') + '">' + esc(word) + '</bdi><bdi class="bp-muted">' + esc(translit) + '</bdi><bdi>' + esc(gloss) + '</bdi></li>');
+            if (codes.length || morphology) token.append(h('<bdi class="bp-muted bp-morphology">' + esc([...codes, morphology].filter(Boolean).join(' · ')) + '</bdi>'));
+            tokens.append(token);
           }
-          tokens.append(token);
-        }
-        result.replaceWith(tokens);
+          result.replaceChildren(tokens);
+        };
+        const populateVerses = () => {
+          verseSelect.replaceChildren(); const verses = versesFor(c);
+          if (!verses.includes(v)) option(verseSelect, v, true);
+          verses.forEach(n => option(verseSelect,n,false)); verseSelect.value = String(v);
+        };
+        // These selectors browse source numbering only; they never change the reader's translation or text.
+        chapterSelect.onchange = () => { c = Number(chapterSelect.value); v = versesFor(c)[0] || 1; populateVerses(); draw(); };
+        verseSelect.onchange = () => { v = Number(verseSelect.value); draw(); };
+        body.insertBefore(controls,result); body.insertBefore(ref,result); populateVerses(); draw();
       } catch { if (result.isConnected) result.textContent = tr("Couldn’t load the interlinear. Try again online."); }
-    }, () => openVerseWords(b, c, v));
+    }, () => openVerseWords(b, readerChapter, readerVerse));
   }
 
   // Match entire source-marked runs to the existing WEB reader text. Never replace its text or
