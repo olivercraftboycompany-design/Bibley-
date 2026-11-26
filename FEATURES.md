@@ -37,7 +37,7 @@ Oliver's feature list (sent 2026-11-26), tracked here. Status:
 - 🔨 Synced verse highlighting while listening — already existed; read-aloud highlights the current verse and follows along.
 - ✅ TTS sleep timer + speed controls — **Built in 7.2**: a bar appears while reading aloud with a sleep timer (5–60 min) and speed control.
 - ✅ Trash/recovery for deleted notes — **Built in 7.2**: Plus > Tools > Trash restores deleted notes, saved verses, memory verses and prayers for 30 days.
-- ✅ Journal PIN lock + reflection log — **Built in 7.2**: Plus > Journal. Entries are AES-GCM encrypted with a key derived from the PIN (the PIN is never stored; a forgotten PIN means no recovery — the app says so). Locks automatically.
+- ✅ Journal PIN lock + reflection log — **Built in 7.2**: Plus > Journal. Entries are AES-GCM encrypted with a key derived from the PIN or passphrase (PBKDF2, 250k rounds); only ciphertext plus a last-modified timestamp is stored or synced, and the PIN is never stored. The app says plainly: a short numeric PIN can be brute-forced by someone who gets the data (use a longer passphrase), a forgotten PIN means no recovery, and encryption can't protect against malicious software on the device itself. Locks automatically (10 min idle, tab hide, or sheet close).
 - ✅ PDF / Markdown / CSV export — **Built in 7.2**: Plus > Tools > Export Markdown / Export CSV / Print (Save as PDF).
 
 ## 5. Plans & Memorization
