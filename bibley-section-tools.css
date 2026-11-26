@@ -47,10 +47,15 @@
 .bp-vrow mark { background: #c9a86744; color: inherit; border-radius: 3px; padding: 0 1px; }
 
 /* compare diff */
+@media (max-width: 600px) {
+  body.compare-mode .pane-toolbar { flex-wrap: wrap; padding: 6px 8px; gap: 4px; }
+  body.compare-mode .pane-toolbar select { max-width: 100%; }
+}
+.bp-diff-note { margin: 0; padding: 4px 8px; font-size: 11px; line-height: 1.3; color: var(--ink-dim); background: var(--bg-header); }
 .verses-text span[data-verse] mark.bp-diff { text-decoration: underline wavy #c9a867; text-decoration-thickness: 1px;
   text-underline-offset: 3px; background: #c9a86714; border-radius: 3px; }
 .bp-diff-badge { font-size: 10.5px; color: var(--gold); border: 1px solid var(--border); border-radius: 999px;
-  padding: 2px 8px; background: #c9a86712; white-space: nowrap; }
+  padding: 2px 8px; background: #c9a86712; }
 .bp-diff-toggle { border: 1px solid var(--border); background: transparent; color: var(--ink-dim); border-radius: 6px;
   padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: 'Source Serif 4', Georgia, serif; }
 .bp-diff-toggle.on { background: var(--gold); color: var(--bg-header); border-color: var(--gold); }
@@ -123,7 +128,7 @@
 /* print */
 @media print {
   body.bp-print-chapter > *:not(#body),
-  body.bp-print-chapter :is(header, #drawer, #aiPanel, .fx-dock, .pager, .pane-toolbar, .bp-tts-bar, .fx-sheet, .fx-scrim, #overlay, #installPill, .install-pill, .pwa-toast, .offline-bar, .bibley-test-notice, .ref-picker) { display: none !important; }
+  body.bp-print-chapter :is(header, #drawer, #aiPanel, .fx-dock, .pager, .pane-toolbar, .bp-diff-note, .bp-tts-bar, .fx-sheet, .fx-scrim, #overlay, #installPill, .install-pill, .pwa-toast, .offline-bar, .bibley-test-notice, .ref-picker) { display: none !important; }
   body.bp-print-chapter, body.bp-print-chapter :is(#body, #panes, .pane, .reader-main) {
     background: #fff !important; color: #111 !important; display: block !important; height: auto !important; max-height: none !important; overflow: visible !important;
   }
