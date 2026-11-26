@@ -363,6 +363,7 @@
 
   /* ---------- search index: every setting, where it lives ---------- */
   const INDEX = [
+    ["Language / Idioma", "navigation idioma español spanish english language", "language", ""],
     ["Tips", "tips help guide guides how to features shortcuts faq tutorial learn search", "tips", ""],
     ["Account & Cloud Sync", "account cloud sync database sql sqlite login log in sign in signin sign up signup register create account username backup restore devices new phone password", "account", "acct"],
     ["Sync now", "sync now cloud backup database refresh", "account", "acct"], ["Auto-sync", "auto sync automatic cloud", "account", "acct"],
@@ -389,7 +390,7 @@
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { language: "Language / Idioma", tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -402,6 +403,7 @@
       group("Account", row({ ic: IC.user, t: "Account & Cloud Sync", s: acctSub(), go: "account", right: acctBadge() + IC.chev })) +
       group("Help", row({ ic: IC.bulb, t: "Tips", s: "Search features, guides & shortcuts", go: "tips" })) +
       group("Look & feel", row({ ic: IC.palette, t: "Appearance", s: th + " \u00b7 " + p.size + "px \u00b7 " + ((FACES.find(f => f[0] === s.face) || (p.font === "sans" ? FACES[3] : FACES[0]))[1]), go: "appearance" }) +
+        row({ ic: IC.layout, t: "Language / Idioma", s: "English / Español", go: "language" }) +
         row({ ic: IC.book, t: "Reading", s: "Verse numbers, layout, sections, Bible version", go: "reading" }) +
         row({ ic: IC.modes, t: "Modes", s: modeName(), go: "modes" }) +
         row({ ic: IC.layout, t: "Home & navigation", s: "Bottom bar, Today cards", go: "layout" })) +
@@ -432,6 +434,14 @@
       sw: (k, v) => { if (k === "focus" && window.BibleyFocusUI) { window.BibleyFocusUI.set(v, { quiet: true }); rerender(); } } });
     if (window.BibleySync) { const unS = window.BibleySync.on(() => { if (!el.isConnected) { unS(); return; } const r = el.querySelector('[data-go="account"]'); if (r) { const sm = r.querySelector("small"); if (sm) sm.textContent = acctSub(); const b = r.querySelector(".bs-acb"); if (b) b.outerHTML = acctBadge(); } }); }
     if (window.BibleyFocusUI) { const un = window.BibleyFocusUI.subscribe(f => { if (!el.isConnected) { un(); return; } const i = el.querySelector('[data-sw="focus"]'); if (!i || i.checked !== f.on || !!el.querySelector(".bs-bf-ask") !== f.needsAccess) rerender(); }); }
+  } };
+
+  PAGES.language = { title: "Language / Idioma", render(el) {
+    const locale = window.BibleyLocale;
+    el.innerHTML = field("Navigation language", '<select class="bs-input" aria-label="Language / Idioma"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option></select>') +
+      '<p lang="en" class="bs-empty">Changes navigation labels. Bible text and other content keep their original language.</p><p lang="es" class="bs-empty">Cambia las etiquetas de navegación. El texto bíblico y otros contenidos conservan su idioma original.</p>';
+    const select = el.querySelector('select'); select.value = locale?.get() || 'en';
+    select.disabled = !locale; select.onchange = () => { locale.set(select.value); rerender(); };
   } };
 
   PAGES.appearance = { title: "Appearance", render(el) {

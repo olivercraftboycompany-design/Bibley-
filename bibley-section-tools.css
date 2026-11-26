@@ -142,3 +142,13 @@ button.bp-vrow span { display: block; margin-top: 4px; }
 .bp-native-actions button { flex: 1 1 auto; }
 
 .fx-act[hidden] { display: none !important; }
+
+/* Publisher-sourced words of Jesus; does not override verse highlights. */
+.bp-red-letters .verses-text .bp-jesus { color: #ff939d; }
+.chapter-heading .bp-red-toggle[aria-pressed="true"] { text-decoration: underline; }
+.chapter-heading .right:has(.bp-red-toggle) { display: flex; flex-wrap: wrap; justify-content: end; gap: .25rem; }
+.bp-red-letters:is(.theme-light, .theme-sepia) .verses-text .bp-jesus { color: #a32337; }
+.bp-map-frame { width: 100%; height: 330px; border: 0; border-radius: 12px; }
+.bp-study-prose { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.6; }
+.verses-text span.bp-jesus { padding: 0; border-radius: 0; }
+.verses-text span.bp-jesus:hover { background: transparent; }

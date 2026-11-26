@@ -297,6 +297,7 @@
         <button type="button" class="fx-act" data-a="img"><span class="e">${SVG_IMG}</span><i>Image</i></button>
         <button type="button" class="fx-act" data-a="mem"><span class="e">${SVG_MEM}</span><i>Memorize</i></button>
         <button type="button" class="fx-act" data-a="ai"><span class="e"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg></span><i>Explain</i></button>
+        <button type="button" class="fx-act" data-a="words" hidden><span class="e">${ICON.study}</span><i>Original words</i></button>
         <button type="button" class="fx-act" data-a="xref" hidden><span class="e">${ICON.study}</span><i>Linked verses</i></button>
         <button type="button" class="fx-act" data-a="study"><span class="e">${ICON.study}</span><i>Study</i></button>
         <button type="button" class="fx-act" data-a="snb"><span class="e"><svg class="ui-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h11a2 2 0 0 1 2 2v16H8a2 2 0 0 1-2-2V3zM6 17.5A2 2 0 0 1 8 16h11M10 8h5M10 11.5h5"/></svg></span><i>Notebook</i></button>
@@ -329,6 +330,7 @@
     act("mem", () => { const t = selTarget(); if (t) openMemorize({ key: t.key, text: t.text, ref: t.ref, version: t.version, bookIdx: t.bookIdx, chapter: t.chapter, verseNum: t.verseNum }); });
     act("snb", () => { const t = selTarget(); if (!t) return; clearSel(); if (window.BibleyStudyNB) window.BibleyStudyNB.newFromVerse(t); else toast("Notebook is still loading"); });
     act("ai", () => { const t = selTarget(); if (!t) return; if (!window.BibleyVerseAI) { toast("Still loading"); return; } clearSel(); window.BibleyVerseAI.open(t, "explain"); });
+    act("words", () => { const t = selTarget(); if (!t?.single) return; clearSel(); window.BibleyTools?.openVerseWords(t.bookIdx, t.chapter, t.verseNum); });
     act("xref", () => { const t = selTarget(); if (!t?.single) return; clearSel(); window.BibleyTools?.openReferences(t.bookIdx, t.chapter, t.verseNum); });
     act("study", () => {
       const t = selTarget(); if (!t) return; clearSel();
@@ -347,6 +349,7 @@
     const one = colors.size === 1 ? [...colors][0] : undefined;
     selBar.querySelectorAll(".fx-sw").forEach(b => b.classList.toggle("on", !!one && b.dataset.c === one));
     const note = notes()[t.key], bm = !!vbms()[t.key];
+    selBar.querySelector('[data-a="words"]').hidden = !(t.single && window.BibleyTools?.availableRefs(t.bookIdx));
     selBar.querySelector('[data-a="xref"]').hidden = !(t.single && window.BibleyTools?.availableRefs(t.bookIdx));
     const nb = selBar.querySelector('[data-a="note"]'); nb.classList.toggle("on", !!note); nb.querySelector("i").textContent = note ? "Edit note" : "Note";
     const bb = selBar.querySelector('[data-a="bm"]'); bb.classList.toggle("on", bm); bb.querySelector("i").textContent = bm ? "Saved" : "Bookmark";

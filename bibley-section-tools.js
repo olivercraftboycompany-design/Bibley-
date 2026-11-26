@@ -873,6 +873,22 @@
   };
 
   /* Strong’s definitions use the bundled Open Scriptures dictionaries, not AI. */
+  const studyFiles = new Map();
+  function getStudyFile(path) {
+    if (!studyFiles.has(path)) {
+      const job = (async () => {
+        const r = await fetch("./study-data/" + path + ".json.gz");
+        if (!r.ok) throw new Error("Study data unavailable");
+        const raw = await r.arrayBuffer(), u = new Uint8Array(raw);
+        return u[0] === 31 && u[1] === 139
+          ? new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("gzip"))).json()
+          : JSON.parse(new TextDecoder().decode(raw));
+      })();
+      studyFiles.set(path, job); job.catch(() => studyFiles.delete(path));
+      if (studyFiles.size > 18) studyFiles.delete(studyFiles.keys().next().value);
+    }
+    return studyFiles.get(path);
+  }
   const lexicons = new Map();
   async function getLexicon(lang) {
     if (!lexicons.has(lang)) {
@@ -924,35 +940,34 @@
   };
 
   /* Use the cross-reference data already shipped with the repository, not AI guesses. */
-  const xrefBooks = new Set(["Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", "1Samuel", "2Samuel", "1Kings", "2Kings", "1Chronicles", "2Chronicles", "Ezra"]);
-  const availableRefs = b => xrefBooks.has(BOOKS[b]?.[1].replaceAll(" ", ""));
-  const xrefCache = new Map();
+  const availableRefs = b => Number.isInteger(b) && b >= 0 && b < 66 && !!BOOKS[b];
   function openReferences(bookIdx, chapter, verse) {
     const book = BOOKS[bookIdx]?.[1].replaceAll(" ", "");
-    if (!xrefBooks.has(book)) return;
+    if (!availableRefs(bookIdx)) return;
     openPanel("references", "Cross-references · " + refOf(bookIdx, chapter, verse), async body => {
       body.append(h('<p class="bp-muted" role="status">Loading cross-references…</p>'));
       try {
-        if (!xrefCache.has(book)) {
-          const r = await fetch("./crossrefs/bsb/" + book + ".json");
-          if (!r.ok) throw new Error("Cross-reference data unavailable");
-          xrefCache.set(book, await r.json());
-        }
+        const legacy = bookIdx < 15 ? fetch("./crossrefs/bsb/" + book + ".json").then(r => r.ok ? r.json() : null).catch(() => null) : null;
+        const linked = await getStudyFile("linked/" + (bookIdx + 1));
+        const historical = bookIdx < 15 ? (await legacy)?.[chapter]?.[verse] : null;
         if (!body.isConnected) return;
         body.replaceChildren();
-        const groups = xrefCache.get(book)?.[chapter]?.[verse];
-        if (!Array.isArray(groups) || !groups.length) { body.append(h('<p class="bp-muted">No linked passages are listed for this verse.</p>')); return; }
+        const voted = linked?.[chapter]?.[verse] || [];
+        const groups = [...(historical || []), ...(voted.length ? [["Related passages · OpenBible.info", voted]] : [])];
+        if (!groups.length) { body.append(h('<p class="bp-muted">No linked passages are listed for this verse.</p>')); return; }
         const label = r => {
           const [b, c, v, endC, endV] = r;
           if (![b, c, v].every(Number.isInteger) || b < 1 || !BOOKS[b-1] || c < 1 || v < 1) return null;
           return refOf(b - 1, c, v) + (endV ? "–" + (endC !== c ? endC + ":" : "") + endV : "");
         };
+        const rendered = new Set();
         for (const [phrase, refs] of groups) {
           const card = h('<div class="bp-card"><div class="bp-eyebrow">' + esc(phrase || "Related passages") + '</div><div class="bp-chips"></div></div>');
           for (const entry of refs) {
             const parts = Array.isArray(entry[0]) ? entry : [entry];
             for (const r of parts) {
-              const t = label(r); if (!t) continue;
+              const t = label(r); if (!t || (refs === voted && rendered.has(t))) continue;
+              rendered.add(t);
               const button = h('<button type="button" class="bp-chip">' + esc(t) + '</button>');
               button.onclick = () => window.BibleyFX.jumpToVerse(r[0] - 1, r[1], r[2]);
               card.lastElementChild.append(button);
@@ -960,10 +975,289 @@
           }
           if (card.lastElementChild.children.length) body.append(card);
         }
-        body.append(h('<p class="bp-muted">From the bundled Berean Standard Bible cross-reference files. Available for Genesis through Ezra.</p>'));
+        body.append(h('<p class="bp-muted">OpenBible.info, CC BY 4.0. Up to 24 vote-ranked suggestions; relevance and verse numbering can vary. Berean links also appear where bundled.</p>'));
       } catch { if (body.isConnected) body.replaceChildren(h('<p class="bp-muted" role="status">Couldn’t load linked passages. Try again online.</p>')); }
     }, null);
   }
+
+  function openVerseWords(b, c, v) {
+    if (!availableRefs(b)) return;
+    openPanel("verse-words", "Original words · " + refOf(b,c,v), async body => {
+      body.textContent = "Loading tagged words…";
+      try {
+        const [book, entries] = await Promise.all([getStudyFile("web-words/" + (b + 1)), getLexicon(b < 39 ? "hebrew" : "greek")]);
+        if (!body.isConnected) return;
+        body.replaceChildren(h('<p class="bp-muted">English words tagged in the World English Bible, with Strong’s dictionary forms and transliteration. Untagged words are omitted; this is not a parsing of the original sentence.</p>'));
+        const words = book?.[c]?.[v]?.[0] || [];
+        if (!words.length) body.append(h('<p>No tagged words are available for this verse.</p>'));
+        for (const [word, codes] of words) {
+          const entry = h('<details class="bp-card"><summary>' + esc(word) + ' · ' + esc(codes.join(", ")) + '</summary></details>');
+          for (const code of codes) {
+            const info = entries[code];
+            if (!info) continue;
+            entry.append(h('<p><bdi>' + esc(info.lemma || '') + '</bdi> · ' + esc(info.xlit || info.translit || '') + '</p>'), h('<p>' + esc(info.strongs_def || '') + '</p>'));
+          }
+          body.append(entry);
+        }
+      } catch { if (body.isConnected) body.textContent = "Couldn’t load tagged words. Try again online."; }
+    }, null);
+  }
+
+  // Match entire source-marked runs to the existing WEB reader text. Never replace its text or
+  // transfer the markup to other translations with different word order or verse numbering.
+  const markedPassages = new WeakMap();
+  function redLetterRanges(text, runs) {
+    const rx = /[\p{L}\p{M}\p{N}]+(?:[’'-][\p{L}\p{M}\p{N}]+)*/gu;
+    const hits = [...text.matchAll(rx)];
+    const normal = t => t.normalize("NFC").replaceAll("’", "'").toLowerCase();
+    const words = hits.map(m => normal(m[0]));
+    const ranges = [];
+    let after = 0;
+    for (const run of runs) {
+      const wanted = [...run.matchAll(rx)].map(m => normal(m[0]));
+      if (!wanted.length) continue;
+      const starts = [];
+      for (let i = after; i + wanted.length <= words.length; i++) {
+        if (wanted.every((word, offset) => word === words[i + offset])) starts.push(i);
+      }
+      if (starts.length !== 1) continue;
+      const start = starts[0], end = start + wanted.length - 1;
+      ranges.push([hits[start].index, hits[end].index + hits[end][0].length]);
+      after = end + 1;
+    }
+    return ranges;
+  }
+  async function paintRedLetters(k) {
+    const p = C.panes[k];
+    const host = document.querySelector('.pane[data-pane="' + k + '"] .verses-text');
+    if (!host || p.version !== "web" || !prefs().redLetters || markedPassages.has(host)) return;
+    const b = p.bookIdx, ch = p.chapter;
+    if (!availableRefs(b) || b < 39) return;
+    markedPassages.set(host, true);
+    try {
+      const book = await getStudyFile("web-words/" + (b + 1));
+      if (!host.isConnected || p.version !== "web" || p.bookIdx !== b || p.chapter !== ch || !prefs().redLetters) { markedPassages.delete(host); return; }
+      host.querySelectorAll('[data-verse]').forEach(el => {
+        const runs = book?.[ch]?.[el.dataset.verse]?.[1];
+        if (!runs?.length) return;
+        unmarkWords(el);
+        const node = [...el.childNodes].find(n => n.nodeType === 3);
+        if (!node) return;
+        const text = node.textContent, ranges = redLetterRanges(text, runs);
+        if (!ranges.length) return;
+        const frag = document.createDocumentFragment(); let start = 0;
+        for (const [a,z] of ranges) {
+          frag.append(text.slice(start,a));
+          const red = document.createElement("span"); red.className = "bp-jesus"; red.textContent = text.slice(a,z); frag.append(red);
+          start = z;
+        }
+        frag.append(text.slice(start)); node.replaceWith(frag);
+      });
+      diffState.lastKey = "";
+      applyDiff();
+    } catch { markedPassages.delete(host); }
+  }
+  function wireRedLetters() {
+    for (const k of ["a", "b"]) {
+      const pane = document.querySelector('.pane[data-pane="' + k + '"]');
+      if (!pane) continue;
+      const sync = () => {
+        const head = pane.querySelector('.chapter-heading .right');
+        if (head && C.panes[k].version === "web" && !head.querySelector('.bp-red-toggle')) {
+          const button = h('<button type="button" class="bp-red-toggle" title="Words of Jesus · World English Bible">Red letters</button>');
+          button.onclick = () => {
+            setPref("redLetters", !prefs().redLetters);
+            document.documentElement.classList.toggle("bp-red-letters", !!prefs().redLetters);
+            document.querySelectorAll('.bp-red-toggle').forEach(b => b.setAttribute("aria-pressed", String(!!prefs().redLetters)));
+            ["a","b"].forEach(paintRedLetters);
+          };
+          button.setAttribute("aria-pressed", String(!!prefs().redLetters)); head.prepend(button);
+        }
+        paintRedLetters(k);
+      };
+      document.documentElement.classList.toggle("bp-red-letters", !!prefs().redLetters);
+      new MutationObserver(sync).observe(pane.querySelector('.reader-inner'), { childList: true });
+      sync();
+    }
+  }
+
+  const STUDY_BOOK_IDS = 'GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV'.split(' ');
+  VIEWS.commentary = {
+    title: "Commentaries & book outline",
+    render(body) {
+      const {bookIdx, chapter} = C.panes.a;
+      const id = STUDY_BOOK_IDS[bookIdx];
+      if (!id) { body.textContent = "This book is not covered by the bundled outline and commentary sources."; return; }
+      const source = h('<select class="bp-input" aria-label="Commentary source"><option value="matthew-henry">Matthew Henry</option><option value="jamieson-fausset-brown">Jamieson, Fausset &amp; Brown</option></select>');
+      const intro = h('<div role="status"></div>'), outline = h('<details class="bp-card"><summary>Book outline · chapter headings</summary></details>');
+      const content = h('<div role="status"></div>');
+      body.append(h('<h3>' + esc(refOf(bookIdx, chapter)) + '</h3>'), outline, source, intro, content,
+        h('<p class="bp-muted">Headings: Berean Standard Bible. Public-domain historical commentaries via the Free Use Bible API; introductions reflect the cited author’s interpretation.</p>'));
+      let loadedOutline = false;
+      outline.addEventListener('toggle', async () => {
+        if (!outline.open || loadedOutline) return;
+        loadedOutline = true;
+        const result = h('<div class="bp-study-prose">Loading chapter headings…</div>'); outline.append(result);
+        try {
+          const r = await fetch('./sections.json'); if (!r.ok) throw Error();
+          const chapters = (await r.json()).b?.[bookIdx] || [];
+          result.replaceChildren();
+          if (!chapters.length) result.textContent = 'No headings are available for this book.';
+          chapters.forEach((rows, i) => {
+            if (!rows.length) return;
+            const row = h('<div class="bp-card"><button type="button" class="bp-chip">Chapter ' + (i+1) + '</button><div class="bp-study-prose"></div></div>');
+            row.firstElementChild.onclick = () => { closeTool(); C.goTo(bookIdx, i+1); };
+            row.lastElementChild.textContent = rows.map(v => v[0] + '. ' + v[1]).join('\n'); result.append(row);
+          });
+        } catch { result.textContent = 'Couldn’t load headings online.'; loadedOutline = false; outline.addEventListener('toggle', () => { if (!outline.open) result.remove(); }, {once:true}); }
+      });
+      let request = 0;
+      const draw = async () => {
+        const n = ++request, name = source.selectedOptions[0].textContent;
+        intro.replaceChildren(); content.textContent = 'Loading ' + name + '…';
+        try {
+          const r = await fetch('https://bible.helloao.org/api/c/' + source.value + '/' + id + '/' + chapter + '.json', {signal: AbortSignal.timeout(14000)});
+          if (n !== request || !body.isConnected) return;
+          if (r.status === 404) { content.textContent = 'This source has no entry for this chapter.'; return; }
+          if (!r.ok) throw Error();
+          const result = await r.json(); if (n !== request || !body.isConnected) return;
+          const addIntro = (title, value) => {
+            if (typeof value !== 'string' || !value.trim()) return;
+            const box = h('<details class="bp-card"><summary>' + esc(title) + '</summary><p class="bp-study-prose"></p></details>');
+            box.lastElementChild.textContent = value.trim(); intro.append(box);
+          };
+          addIntro('Book introduction', result.book?.introduction);
+          addIntro('Chapter introduction', result.chapter?.introduction);
+          const rows = (result.chapter?.content || []).filter(row => Array.isArray(row.content) && row.content.some(p => typeof p === 'string'));
+          content.replaceChildren();
+          if (!rows.length) content.textContent = 'No commentary text is listed for this chapter.';
+          for (const row of rows) {
+            const p = h('<div class="bp-card"><div class="bp-eyebrow"></div><div class="bp-study-prose"></div></div>');
+            p.firstElementChild.textContent = row.number ? 'Verse ' + row.number : name;
+            p.lastElementChild.textContent = row.content.filter(t => typeof t === 'string').join('\n\n').trim();
+            content.append(p);
+          }
+        } catch { if (n === request && body.isConnected) content.textContent = 'Couldn’t load this commentary. Try again online.'; }
+      };
+      source.onchange = draw; draw();
+    }
+  };
+  VIEWS.dictionary = {
+    title: "Easton’s Bible dictionary",
+    async render(body) {
+      const input = h('<input aria-label="Search people, places or terms" class="bp-input" type="search" placeholder="e.g. Nicodemus, Zion, covenant">');
+      const results = h('<div role="status">Loading the dictionary…</div>');
+      body.append(input, results, h('<p class="bp-muted">Easton’s Illustrated Bible Dictionary, third edition (1897), public domain. This is a historical reference work.</p>'));
+      try {
+        const entries = Object.entries(await getStudyFile('eastons')).map(([term, defs]) => [term, defs, lexNorm(term)]);
+        if (!body.isConnected) return;
+        const draw = () => {
+          const q = lexNorm(input.value.trim());
+          results.replaceChildren();
+          if (!q) { results.textContent = 'Search by a person, place or topic.'; return; }
+          const hits = entries.filter(([, , term]) => term.includes(q)).sort((a,b) => +b[2].startsWith(q) - +a[2].startsWith(q)).slice(0,30);
+          if (!hits.length) results.textContent = 'No matching entries.';
+          for (const [term, defs] of hits) {
+            const row = h('<details class="bp-card"><summary></summary></details>'); row.firstElementChild.textContent = term;
+            row.open = hits.length === 1;
+            for (const def of defs) { const p = h('<p class="bp-study-prose"></p>'); p.textContent = def; row.append(p); }
+            results.append(row);
+          }
+        };
+        input.oninput = draw; draw();
+      } catch { if (body.isConnected) results.textContent = 'Couldn’t load the dictionary. Try again online.'; }
+    }
+  };
+  VIEWS.maps = {
+    title: "Bible places map",
+    async render(body) {
+      const input = h('<input class="bp-input" aria-label="Find a Bible place" type="search" placeholder="e.g. Jerusalem">');
+      const results = h('<div class="bp-chips" role="status">Loading places…</div>');
+      const map = h('<div></div>');
+      body.append(input, results, map, h('<p class="bp-muted">Possible locations from OpenBible.info (CC BY 4.0), using Wikimedia-sourced points. Ancient identifications may be uncertain; the pin is not a proven site.</p>'));
+      try {
+        const sites = await getStudyFile('places'); if (!body.isConnected) return;
+        const mapFor = ([name, slug, refs, candidates]) => {
+          const refsText = refs.length ? 'Appears in ' + refs.join(', ') : '';
+          const title = h('<h3></h3>'); title.textContent = name;
+          const about = h('<p class="bp-muted"></p>'); about.textContent = refsText;
+          const buttons = h('<div class="bp-chips"></div>');
+          const canvas = h('<div></div>');
+          map.replaceChildren(title, about, buttons, canvas);
+          for (const [label, lat, lon] of candidates) {
+            const b = h('<button class="bp-chip" type="button"></button>'); b.textContent = 'Map: ' + label;
+            b.onclick = () => {
+              const d = 0.13, params = new URLSearchParams({bbox:[lon-d,lat-d,lon+d,lat+d].join(','),layer:'mapnik',marker:lat+','+lon});
+              const f = document.createElement('iframe'); f.className='bp-map-frame'; f.title='Possible location: '+label; f.referrerPolicy='no-referrer'; f.src='https://www.openstreetmap.org/export/embed.html?'+params;
+              canvas.replaceChildren(f);
+            }; buttons.append(b);
+          }
+          const a = h('<a class="bp-chip" target="_blank" rel="noopener noreferrer">Sources and alternate identifications</a>');
+          a.href = 'https://www.openbible.info/geo/ancient/' + encodeURIComponent(slug); buttons.append(a);
+        };
+        const draw = () => {
+          const q = lexNorm(input.value.trim());
+          results.replaceChildren(); map.replaceChildren();
+          const hits = q ? sites.filter(p => lexNorm(p[0]).includes(q)).slice(0,25) : sites.filter(p => ['Jerusalem','Nazareth','Capernaum','Bethlehem','Rome'].includes(p[0]));
+          if (!hits.length) results.textContent = 'No mapped places match.';
+          for (const p of hits) { const b = h('<button class="bp-chip" type="button"></button>'); b.textContent = p[0]; b.onclick = () => mapFor(p); results.append(b); }
+        };
+        input.oninput = draw; draw();
+      } catch { if (body.isConnected) results.textContent = 'Couldn’t load places. Try again online.'; }
+    }
+  };
+
+  const recordLinks = refs => {
+    const buttons = h('<div class="bp-chips"></div>');
+    for (const r of refs) {
+      const book = Number(r.slice(0,2))-1, chapter = Number(r.slice(2,5)), verse = Number(r.slice(5));
+      if (!availableRefs(book) || chapter < 1 || verse < 1) continue;
+      const button = h('<button class="bp-chip" type="button"></button>'); button.textContent = refOf(book,chapter,verse);
+      button.onclick = () => { closeTool(); window.BibleyFX.jumpToVerse(book,chapter,verse); };
+      buttons.append(button);
+    }
+    return buttons;
+  };
+  const timelineYear = text => {
+    const m = /^(-?\d{4})(?:-|$)/.exec(text);
+    if (!m) return 'Date not listed';
+    const year = Number(m[1]); return year <= 0 ? (1-year) + ' BC' : 'AD ' + year;
+  };
+  function studyDirectory(kind) {
+    const timeline = kind === 'timeline';
+    return {
+      title: timeline ? 'Bible timeline' : 'Bible character profiles',
+      async render(body) {
+        const form = h('<div class="bp-row"><input type="search" class="bp-input" aria-label="Search ' + (timeline ? 'events or participants' : 'Bible characters') + '" placeholder="' + (timeline ? 'e.g. Exodus' : 'e.g. Aaron') + '"></div>');
+        const input = form.firstElementChild, results = h('<div role="status">Loading study data…</div>');
+        const count = h('<div class="bp-row"><button class="bp-chip" type="button">Previous</button><span class="bp-muted"></span><button class="bp-chip" type="button">Next</button></div>');
+        const [prev,next] = count.querySelectorAll('button');
+        body.append(form, results, count, h('<p class="bp-muted">Adapted from <a href="https://github.com/robertrouse/theographic-bible-metadata" target="_blank" rel="noopener">Theographic Bible Metadata</a> (CC BY-SA 4.0). ' + (timeline ? 'Dates shown are estimates from this dataset’s traditional chronology, not a consensus historical chronology.' : 'Where included, descriptions are historical dictionary entries. References follow KJV numbering.') + '</p>'));
+        let page = 0;
+        try {
+          const data = await getStudyFile(kind); if (!body.isConnected) return;
+          const draw = () => {
+            const q = lexNorm(input.value.trim()), size = 24;
+            const all = q ? data.filter(row => lexNorm(timeline ? row[0]+' '+row[3].join(' ') : row[0]+' '+row[1]).includes(q)) : data;
+            results.replaceChildren();
+            for (const row of all.slice(page*size,(page+1)*size)) {
+              const details = h('<details class="bp-card"><summary></summary><p class="bp-study-prose"></p></details>');
+              details.firstElementChild.textContent = timeline ? timelineYear(row[1])+' · '+row[0] : [row[0],row[1]].filter(Boolean).join(' · ');
+              details.lastElementChild.textContent = timeline ? row[3].join(', ') : row[2];
+              details.append(recordLinks(timeline ? row[2] : row[3]));
+              results.append(details);
+            }
+            if (!all.length) results.textContent = 'No matches found.';
+            count.querySelector('span').textContent = all.length ? (page*size+1)+'–'+Math.min(all.length,(page+1)*size)+' of '+all.length : '';
+            prev.disabled = !page; next.disabled = (page+1)*size >= all.length;
+          };
+          input.oninput = () => { page=0; draw(); }; prev.onclick = () => { page--; draw(); }; next.onclick = () => { page++; draw(); }; draw();
+        } catch { if (body.isConnected) results.textContent = 'Couldn’t load the study data. Try again online.'; }
+      }
+    };
+  }
+  VIEWS.timeline = studyDirectory('timeline');
+  VIEWS.people = studyDirectory('people');
 
   /* ================= compare word-diff ================= */
   const diffState = { on: prefs().diffOn, applying: false, lastKey: "", lastA: null, lastB: null };
@@ -984,10 +1278,10 @@
     while (j < m) mb[j++] = true;
     return [ma, mb];
   }
-  const verseText = span => Array.from(span.childNodes).filter(n => n.nodeType === 3 || n.matches?.("mark.bp-diff")).map(n => n.textContent).join("");
+  const verseText = span => Array.from(span.childNodes).filter(n => n.nodeType === 3 || n.matches?.("mark.bp-diff, span.bp-jesus")).map(n => n.textContent).join("");
   function markWords(span, marks) {
     let wi = 0;
-    for (const node of Array.from(span.childNodes)) {
+    for (const node of [...span.childNodes].flatMap(n => n.nodeType === 1 && n.classList.contains("bp-jesus") ? [...n.childNodes] : [n])) {
       if (node.nodeType !== 3) continue;
       const text = node.textContent, frag = document.createDocumentFragment();
       let pos = 0;
@@ -1169,9 +1463,10 @@
   function init() {
     try { wireDrawerExtras(); } catch (e) { console.warn("Bibley search controls", e); }
     try { wireDiff(); } catch (e) { console.warn("Bibley comparison controls", e); }
+    try { wireRedLetters(); } catch (e) { console.warn("Bibley red letters", e); }
     try { wireHistory(); } catch (e) { console.warn("Bibley reading history", e); }
     try { wireTtsBar(); } catch (e) { console.warn("Bibley read-aloud controls", e); }
-    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
+    window.BibleyTools = { open: openTool, pushTrash, printChapter, availableRefs, openReferences, openVerseWords, history: chapterHistory, dayRecap, monthRecap, dueCount, _test: { lcsMarks, wordTokens, bibleSearch, easterDate, seasonalPlans, splitDays, cplanState, restoreTrash, journalMeta: () => load(K.JRNL, null) } };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
