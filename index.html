@@ -882,6 +882,20 @@
     if(!verses.length) throw new Error("not-in-this-translation");
     return verses;
   }
+  async function searchBollsVerses(version, query, filter, page, limit){
+    const code = BOLLS_CODES[version];
+    if(!code) throw new Error("unsupported-search-version");
+    const params = new URLSearchParams({ search: query, match_whole: "true", page: String(page), limit: String(limit) });
+    if(filter) params.set("book", String(filter));
+    const res = await fetchWithTimeout("https://bolls.life/v2/find/"+code+"?"+params, { cache: "no-store", referrerPolicy: "no-referrer" }, 12000);
+    if(!res.ok) throw new Error("bolls-search-"+res.status);
+    const data = await res.json();
+    if(!Array.isArray(data?.results) || data.results.length > limit) throw new Error("bolls-search-invalid");
+    return {
+      hasMore: data.results.length === limit,
+      rows: data.results.filter(v => v && v.translation === code).map(v => ({ b: v.book - 1, c: v.chapter, v: v.verse, text: cleanBollsText(v.text) }))
+    };
+  }
   // One entry point for every non-bible-api.com source. Returns null when the
   // version is served by bible-api.com (handled by the original code path).
   // --- Bibley 5.4: offline JSON Bibles ------------------------------------------
@@ -1700,7 +1714,13 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     versionSelectB.value = panes.b.version;
   }
   populateVersionSelects();
-  versionSelect.addEventListener("change", ()=>{ panes.a.version=versionSelect.value; rememberVersions(); const lbl=paneEl(".pane-version-label","a"); if(lbl) lbl.textContent=versionName(versionSelect.value); loadPane("a"); });
+  function setPrimaryVersion(version){
+    if(!VERSIONS.some(v => v[0] === version)) return;
+    panes.a.version = version; versionSelect.value = version; rememberVersions();
+    const lbl = paneEl(".pane-version-label", "a");
+    if(lbl) lbl.textContent = versionName(version);
+  }
+  versionSelect.addEventListener("change", ()=>{ setPrimaryVersion(versionSelect.value); loadPane("a"); });
   versionSelectB.addEventListener("change", ()=>{ panes.b.version=versionSelectB.value; rememberVersions(); loadPane("b"); });
 
   // --- Per-pane reference picker (book + chapter), used mainly so pane B can
@@ -2705,7 +2725,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     chapterVerses: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; return null; },
     isCompare: ()=> compareMode,
     goPrev: (k)=> goPrev(k||"a"), goNext: (k)=> goNext(k||"a"),
-    goTo: (bookIdx, chapter)=>{ if(!BOOKS[bookIdx]) return; const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
+    goTo: (bookIdx, chapter, version)=>{ if(!BOOKS[bookIdx]) return; if(version) setPrimaryVersion(version); const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
     rerender: ()=>{ ["a","b"].forEach(k=>{ if(k==="b" && !compareMode) return; const p=panes[k]; const key=p.version+"/"+BOOKS[p.bookIdx][0]+"/"+p.chapter; if(cache[key]){ const sc=paneEl(".reader-main", k).scrollTop; renderVerses(k, cache[key]); paneEl(".reader-main", k).scrollTop=sc; } }); if(currentTab==="marks") renderMarks(); },
     refreshLists: ()=>{ renderBookmarkList(); renderChapterGrid(); updateBookmarkUI(); if(currentTab==="marks") renderMarks(); },
     studyVerse: (v)=>{ selectedVerse={bookName:v.bookName, chapter:v.chapter, verseNum:v.verseNum, text:v.text, bookIdx:v.bookIdx, key:v.key, color:v.color||null}; openAi("verse"); },
@@ -2720,7 +2740,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     parseRef: (r)=> parseRef(r), findBookIndex: (n)=> findBookIndex(n), escapeHtml: (t)=> escapeHtml(t),
     getChapter: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; const v = await externalChapter(version, bookIdx, chapter); cache[key]=v; return v; },
     selectedVerse: ()=> selectedVerse, switchTab: (t)=> switchTab(t), openAi: (t)=> openAi(t), currentTab: ()=> currentTab,
-    loadJsonBible, jsonBibles: JSON_BIBLES, notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
+    loadJsonBible, jsonBibles: JSON_BIBLES, searchBollsVerses, bollsSearchVersions: Object.keys(BOLLS_CODES), notBundledNote: NOT_BUNDLED_NOTE, isJsonBibleSaved: (id)=> isJsonBibleSaved(id), sourceLabel: (v)=> sourceLabel(v)
   };
 
   // Init

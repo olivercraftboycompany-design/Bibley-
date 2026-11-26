@@ -173,10 +173,10 @@
   // v5.1: jumpTo(b, c, v, verses) opens the chapter, scrolls the verse to just under the top of the
   // reader (clear of the header) and pulses it ~1.8s; with a verses array (a range bookmark) the
   // first verse is scrolled to and every verse in the range pulses. Works when the chapter is already open.
-  function jumpTo(b, c, v, verses) {
+  function jumpTo(b, c, v, verses, version) {
     closeSheet(); C.closeAi && C.closeAi();
     pendingJump = v ? { b, c, v, verses: (verses && verses.length) ? verses.slice() : null, at: Date.now() } : null;
-    C.goTo(b, c);
+    C.goTo(b, c, version);
     // already-open chapter: the reader may not re-render, so run the jump once the verse is on screen
     if (pendingJump) setTimeout(() => { const p = C.panes.a; if (pendingJump && p.bookIdx === b && p.chapter === c && verseSpan(b, c, v)) doPendingJump("a", { bookIdx: b, chapter: c }); }, 80);
   }
@@ -767,7 +767,7 @@
   /* ================= public hooks ================= */
   window.BibleyFX = {
     onVerseTap(v, span) { onVerseTap(v, span); },
-    jumpToVerse: (b, c, v, verses) => jumpTo(b, c, v, verses),
+    jumpToVerse: (b, c, v, verses, version) => jumpTo(b, c, v, verses, version),
     clearSelection: () => clearSel(),
     redecorate: () => decorateAll(),
     // v6.3: used by Call Bibley voice control (bibley-call.js); same keys and functions as the verse menu

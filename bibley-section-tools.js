@@ -843,7 +843,10 @@
   VIEWS.search = {
     title: "Filtered Bible search",
     render(body) {
-      const versions = Object.keys(C.jsonBibles || { web: 1, kjv: 1 });
+      const bundled = new Set(Object.keys(C.jsonBibles));
+      const online = new Set(C.bollsSearchVersions.filter(v => !bundled.has(v)));
+      const verName = ver => C.versionName(ver);
+      const pageSize = 30;
       const card = h(("<div class=\"bp-card\"><div class=\"bp-row\"><input class=\"bp-input\" placeholder=\"" + esc(tr("Search the whole Bible...")) + "\" style=\"flex:1\"/><button class=\"bp-btn small\" title=\"" + esc(tr("Voice search")) + "\">&#x1F3A4;</button></div>") +
         '<div class="bp-row" style="margin-top:8px"><select class="bp-select" style="flex:1"></select><select class="bp-select" style="flex:1"></select><select class="bp-select" style="flex:1"></select></div>' +
         ("<button class=\"bp-btn primary block\" style=\"margin-top:8px\">" + esc(tr("Search")) + "</button></div>"));
@@ -855,8 +858,22 @@
         const a = scopeSel.value === "nt" ? 39 : 0, b = scopeSel.value === "ot" ? OT_END : 65;
         for (let i = a; i <= b; i++) bookSel.appendChild(h('<option value="' + i + '">' + esc(BOOKS[i][1]) + '</option>'));
       };
-      scopeSel.onchange = updBooks; updBooks();
-      versions.forEach(v => verSel.appendChild(h('<option value="' + v + '"' + (v === (C.panes.a.version || "web") ? " selected" : "") + '>' + v.toUpperCase() + '</option>')));
+      const sourceNote = h('<p class="bp-muted bp-search-source"></p>');
+      card.append(sourceNote);
+      [scopeSel, bookSel, verSel].forEach((s, i) => s.setAttribute("aria-label", tr(["Testament filter", "Book filter", "Translation filter"][i])));
+      inp.setAttribute("aria-label", tr("Search the whole Bible..."));
+      updBooks();
+      [[bundled, "Bundled translations"], [online, "Online via bolls.life"]].forEach(([ids, label]) => {
+        const grp = document.createElement("optgroup"); grp.label = tr(label);
+        C.VERSIONS.forEach(([id, name]) => { if (ids.has(id)) grp.append(new Option(name, id)); });
+        verSel.append(grp);
+      });
+      const readerVersion = C.panes.a.version;
+      verSel.value = bundled.has(readerVersion) || online.has(readerVersion) ? readerVersion : "web";
+      const drawSource = () => {
+        sourceNote.textContent = tr(online.has(verSel.value) ? "Online phrase search sends your query to bolls.life. Results are limited to the 66-book reader." : "Searches the bundled text in the 66-book reader. The drawer can also search previously opened chapters.");
+      };
+      drawSource();
       const results = h('<div></div>');
       const histWrap = h('<div></div>');
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -871,30 +888,79 @@
         try { r.start(); } catch {}
       };
       let searchSeq = 0;
+      const invalidate = () => { searchSeq++; results.replaceChildren(); };
+      inp.addEventListener("input", invalidate);
+      scopeSel.onchange = () => { updBooks(); invalidate(); };
+      bookSel.onchange = invalidate;
+      verSel.onchange = () => { drawSource(); invalidate(); };
+      const notice = msg => { const el = h('<p class="bp-muted" role="status"></p>'); el.textContent = msg; return el; };
       async function run() {
-        const q = inp.value.trim(); if (q.length < 2) { toast("Type at least 2 letters"); return; }
+        const q = inp.value.trim();
+        if (q.length < 2) { invalidate(); toast("Type at least 2 letters"); return; }
         const seq = ++searchSeq;
-        results.innerHTML = ("<p class=\"bp-muted\">" + esc(tr("Searching")) + " ") + verSel.value.toUpperCase() + '...</p>';
-        try {
-          const ver = verSel.value, scope = scopeSel.value, book = +bookSel.value;
-          const d = await C.loadJsonBible(ver);
-          if (!results.isConnected || seq !== searchSeq) return;
-          let b0 = scope === "nt" ? 39 : 0, b1 = scope === "ot" ? OT_END : 65;
-          if (book >= 0) { b0 = b1 = book; }
-          const found = bibleSearch(d, q, b0, b1, 200);
+        const ver = verSel.value, scope = scopeSel.value, book = +bookSel.value;
+        const isOnline = online.has(ver);
+        const b0 = book >= 0 ? book : scope === "nt" ? 39 : 0;
+        const b1 = book >= 0 ? book : scope === "ot" ? OT_END : 65;
+        const filter = book >= 0 ? book + 1 : scope === "all" ? "" : scope;
+        const label = verName(ver);
+        const heading = notice(tr("Searching") + " " + label + "…");
+        const rows = h('<div></div>');
+        const more = h('<div></div>');
+        results.replaceChildren(heading, rows, more);
+        const seen = new Set();
+        const stale = () => !results.isConnected || seq !== searchSeq;
+        function addRows(found) {
+          for (const r of found) {
+            if (!Number.isInteger(r.b) || r.b < b0 || r.b > b1 || !Number.isInteger(r.c) || r.c < 1 || r.c > BOOKS[r.b][2] || !Number.isInteger(r.v) || r.v < 1 || !r.text) continue;
+            const key = r.b + "/" + r.c + "/" + r.v;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const i = r.text.toLowerCase().indexOf(q.toLowerCase());
+            const marked = i < 0 ? esc(r.text) : esc(r.text.slice(0, i)) + "<mark>" + esc(r.text.slice(i, i + q.length)) + "</mark>" + esc(r.text.slice(i + q.length));
+            const row = h('<button type="button" class="bp-vrow"><b>' + esc(refOf(r.b, r.c, r.v)) + '</b><span>' + marked + '</span></button>');
+            row.onclick = () => window.BibleyFX.jumpToVerse(r.b, r.c, r.v, null, ver);
+            rows.appendChild(row);
+          }
+        }
+        const update = (hasMore, capped = false) => {
+          const count = seen.size + (capped ? "+" : "");
+          const empty = tr("No matches. Try another word or a wider scope.");
+          heading.textContent = !seen.size && !hasMore ? empty
+            : count + " " + (isEs() ? "resultados mostrados en " : "results shown in ") + label;
+        };
+        const remember = () => {
           const hist = shistAll().filter(x => x.q.toLowerCase() !== q.toLowerCase());
           hist.unshift({ q, ts: Date.now() }); save(K.SHIST, hist.slice(0, 15)); drawHist();
-          results.innerHTML = '<p class="bp-muted">' + found.length + (found.length >= 200 ? "+" : "") + (isEs() ? ' resultado' + (found.length === 1 ? '' : 's') + ' en ' : ' result' + (found.length === 1 ? "" : "s") + ' in ') + esc(ver.toUpperCase()) + '</p>';
-          const ql = q.toLowerCase();
-          found.forEach(r => {
-            const i = r.text.toLowerCase().indexOf(ql);
-            const marked = esc(r.text.slice(0, i)) + "<mark>" + esc(r.text.slice(i, i + q.length)) + "</mark>" + esc(r.text.slice(i + q.length));
-            const row = h('<button type="button" class="bp-vrow"><b>' + esc(refOf(r.b, r.c, r.v)) + '</b><span>' + marked + '</span></button>');
-            row.onclick = () => window.BibleyFX.jumpToVerse(r.b, r.c, r.v);
-            results.appendChild(row);
-          });
-          if (!found.length) results.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("No matches. Try another word or a wider scope.")) + "</p>")));
-        } catch (e) { if (seq !== searchSeq) return; results.innerHTML = ("<p class=\"bp-muted\">" + esc(tr("Couldn't load that translation for searching. Are you online?")) + "</p>"); }
+        };
+        const error = () => tr(isOnline ? "Online search is unavailable. Try again or choose a bundled translation." : "Couldn't load that translation for searching. Are you online?");
+        const nextOnline = async page => {
+          const button = h('<button type="button" class="bp-btn small bp-search-more"></button>');
+          button.textContent = tr("Load more results");
+          button.onclick = () => { button.disabled = true; nextOnline(page + 1); };
+          try {
+            const found = await C.searchBollsVerses(ver, q, filter, page, pageSize);
+            if (stale()) return;
+            addRows(found.rows); update(found.hasMore);
+            more.replaceChildren(...(found.hasMore ? [button] : []));
+            if (page === 1) remember();
+          } catch {
+            if (stale()) return;
+            if (page === 1) heading.textContent = error();
+            else {
+              button.textContent = tr("Retry loading results");
+              button.onclick = () => { button.disabled = true; nextOnline(page); };
+              more.replaceChildren(notice(error()), button);
+            }
+          }
+        };
+        if (isOnline) { await nextOnline(1); return; }
+        try {
+          const d = await C.loadJsonBible(ver);
+          if (stale()) return;
+          const found = bibleSearch(d, q, b0, b1, 201);
+          addRows(found.slice(0, 200)); update(false, found.length > 200); remember();
+        } catch { if (!stale()) heading.textContent = error(); }
       }
       card.querySelector(".bp-btn.primary").onclick = run;
       inp.onkeydown = e => { if (e.key === "Enter") run(); };
@@ -910,7 +976,6 @@
       }
       drawHist();
       body.append(card, histWrap, results);
-      body.appendChild(h(("<p class=\"bp-muted\">" + esc(tr("Searches the offline translations bundled with Bibley. The drawer search still searches chapters you have opened in any version.")) + "</p>")));
     }
   };
 

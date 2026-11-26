@@ -8,7 +8,7 @@
    - AI requests (POST) are never touched, and neither are the On-Device AI downloads
      (jsDelivr, Hugging Face, GitHub): other sites are only handled for Bible text and fonts.
    - Daily verse push: shows the verse sent by bibley-push.sites.tab.bot; tapping opens Bibley at that verse. */
-const VERSION = 'bibley-v46-compare-recap';
+const VERSION = 'bibley-v47-edition-search';
 const SHELL_CACHE = 'bibley-shell-' + VERSION;
 const TEXT_CACHE = 'bibley-chapters-v1';   // NOT versioned: keeps his read chapters across app updates
 const FONT_CACHE = 'bibley-fonts-v1';
@@ -104,6 +104,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;                       // AI calls etc. go straight to the network
   const url = new URL(req.url);
+  // Search URLs contain user queries; do not cache them. Chapter caching is unchanged.
+  if (url.hostname === 'bolls.life' && url.pathname.startsWith('/v2/find/')) return;
   if (TEXT_HOSTS.includes(url.hostname)) { e.respondWith(bibleText(e)); return; }
   if (FONT_HOSTS.includes(url.hostname)) { e.respondWith(fonts(req)); return; }
   if (url.origin !== self.location.origin) return;
