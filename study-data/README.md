@@ -41,3 +41,16 @@ The reproducible [extractor](../scripts/build-ult-alignments.py) records per-fil
 ### Full linked-passage coverage
 
 The OpenBible transform now retains all 344,781 unique source-to-target suggestions across 29,364 source verses rather than truncating each verse at 24 (previously 323,813 suggestions). The interface reveals them 24 at a time in the same descending source-vote order. These remain community-voted suggestions, including low-ranked entries, not guaranteed interpretive relationships. Coverage is still the 66-book Protestant dataset; no deuterocanonical references or versification mappings are invented.
+
+
+## Separate development-source supplement
+
+The five books absent from ULT v92 are available only after choosing **Open separate ULT development source**. This loads a separately labelled development snapshot at [452a08b0aba28cbfb95eec1fe7eb1925ca246f0f, 26 November 2026](https://git.door43.org/unfoldingWord/en_ult/src/commit/452a08b0aba28cbfb95eec1fe7eb1925ca246f0f), not additional v92 release data. The 5,693 verses cover 1–2 Chronicles, Isaiah, Jeremiah and Ezekiel. No development words are inserted into v92 or the reader translation. The same strict alignment parser accepts all five books; original source codes, chapter/verse labels and many-to-many groups remain unchanged. Development material can change upstream; this snapshot is pinned and not represented as a finished release.
+
+The derived punctuation-free groups are CC BY-SA 4.0, copyright © 2026 by unfoldingWord, with the required attribution: The original work by unfoldingWord is available from [unfoldingword.org/ult](https://www.unfoldingword.org/ult). This is not an official product or endorsement. [`ult-development/source-LICENSE.md`](ult-development/source-LICENSE.md), the original manifest, per-file computed SHA-256 hashes and exact revision accompany the data. [`build-ult-supplement.py`](../scripts/build-ult-supplement.py) reproduces it using the original parser.
+
+The same two v92 malformed verses (2 Samuel 23:8 and Nehemiah 2:13) are still malformed in that development snapshot. They remain unavailable rather than repairing alignment markers by inference. A corrected publisher source is needed for those references. The supplement does not add deuterocanon word alignment or solve cross-edition versification.
+
+## Deuterocanon publisher-linked passages
+
+Study → Explore → Deuterocanon linked passages exposes the 132 exact links already supplied within the public-domain WEB Classic notes, independently of the reader. These come from 101 notes in 10 source book units: 23 notes marked by the publisher as cross-references, and 78 footnotes containing passage links. The browser labels those categories separately and preserves note context; the source introductions remain available. This is a small publisher-curated set, not complete coverage or a new algorithmic cross-reference graph. Books and chapters without links say so explicitly. Links always open the publisher's WEB Classic reference, never an inferred matching verse in another edition. The extractor now checks every target page and fragment against the same publisher archive before bundling.
