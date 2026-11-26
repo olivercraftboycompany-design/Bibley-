@@ -52,3 +52,5 @@ Ordered chapter-range creation, overlap handling, invalid-range validation, ever
 Reader comparison loading and mismatched-number guards, the stale chapter response fix, and bilingual copyable recaps are tested in `tests/compare-recaps-regression.py`.
 
 Edition search, pagination, unchanged offline searching and translation-correct results are tested in `tests/edition-search-regression.py`. Additional-canon books and chapters are not included in these reader search results.
+
+Device settings and Time with God support the English/Spanish interface setting, including timers, notification guidance and accessible control labels. Scripture quotes, references and saved values retain their source content. `tests/device-focus-locale-regression.py` checks phone/desktop locale round-trips and session persistence with web and simulated Android bridges; real Android permissions and notification delivery are not verified by that test.
