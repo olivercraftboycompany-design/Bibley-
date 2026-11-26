@@ -31,9 +31,14 @@ with zipfile.ZipFile(archive) as z:
                 match = re.fullmatch(r'(\d+):(\d+[a-z]?(?:[-–]\d+)?)', ref.get_text(strip=True))
                 if not match and ref.get_text(strip=True) != '^': raise ValueError((code, name, ref.get_text()))
                 links = [{'label': a.get_text(' ', strip=True), 'url': urljoin(BASE + name, a['href'])} for a in p.select('a[href]') if a is not ref and not a['href'].startswith('#')]
+                for item in links:
+                    target=item['url'].removeprefix(BASE); target_page, _, anchor=target.partition('#')
+                    assert target_page in names, target
+                    target_soup=BeautifulSoup(z.read(names[target_page]).decode('utf-8-sig'), 'html.parser')
+                    assert not anchor or target_soup.find(id=anchor) or target_soup.find('a', attrs={'name':anchor}), target
                 for el in p.select('.notemark, .notebackref'): el.decompose()
                 text = p.get_text(' ', strip=True)
-                if text: notes.append({'verse': match[2] if match else None, 'text': text, 'links': links})
+                if text: notes.append({'verse': match[2] if match else None, 'text': text, 'links': links, 'kind': 'cross-reference' if 'x' in p.get('class', []) else 'footnote'})
             chapters.append({'number': int(name[3:-4]), 'notes': notes, 'url': BASE + name})
         assert chapters, code
         books.append({'id': code, 'title': title, 'intro': intro, 'chapters': chapters})

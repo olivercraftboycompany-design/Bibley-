@@ -1,0 +1,34 @@
+{
+  "revision": "452a08b0aba28cbfb95eec1fe7eb1925ca246f0f",
+  "source": "https://git.door43.org/unfoldingWord/en_ult/src/commit/452a08b0aba28cbfb95eec1fe7eb1925ca246f0f",
+  "edition": "ULT development snapshot, 26 November 2026",
+  "license": "CC BY-SA 4.0",
+  "books": 5,
+  "verses": 5693,
+  "sha256": {
+    "13-1CH.usfm": "fb397467389d9f6c0901ce98c5c455a67d524a89b02cfdb4e187d39ec093ee8d",
+    "14-2CH.usfm": "20418e823603c1d7e8112dfb722149dce955ecbae8f62fc48dbf730eddb0c179",
+    "23-ISA.usfm": "7e283eeb341e4c1b76e55c7a70571062da878a9fbe31af84c86bce1dd76eac5c",
+    "24-JER.usfm": "5480178af3125755d583270c74d4b40559b4f66ae93259b436b39dbe397642ea",
+    "26-EZK.usfm": "35bebbdf313673bee5fe1a186d6c5099eddb8b8130f25259330bfcfe3cc506f8",
+    "LICENSE.md": "34370c3e4a41234b80e0f420ae07dfc8f6bd2c2998a4777213a1a6d66552be4a",
+    "manifest.yaml": "26903545d30bd936a1280e298de1ecf0b14160b81423d7c5379e0c3564fbf335"
+  },
+  "unavailable": [],
+  "checked_unavailable": [
+    {
+      "file": "10-2SA.usfm",
+      "chapter": "23",
+      "verse": "8",
+      "reason": "Unbalanced alignment end",
+      "sha256": "0b4f378a4b402424e90d83f89adae7936b3ee3dac0ac7d96f2d261d120f6c34e"
+    },
+    {
+      "file": "16-NEH.usfm",
+      "chapter": "2",
+      "verse": "13",
+      "reason": "Unbalanced alignment end",
+      "sha256": "7ddd87ed7f9e7fc2942f8b311f35d8b2a5be57e5f7d3250356313573d5cf5441"
+    }
+  ]
+}

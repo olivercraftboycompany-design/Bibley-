@@ -3,6 +3,14 @@
   'use strict';
   const key = 'bibley_ui_locale_v1';
   const entries = {
+    "Open separate ULT development source":"Abrir la fuente de desarrollo ULT por separado",
+    "Separate ULT development snapshot, 26 November 2026 (452a08b). Not the v92 release. Publisher alignments are shown only for this source; they are not mapped to your reader translation. Punctuation is omitted.":"Instantánea separada de ULT en desarrollo, 26 de noviembre de 2026 (452a08b). No es la edición v92. Las alineaciones del editor corresponden solo a esta fuente; no se vinculan con la traducción del lector. Se omite la puntuación.",
+    "Deuterocanon linked passages":"Pasajes deuterocanónicos relacionados",
+    "Publisher-linked passages from WEB Classic notes. Browse the source book and chapter, then open an exact publisher link. These sparse editorial cross-references and footnote links are not a complete reference network or a mapping to your reader translation.":"Pasajes enlazados por el editor en las notas de WEB Classic. Elige el libro y capítulo fuente y abre un enlace exacto del editor. Estas referencias y enlaces de notas son limitados, no una red completa ni una correspondencia con la traducción del lector.",
+    "No publisher-linked passages are supplied for this source chapter.":"No hay pasajes enlazados por el editor para este capítulo fuente.",
+    "Publisher cross-reference":"Referencia cruzada del editor",
+    "Link within publisher footnote":"Enlace dentro de una nota del editor",
+
     "Aligned English words · ULT":"Palabras inglesas alineadas · ULT",
     "ULT v92 source edition only. These English word groups are explicitly aligned by the publisher to Hebrew, Aramaic or Greek. They are not aligned to the translation in your reader; source numbering can differ. Punctuation is omitted.":"Solo edición fuente ULT v92. El editor alinea explícitamente estos grupos de palabras inglesas con el hebreo, arameo o griego. No están alineados con la traducción del lector; la numeración puede variar. Se omite la puntuación.",
     "The original work by unfoldingWord is available here":"La obra original de unfoldingWord está disponible aquí",

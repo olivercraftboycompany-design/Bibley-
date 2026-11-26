@@ -1143,15 +1143,23 @@
   }
 
   // Explicit publisher alignment groups, never transferred to a different translation.
-  function openAlignedWords(b, readerChapter, readerVerse) {
+  function openAlignedWords(b, readerChapter, readerVerse, development = false) {
     if (!availableRefs(b)) return;
     openPanel("aligned-words", tr("Aligned English words · ULT") + " · " + BOOKS[b][1], async body => {
       body.append(h('<p class="bp-muted">' + esc(tr("ULT v92 source edition only. These English word groups are explicitly aligned by the publisher to Hebrew, Aramaic or Greek. They are not aligned to the translation in your reader; source numbering can differ. Punctuation is omitted.")) + '</p>'));
       body.append(h('<p class="bp-muted"><a href="https://git.door43.org/unfoldingWord/en_ult/src/tag/v92" target="_blank" rel="noopener noreferrer">' + esc(tr("The original work by unfoldingWord is available here")) + '</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a> · <a href="./study-data/README.md" target="_blank" rel="noopener noreferrer">' + esc(tr("Credits and extraction details")) + '</a></p>'));
-      if ([12,13,22,23,25].includes(b)) { body.append(h('<p role="status">' + esc(tr("This book is not supplied in the ULT v92 source release. No alignment is inferred from another edition.")) + '</p>')); return; }
+      if (development) {
+        body.firstElementChild.textContent = tr("Separate ULT development snapshot, 26 November 2026 (452a08b). Not the v92 release. Publisher alignments are shown only for this source; they are not mapped to your reader translation. Punctuation is omitted.");
+        body.querySelector('a').href = "https://git.door43.org/unfoldingWord/en_ult/src/commit/452a08b0aba28cbfb95eec1fe7eb1925ca246f0f";
+      }
+      if ([12,13,22,23,25].includes(b) && !development) {
+        body.append(h('<p role="status">' + esc(tr("This book is not supplied in the ULT v92 source release. No alignment is inferred from another edition.")) + '</p>'));
+        const alternative=h('<button class="bp-btn block" type="button">' + esc(tr("Open separate ULT development source")) + '</button>');
+        alternative.onclick=()=>openAlignedWords(b,readerChapter,readerVerse,true);body.append(alternative);return;
+      }
       const result = h('<div role="status">' + esc(tr("Loading aligned words…")) + '</div>'); body.append(result);
       try {
-        const data = await getStudyFile("ult-aligned/" + (b+1));
+        const data = await getStudyFile((development ? "ult-development/" : "ult-aligned/") + (b+1));
         if (!result.isConnected) return;
         let c = String(readerChapter), v = String(readerVerse);
         const controls = h('<div class="bp-form bp-source-navigation"><label>' + esc(tr("Source chapter")) + '<select aria-label="' + esc(tr("Source chapter")) + '"></select></label><label>' + esc(tr("Source verse")) + '<select aria-label="' + esc(tr("Source verse")) + '"></select></label></div>');
@@ -1167,7 +1175,7 @@
           select.value=chosen;
         };
         const draw = () => {
-          ref.textContent = "ULT v92 · " + BOOKS[b][1] + " " + c + ":" + v;
+          ref.textContent = (development ? "ULT development 452a08b · " : "ULT v92 · ") + BOOKS[b][1] + " " + c + ":" + v;
           const groups=data?.[c]?.[v]; result.replaceChildren();
           if (!groups?.length) { result.textContent=tr("No verified alignment is available for this source verse. No nearby verse is substituted."); return; }
           const list=h('<ol class="bp-alignment-list" aria-label="' + esc(tr("Aligned word groups")) + '"></ol>');
@@ -1381,13 +1389,20 @@
       source.onchange = draw; draw();
     }
   };
+  VIEWS.deuterorefs = {
+    title: "Deuterocanon linked passages",
+    render(body) { return VIEWS.deuterocanon.render(body, true); }
+  };
   VIEWS.deuterocanon = {
     title: "Deuterocanon study notes",
-    async render(body) {
+    async render(body, linksOnly = false) {
       body.append(h('<p class="bp-muted">' + esc(tr("Publisher introductions and footnotes for 15 WEB Classic book units, including Greek Esther and Daniel, Baruch with the Letter of Jeremiah, and books used in different Catholic and Orthodox traditions. These are source-edition notes, not a full commentary or an alignment to your selected translation. Canon and numbering vary by tradition.")) + '</p>'));
       const status = h('<p role="status">' + esc(tr("Loading study notes…")) + '</p>'); body.append(status);
       try {
         const data = await getStudyFile('deuterocanon-notes');
+        if (linksOnly) {
+          body.firstElementChild.textContent = tr("Publisher-linked passages from WEB Classic notes. Browse the source book and chapter, then open an exact publisher link. These sparse editorial cross-references and footnote links are not a complete reference network or a mapping to your reader translation.");
+        }
         if (!body.isConnected) return;
         status.remove();
         const controls = h('<div class="bp-card"><label>' + esc(tr("Source book")) + '<select class="bp-select"></select></label><label>' + esc(tr("Source chapter")) + '<select class="bp-select"></select></label></div>');
@@ -1407,11 +1422,16 @@
           }
           const link = h('<a class="bp-btn" target="_blank" rel="noopener"></a>');
           link.href = c.url; link.textContent = tr("Read source chapter"); content.append(link);
-          if (!c.notes.length) content.append(h('<p class="bp-muted">' + esc(tr("No publisher footnotes are listed for this source chapter.")) + '</p>'));
-          c.notes.forEach(note => {
+          const notes=linksOnly ? c.notes.filter(note => note.links.length) : c.notes;
+          if (linksOnly && !notes.length) content.append(h('<p class="bp-muted">' + esc(tr("No publisher-linked passages are supplied for this source chapter.")) + '</p>'));
+          if (!linksOnly && !c.notes.length) content.append(h('<p class="bp-muted">' + esc(tr("No publisher footnotes are listed for this source chapter.")) + '</p>'));
+          notes.forEach(note => {
             const card = h('<div class="bp-card"><b></b><p class="bp-study-prose" data-locale-user></p><div class="bp-chips" data-locale-user></div></div>');
             card.firstElementChild.textContent = note.verse ? tr("Verse") + ' ' + note.verse : tr("Book note");
             card.querySelector('p').textContent = note.text;
+            if (linksOnly) {
+              const kind=h('<p class="bp-muted"></p>');kind.textContent=tr(note.kind === "cross-reference" ? "Publisher cross-reference" : "Link within publisher footnote");card.insertBefore(kind,card.querySelector('p'));
+            }
             note.links.forEach(item => {
               const a = document.createElement('a'); a.className = 'bp-chip'; a.textContent = item.label; a.href = item.url; a.target = '_blank'; a.rel = 'noopener'; card.lastElementChild.append(a);
             });

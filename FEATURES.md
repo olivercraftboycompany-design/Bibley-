@@ -41,3 +41,10 @@ Ordered chapter-range creation, overlap handling, invalid-range validation, ever
 - Original words and the source-order interlinear now link to a separate ULT v92 word-alignment view. Explicit publisher-supplied English-to-original-language groups retain many-to-many relationships, morphology, lemmas, original forms and source codes. 25,408 source verses from 61 book files; 5 absent books and 2 malformed source verses remain unavailable. No alignment is transferred to the active translation. Source navigation preserves numbering and does not alter the reader.
 - All 344,781 unique OpenBible suggestions are retained (20,968 more than the earlier capped files), browsable 24 at a time. Votes rank suggestions, not guaranteed relevance; coverage still excludes deuterocanon and does not resolve numbering differences.
 - Full ULT release/license attribution, source hashes, extraction and regression tests are included. UI controls support Spanish; source English/Hebrew/Greek/Aramaic remain untranslated.
+
+
+## Source supplements (26 November 2026)
+
+- Five missing ULT books now have an explicit, separate development-source option (revision 452a08b): 5,693 verses in 1–2 Chronicles, Isaiah, Jeremiah and Ezekiel. The interface does not mix this snapshot with ULT v92 or the selected Bible. Source selection is a deliberate button, and its label, warning and credits identify the development snapshot.
+- Study → Explore → Deuterocanon linked passages browses 132 exact publisher links from WEB Classic notes, preserving context and distinguishing explicit cross-reference notes from links inside footnotes. No guessed reader/canon/numbering mappings; empty source chapters remain empty.
+- Two malformed alignment verses remain unavailable in both checked source snapshots. Complete deuterocanon cross-reference coverage and cross-edition versification still need appropriate source data. Source licenses, hashes, reproducible transforms and phone/desktop regressions are included.
