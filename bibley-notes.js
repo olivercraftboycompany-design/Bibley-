@@ -330,5 +330,5 @@
     save(d);
   }
 
-  window.BibleyNotes = { open, openClassic, importData, _test: { load, save, pageItems, scan, pageText, KEY } };
+  window.BibleyNotes = { open, importData, _test: { load, save, pageItems, scan, pageText, KEY } };
 })();
