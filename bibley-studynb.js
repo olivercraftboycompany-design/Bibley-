@@ -319,7 +319,7 @@
         ${nav("all", I.book, "All Notes", items.length)}${nav("pinned", I.pin, "Pinned", items.filter(i => i.pinned).length)}${nav("hl", I.marker, "Highlights & Bookmarks", hlCount(), "hl")}
         <div class="snbx-sec"><span>Notebooks</span><button type="button" class="snb-ib sm" data-a="newnb" aria-label="New notebook" title="New notebook">${I.plus}</button></div>
         ${nbs.map(row).join("")}
-        ${vb.length ? `<div class="snbx-sec"><span>From earlier versions</span></div>${vb.map(row).join("")}<button type="button" class="snb-link" data-a="classic">Open the classic notebook pages</button>` : ""}
+        ${vb.length ? `<div class="snbx-sec"><span>From earlier versions</span></div>${vb.map(row).join("")}` : ""}
         ${tags.length ? `<div class="snbx-sec"><span>Tags</span></div><div class="snbx-tags">${tags.map(t => `<button type="button" class="snb-chip small${st.tag === t ? " on" : ""}" data-tag="${esc(t)}">${I.tag}${esc(t)}</button>`).join("")}</div>` : ""}
       </div>
       <div class="snbx-sfoot"><span>${I.paper}Paper</span><div class="snbx-seg sm" role="radiogroup" aria-label="Paper style">${PAPERS.map(([k, l]) => `<button type="button" role="radio" aria-checked="${paper() === k}" class="${paper() === k ? "on" : ""}" data-paper="${k}">${esc(l.replace("Warm ", "").replace(" Paper", ""))}</button>`).join("")}</div></div>`;
@@ -328,8 +328,7 @@
     side.querySelectorAll("[data-tag]").forEach(b => b.onclick = () => { st.tag = st.tag === b.dataset.tag ? null : b.dataset.tag; st.tab = "notes"; drawSide(); drawList(); setView("list"); });
     side.querySelectorAll("[data-paper]").forEach(b => b.onclick = () => setPaper(b.dataset.paper));
     side.querySelector('[data-a="close"]').onclick = close;
-    side.querySelector('[data-a="newnb"]').onclick = () => editBook(null);
-    const cl = side.querySelector('[data-a="classic"]'); if (cl) cl.onclick = () => { close(); if (window.BibleyNotes && window.BibleyNotes.openClassic) window.BibleyNotes.openClassic(); };
+    side.querySelector('[data-a="newnb"]').onclick = () => editBook(null); 
   }
   function setPaper(p) { setMeta({ paper: p }); if (root) root.dataset.paper = p; drawSide(); toast("Paper: " + PAPERS.find(x => x[0] === p)[1]); }
 
