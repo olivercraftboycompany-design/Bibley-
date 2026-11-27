@@ -203,9 +203,46 @@
     return ranked.coverage < 0.6 || ranked.best < Math.min(2, ranked.terms);
   }
   function offTopicReply(ranked) {
-    var c = ranked && ranked[0], msg = "I searched the whole Bible for this, and honestly, the Bible does not really talk about that.\n\n";
-    if (c) msg += "The closest verse I found is " + c.ref + ": \"" + c.text + "\" - but it is only loosely related.\n\n";
-    return msg + "In plain words: this one is outside what the Bible covers. Ask me anything about God, faith, or life and I will find the real verses for it.";
+    var c = ranked && ranked[0], msg = "I searched the Bible text I have here and did not find a passage matching this question.\n\n";
+    if (c) msg += "The closest verse my search found is " + c.ref + ": \"" + c.text + "\" - but it is only loosely related.\n\n";
+    return msg + "Ask me anything about God, faith, or life and I will search the real verses for it.";
+  }
+
+  /* ---------------- theology retrieval (bibley-theology.js bridge) ----------------
+     Lexical search over Augustine's Confessions (Pusey) and Calvin's Institutes (Allen, vol. 1).
+     Retrieval only: no model call, no generated answer from these sources. The matched passages
+     are their authors' words, never Scripture, and the UI labels them separately. */
+  async function theologyTry(q, minTerms) {
+    var T = window.BibleyTheology;
+    if (!T || !T.search) return null;
+    try {
+      var hits = await T.search(q, { k: 3 });
+      if (!hits || !hits.length) return null;
+      // Relevance guard for the additive route: at least minTerms of the query's content words
+      // must actually appear in the record, and it must cover at least half the query. The words
+      // "bible"/"scripture" don't count - every question to a Bible app contains them for free.
+      if (minTerms > 1) hits = hits.filter(function (h) {
+        var real = (h.matched_terms || []).filter(function (t) { return t !== "bible" && t !== "scripture" && t !== "scriptures"; });
+        return real.length >= minTerms && (h.query_coverage || 0) >= 0.5;
+      });
+      return hits.length ? hits : null;
+    } catch (e) { return null; }
+  }
+  function theologyNote(hits) {
+    var works = []; hits.forEach(function (h) { var w = (h.author ? h.author + ", " : "") + (h.work || "") + (h.edition ? " (" + h.edition.replace(/, Gutenberg.*$/, "") + ")" : ""); if (works.indexOf(w) < 0) works.push(w); });
+    return "I searched the Bible text I have here and did not find a passage matching this question.\n\nBut it does come up in historic Christian writings: " +
+      hits.length + " matching passage" + (hits.length > 1 ? "s" : "") + " from " + works.join(" and ") +
+      ". Those are their authors' words, not Scripture. The full passages are below - tap one to read it, with a link to the whole source for context.";
+  }
+  // Separate source cards for theology hits: clearly NOT Referenced Verses, each links to the public-domain source text.
+  function theologyHtml(hits) {
+    if (!hits || !hits.length) return "";
+    return '<div class="lai-theo"><span>From historic Christian writings - not Scripture</span>' + hits.map(function (h) {
+      var head = '<b>' + escH(h.work || "") + '</b>' + (h.section ? ' <u>' + escH(h.section) + '</u>' : '') + '<i>' + escH(h.author || "unknown author") + (h.edition ? ' \u00b7 ' + escH(h.edition) : '') + '</i>';
+      var snippet = escH((h.text || "").slice(0, 140)) + (h.text && h.text.length > 140 ? "\u2026" : "");
+      var link = h.source_url ? '<a class="lai-theo-src" href="' + escH(h.source_url) + '" target="_blank" rel="noopener">Read this in the full public-domain source text</a>' : "";
+      return '<details class="lai-theo-card"><summary>' + head + '<em>' + snippet + '</em><u class="lai-theo-more">tap to read the full passage</u></summary><div class="lai-theo-full">' + escH(h.text || "") + "</div>" + link + "</details>";
+    }).join("") + "</div>";
   }
 
   /* ---------------- prompt (Bibley 2.1) ---------------- */
@@ -376,12 +413,25 @@
     opts = opts || {}; var prog = opts.onProgress || function () {}, mi = modelInfo(opts.modelId);
     if (!KJV) prog({ percent: 0, stage: "bible", text: "Opening the King James Bible..." });
     var R = await retrieve(question, mi.id);
-    if (R.offTopic) return { text: offTopicReply(R.ranked), sources: R.ranked.slice(0, 1), refs: citedVerses("", R.ranked.slice(0, 1)), offTopic: true, engine: "none", model: mi.id, modelName: mi.name };
+    // Additive commentary route: for off-topic questions, theology passages are the only evidence offered
+    // (single content word is enough); for on-topic questions, they are clearly separated commentary
+    // cards added AFTER the Bible answer, and a stricter relevance guard applies (2+ matched terms).
+    // The model prompt never changes: generated answers come from KJV verses only.
+    var thP = theologyTry(question, R.offTopic ? 1 : 2);
+    if (R.offTopic) {
+      var th0 = await thP;
+      // Off-topic: no verse genuinely matched, so attach no verse chips or cards - the reply's
+      // own words carry any loosely-related mention. Each reply shows only its own warranted refs.
+      if (th0) return { text: theologyNote(th0), sources: [], refs: [], offTopic: true, engine: "none", model: mi.id, modelName: mi.name, theology: th0 };
+      return { text: offTopicReply(R.ranked), sources: [], refs: [], offTopic: true, engine: "none", model: mi.id, modelName: mi.name };
+    }
     var e = await loadModel(prog, mi.id), raw = "";
     await e.gen(R.messages, function (d) { raw += d; if (opts.onToken) try { opts.onToken(stripThink(raw)); } catch (x) {} });
     var text = repairQuotes(stripThink(raw).trim(), R.picked);
     if (!text) throw new Error("empty-local-answer");
-    return { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
+    var th = await thP, out = { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
+    if (th) out.theology = th;
+    return out;
   }
 
   /* ---------------- Referenced Verses chips (tap = open the verse in the reader) ---------------- */
@@ -435,7 +485,15 @@
       ".lai-t{flex:1;min-width:0}.lai-t small{display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}.lai-ck{color:var(--gold,#c9a867);font-weight:700}.lai-set{border-top:1px solid #c9a86726;border-radius:0 0 10px 10px;margin-top:4px}" +
       ".lai-fam{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;vertical-align:1px}.lai-fam.qwen{background:#7fa3b833;color:#9cc3da}.lai-fam.gemma{background:#9c90b833;color:#c0b5e6}" +
       ".lai-refs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.lai-refs span{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-right:2px}" +
-      ".lai-chip{border:1px solid var(--gold,#c9a867);background:#c9a86714;color:var(--gold,#c9a867);border-radius:999px;padding:5px 11px;font:600 12.5px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.lai-chip:hover{background:#c9a86733}";
+      ".lai-chip{border:1px solid var(--gold,#c9a867);background:#c9a86714;color:var(--gold,#c9a867);border-radius:999px;padding:5px 11px;font:600 12.5px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.lai-chip:hover{background:#c9a86733}" +
+      ".lai-theo{margin-top:10px}.lai-theo>span{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:6px}" +
+      ".lai-theo-card{display:block;border:1px solid var(--panel-border,#c9a86744);border-radius:10px;padding:8px 10px;margin:6px 0;color:inherit;text-decoration:none;font:400 13px/1.45 system-ui,-apple-system,sans-serif}.lai-theo-card:hover{background:#c9a86714}" +
+      ".lai-theo-card b{color:var(--gold,#c9a867)}.lai-theo-card u{text-decoration:none;opacity:.85}.lai-theo-card i{display:block;font-style:normal;font-size:11.5px;opacity:.65;margin-top:2px}.lai-theo-card em{display:block;font-style:italic;font-size:12px;opacity:.8;margin-top:4px}" +
+      ".lai-theo-card summary{cursor:pointer;list-style:none}.lai-theo-card summary::-webkit-details-marker{display:none}" +
+      ".lai-theo-card .lai-theo-more{display:inline-block;margin-top:3px;font-size:11px;color:var(--gold,#c9a867);opacity:.9}" +
+      ".lai-theo-card[open] .lai-theo-more{display:none}" +
+      ".lai-theo-full{margin-top:8px;padding-top:8px;border-top:1px solid var(--panel-border,#c9a86744);font-size:13px;line-height:1.6;white-space:pre-wrap}" +
+      ".lai-theo-src{display:inline-block;margin-top:8px;font-size:12px;color:var(--gold,#c9a867)}";
       document.head.appendChild(s); }
     pill();
   }
@@ -450,6 +508,7 @@
     on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
     ensureKJV: ensureKJV, kjvReady: function () { return !!KJV; }, passage: passage, findByReference: findByReference, searchKJV: searchKJV, search: searchKJV, isOffTopic: isOffTopic, offTopicReply: offTopicReply,
     buildMessages: buildMessages, buildPrompt: buildMessages, repairQuotes: repairQuotes, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
+    theologyTry: theologyTry, theologyHtml: theologyHtml,
     openSwitcher: function () { var b = document.getElementById("aiEnginePill"); if (b) openMenu(b); } };
   window.BibleyLocalAI = api;
 })();
