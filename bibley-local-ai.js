@@ -1,4 +1,21 @@
-/* bibley-local-ai.js - Bibley 7.0 (2026-11-24): On-Device AI, two models sharing one KJV verse-lookup brain.
+/* bibley-local-ai.js - Bibley 7.6 (2026-11-27): On-Device AI, twelve models (all under 1.1B parameters, ten of them under 1B)
+   sharing one KJV verse-lookup brain plus "teachings" (Augustine and Calvin passages from bibley-theology.js) as cited context.
+   Verified 2026-11-27 against WebLLM 0.2.89's prebuilt list (lib/index.js) and the Hugging Face API, and every CPU build was
+   loaded with onnxruntime-web 1.22.0-dev.20250409 (the runtime Transformers.js 3.8.1 uses) and run on a short KJV prompt:
+     2.3 Qwen3.5 0.8B      WebGPU Qwen3.5-0.8B-q4f16_1-MLC / q4f32_1 (no CPU build: Transformers.js 3.8.1 has no qwen3_5 support)
+     2.4 LFM2 700M         CPU onnx-community/LFM2-700M-ONNX @ bf72eea (the newer v4 export needs onnxruntime 1.23+)
+     2.5 Qwen2.5 0.5B      WebGPU Qwen2.5-0.5B-Instruct-q4f16_1-MLC / q4f32_1, CPU onnx-community/Qwen2.5-0.5B-Instruct
+     2.6 LFM2.5 350M       WebGPU LFM2.5-350M-q4f16_1-MLC / q4f32_1 (every ONNX export needs onnxruntime 1.23+)
+     2.7 LFM2 350M         CPU onnx-community/LFM2-350M-ONNX @ 5bc4b3e
+     2.8 Granite 4.0 350M  CPU onnx-community/granite-4.0-350m-ONNX-web (the hybrid h-350m needs Mamba cache support 3.8.1 lacks)
+     2.9 ERNIE 4.5 0.3B    CPU onnx-community/ERNIE-4.5-0.3B-ONNX (stops on <|end_of_sentence|> = id 100272, not only </s>)
+     2.10 SmolLM2 360M     WebGPU SmolLM2-360M-Instruct-q4f16_1-MLC / q4f32_1, CPU HuggingFaceTB/SmolLM2-360M-Instruct
+     2.11 Gemma 3 270M     CPU onnx-community/gemma-3-270m-it-ONNX @ cfd5c04
+     2.12 SmolLM2 135M     WebGPU SmolLM2-135M-Instruct-q0f16-MLC / q0f32, CPU HuggingFaceTB/SmolLM2-135M-Instruct
+   v7.6 fix: the 2026 re-exports of onnx-community/Qwen3-0.6B-ONNX-OPT and gemma-3-1b-it-ONNX (main) fail to load in
+   onnxruntime-web 1.22 (GatherBlockQuantized "bits"), so Bibley 2.1 CPU now uses onnx-community/Qwen3-0.6B-ONNX (q8) and
+   Bibley 2.2 CPU is pinned to gemma-3-1b-it-ONNX @ 7769a8a (q8). A model with no build for a backend falls back to the other.
+   Was: Bibley 7.0 (2026-11-24): On-Device AI, two models sharing one KJV verse-lookup brain.
    Model 1 "Bibley 2.1" = Qwen3 0.6B (fast & light). Model 2 "Bibley 2.2" = Gemma 3 1B Instruct (deeper study).
    Verified 2026-11-24: WebLLM 0.2.89 prebuilt list carries Qwen3-0.6B-q4f16_1-MLC, Qwen3-0.6B-q4f32_1-MLC and
    gemma3-1b-it-q4f16_1-MLC (lib gemma3-1b-it-q4f16_1_cs512-webgpu.wasm, needs WebGPU shader-f16; without it Gemma runs on CPU);
@@ -9,7 +26,7 @@
    exact-quote SYSTEM / INSTRUCTIONS prompt, an honest off-topic gate and quote repair, with
    Qwen3-0.6B running on this device through WebLLM (WebGPU) or Transformers.js (CPU / WASM).
    Nothing here downloads until On-Device AI is used: the engines and the model load on demand.
-   Stored: localStorage "bibley_ai_engine_v1" = { mode: "cloud" | "local", backend: "auto" | "webgpu" | "cpu", modelId: "qwen3-0.6b" | "gemma3-1b" }.
+   Stored: localStorage "bibley_ai_engine_v1" = { mode: "cloud" | "local", backend: "auto" | "webgpu" | "cpu", modelId: one of MODELS[].id }.
    The KJV comes from /bibles/kjv.json.gz (or Bibley's offline copy in IndexedDB "bibley_bibles"). */
 (function () {
   "use strict";
@@ -17,14 +34,37 @@
   var WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.89/+esm";
   var TJS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm";
   var MODEL_F16 = "Qwen3-0.6B-q4f16_1-MLC", MODEL_F32 = "Qwen3-0.6B-q4f32_1-MLC";
-  var CPU_REPO = "onnx-community/Qwen3-0.6B-ONNX-OPT";
+  var CPU_REPO = "onnx-community/Qwen3-0.6B-ONNX";
   var MAX_NEW = 420;
-  // The two on-device models. Both run through the same KJV lookup (reference parsing, BM25 + topics, exact-quote prompt, off-topic gate, quote repair).
+  // The on-device models. Every one runs through the same KJV lookup (reference parsing, BM25 + topics, exact-quote prompt,
+  // off-topic gate, quote repair) and gets matching "teachings" passages. webgpu: { f16, f32 } WebLLM ids or null (no WebGPU build);
+  // cpu: Transformers.js repo or null (no CPU build); rev pins a Hugging Face commit; eos adds stop ids; small = a tighter prompt
+  // (5 verses, 1 short teaching) for models of about 360M parameters and under.
   var MODELS = [
-    { id: "qwen3-0.6b", name: "Bibley 2.1", family: "Qwen", model: "Qwen3 0.6B", params: "0.6B", tag: "Fast & Light", size: "~335 MB WebGPU / ~395 MB CPU",
-      desc: "Quick answers with real KJV quotes. Light enough for most phones.", webgpu: { f16: MODEL_F16, f32: MODEL_F32 }, cpu: CPU_REPO, dtype: "q4", thinking: true, cacheRe: /Qwen3-0\.6B/i },
-    { id: "gemma3-1b", name: "Bibley 2.2", family: "Gemma", model: "Gemma 3 1B Instruct", params: "1B", tag: "Deeper Study", size: "~600 MB WebGPU / ~880 MB CPU",
-      desc: "Google's Gemma 3: fuller, more careful explanations of the verses it finds. Best on newer devices.", webgpu: { f16: "gemma3-1b-it-q4f16_1-MLC", f32: null }, cpu: "onnx-community/gemma-3-1b-it-ONNX", dtype: "q4", noSystem: true, cacheRe: /gemma-?3-1b-it/i }
+    { id: "qwen3-0.6b", name: "Bibley 2.1", family: "Qwen", model: "Qwen3 0.6B", params: "0.6B", tag: "Fast & Light", size: "~350 MB WebGPU / ~620 MB CPU",
+      desc: "Quick answers with real KJV quotes. Light enough for most phones.", webgpu: { f16: MODEL_F16, f32: MODEL_F32 }, cpu: CPU_REPO, dtype: "q8", thinking: true, cacheRe: /Qwen3-0\.6B/i },
+    { id: "gemma3-1b", name: "Bibley 2.2", family: "Gemma", model: "Gemma 3 1B Instruct", params: "1B", tag: "Deeper Study", size: "~600 MB WebGPU / ~1 GB CPU",
+      desc: "Google's Gemma 3: fuller, more careful explanations of the verses it finds. Best on newer devices.", webgpu: { f16: "gemma3-1b-it-q4f16_1-MLC", f32: null }, cpu: "onnx-community/gemma-3-1b-it-ONNX", rev: "7769a8aff8978adbdcd57ad7915a97ba389fb547", dtype: "q8", noSystem: true, cacheRe: /gemma-?3-1b-it/i },
+    { id: "qwen3.5-0.8b", name: "Bibley 2.3", family: "Qwen", model: "Qwen3.5 0.8B", params: "0.8B", tag: "Smartest Small", size: "~440 MB WebGPU only",
+      desc: "Alibaba's newest small Qwen: the strongest reasoning in the lineup under 1B. Needs WebGPU.", webgpu: { f16: "Qwen3.5-0.8B-q4f16_1-MLC", f32: "Qwen3.5-0.8B-q4f32_1-MLC" }, cpu: null, dtype: "q4", thinking: true, cacheRe: /Qwen3\.5-0\.8B/i },
+    { id: "lfm2-700m", name: "Bibley 2.4", family: "Liquid", model: "LFM2 700M", params: "0.74B", tag: "Strong on CPU", size: "~840 MB CPU only",
+      desc: "Liquid AI's hybrid model built for phones and laptops: clear, well-organised answers without a GPU.", webgpu: null, cpu: "onnx-community/LFM2-700M-ONNX", rev: "bf72eeabfe73a798674db899830a0dca99f8eabc", dtype: "q4", cacheRe: /LFM2-700M/i },
+    { id: "qwen2.5-0.5b", name: "Bibley 2.5", family: "Qwen", model: "Qwen2.5 0.5B Instruct", params: "0.5B", tag: "Reliable All-Rounder", size: "~285 MB WebGPU / ~790 MB CPU",
+      desc: "A dependable small Qwen that follows the quote-then-explain format well. Runs on GPU or CPU.", webgpu: { f16: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", f32: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC" }, cpu: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q4", cacheRe: /Qwen2\.5-0\.5B-Instruct/i },
+    { id: "lfm2.5-350m", name: "Bibley 2.6", family: "Liquid", model: "LFM2.5 350M", params: "0.35B", tag: "Tiny & Sharp", size: "~205 MB WebGPU only",
+      desc: "Liquid AI's 2026 350M model: very fast, with instruction following well above its size. Needs WebGPU.", webgpu: { f16: "LFM2.5-350M-q4f16_1-MLC", f32: "LFM2.5-350M-q4f32_1-MLC" }, cpu: null, dtype: "q4", small: true, cacheRe: /LFM2\.5-350M/i },
+    { id: "lfm2-350m", name: "Bibley 2.7", family: "Liquid", model: "LFM2 350M", params: "0.35B", tag: "Light on CPU", size: "~485 MB CPU only",
+      desc: "Liquid AI's compact hybrid model: quick short answers on devices without WebGPU.", webgpu: null, cpu: "onnx-community/LFM2-350M-ONNX", rev: "5bc4b3e8cfd21660c0b1b9faa447ffbd9926b829", dtype: "q4", small: true, cacheRe: /LFM2-350M/i },
+    { id: "granite4-350m", name: "Bibley 2.8", family: "Granite", model: "Granite 4.0 350M", params: "0.35B", tag: "Careful & Plain", size: "~580 MB CPU only",
+      desc: "IBM's Granite 4.0 Nano: steady, plain-spoken answers that stick to the verses.", webgpu: null, cpu: "onnx-community/granite-4.0-350m-ONNX-web", dtype: "q4", small: true, cacheRe: /granite-4\.0-350m/i },
+    { id: "ernie4.5-0.3b", name: "Bibley 2.9", family: "ERNIE", model: "ERNIE 4.5 0.3B", params: "0.36B", tag: "Short & Direct", size: "~655 MB CPU only",
+      desc: "Baidu's ERNIE 4.5: short, direct summaries of what the verses say.", webgpu: null, cpu: "onnx-community/ERNIE-4.5-0.3B-ONNX", dtype: "q4", eos: [2, 100272], small: true, cacheRe: /ERNIE-4\.5-0\.3B/i },
+    { id: "smollm2-360m", name: "Bibley 2.10", family: "SmolLM", model: "SmolLM2 360M Instruct", params: "0.36B", tag: "Small & Quick", size: "~205 MB WebGPU / ~390 MB CPU",
+      desc: "Hugging Face's SmolLM2: a quick, light model for older phones. Runs on GPU or CPU.", webgpu: { f16: "SmolLM2-360M-Instruct-q4f16_1-MLC", f32: "SmolLM2-360M-Instruct-q4f32_1-MLC" }, cpu: "HuggingFaceTB/SmolLM2-360M-Instruct", dtype: "q4", small: true, cacheRe: /SmolLM2-360M-Instruct/i },
+    { id: "gemma3-270m", name: "Bibley 2.11", family: "Gemma", model: "Gemma 3 270M", params: "0.27B", tag: "Tiny (Experimental)", size: "~805 MB CPU only",
+      desc: "Google's smallest Gemma 3. Very small, so its explanations are simple and can wander; the verse quotes are still checked.", webgpu: null, cpu: "onnx-community/gemma-3-270m-it-ONNX", rev: "cfd5c04f84a64766d63efc5bb1d2cf31f34a4a90", dtype: "q4", noSystem: true, small: true, cacheRe: /gemma-3-270m-it/i },
+    { id: "smollm2-135m", name: "Bibley 2.12", family: "SmolLM", model: "SmolLM2 135M Instruct", params: "0.13B", tag: "Smallest", size: "~270 MB WebGPU / ~185 MB CPU",
+      desc: "The smallest model: runs almost anywhere. Best for looking up verses; its explanations are basic.", webgpu: { f16: "SmolLM2-135M-Instruct-q0f16-MLC", f32: "SmolLM2-135M-Instruct-q0f32-MLC" }, cpu: "HuggingFaceTB/SmolLM2-135M-Instruct", dtype: "q4", small: true, cacheRe: /SmolLM2-135M-Instruct/i }
   ];
   function modelInfo(id) { id = id || getConfig().modelId; for (var i = 0; i < MODELS.length; i++) if (MODELS[i].id === id) return MODELS[i]; return MODELS[0]; }
 
@@ -238,7 +278,7 @@
   function theologyHtml(hits) {
     if (!hits || !hits.length) return "";
     return '<div class="lai-theo"><span>From historic Christian writings - not Scripture</span>' + hits.map(function (h) {
-      var head = '<b>' + escH(h.work || "") + '</b>' + (h.section ? ' <u>' + escH(h.section) + '</u>' : '') + '<i>' + escH(h.author || "unknown author") + (h.edition ? ' \u00b7 ' + escH(h.edition) : '') + '</i>';
+      var head = '<b>' + escH(h.work || "") + '</b>' + (h.section ? ' <u>' + escH(h.section) + '</u>' : '') + '<i>' + escH(h.author || "unknown author") + (h.edition ? ' \u00b7 ' + escH(h.edition) : '') + (h.usedInAnswer ? ' \u00b7 given to the AI with the verses' : '') + '</i>';
       var snippet = escH((h.text || "").slice(0, 140)) + (h.text && h.text.length > 140 ? "\u2026" : "");
       var link = h.source_url ? '<a class="lai-theo-src" href="' + escH(h.source_url) + '" target="_blank" rel="noopener">Read this in the full public-domain source text</a>' : "";
       return '<details class="lai-theo-card"><summary>' + head + '<em>' + snippet + '</em><u class="lai-theo-more">tap to read the full passage</u></summary><div class="lai-theo-full">' + escH(h.text || "") + "</div>" + link + "</details>";
@@ -248,16 +288,59 @@
   /* ---------------- prompt (Bibley 2.1) ---------------- */
   var SYSTEM = "You are Bibley, a warm and honest Bible helper running right on this device. You answer questions about the Bible using the real King James verses provided. You always quote the verses word for word before explaining them, and you explain them in plain words. You are gentle: you never condemn the person asking.";
   var INSTRUCTIONS = "Write your answer like this:\n1. Quote the 2 or 3 most important verses, each on its own line, in exactly this shape: the reference copied letter for letter from the list above, then a colon, then the exact words inside quote marks. Never change a single word or a single letter of a quote or of a reference.\n2. Then write 'In plain words:' and explain in 2 or 3 simple sentences what these verses say about the question, gently and honestly. Only claim what these verses actually say - do not add big claims they do not make. If the verses do not really answer the question, say so honestly instead of pretending they do.";
-  function userPrompt(q, picked) { return "Question: " + q + "\n\nReal King James Bible verses found for this question:\n" + picked.map(function (v) { return v.ref + ": " + v.text; }).join("\n") + "\n\n" + INSTRUCTIONS; }
-  // Gemma has no system role: its profile folds SYSTEM into the first user turn (same words, same example).
-  function buildMessages(q, picked, modelId) {
+  var TEACH_RULE = "\n3. If one of the teachings above really helps, you may add one short sentence that starts 'Teaching:' and names its author and work (for example: Teaching: Augustine, Confessions, says that ...). A teaching is a person's words, never Scripture: do not quote it as a verse and do not put it in your verse list.";
+  function userPrompt(q, picked, teach) {
+    var t = teach && teach.length ? "\n\nTeachings from historic Christian writers (their own words, not Scripture):\n" + teach.map(function (x) { return x.label + ": \"" + x.excerpt + "\""; }).join("\n") : "";
+    return "Question: " + q + "\n\nReal King James Bible verses found for this question:\n" + picked.map(function (v) { return v.ref + ": " + v.text; }).join("\n") + t + "\n\n" + INSTRUCTIONS + (t ? TEACH_RULE : "");
+  }
+  // Gemma (and any noSystem model) has no system role: its profile folds SYSTEM into the first user turn (same words, same example).
+  // Small models get the 5 best verses instead of 8, so the prompt stays short.
+  function buildMessages(q, picked, modelId, teach) {
     var mi = modelInfo(modelId), msgs = mi.noSystem ? [] : [{ role: "system", content: SYSTEM }], p = refVerse("Philippians 4:6"), m = refVerse("Matthew 6:34");
     if (p && m) msgs.push({ role: "user", content: userPrompt("what does the Bible say about worry?", [p, m]) },
       { role: "assistant", content: p.ref + ": \"" + p.text + "\"\n" + m.ref + ": \"" + m.text + "\"\n\nIn plain words: God does not want you to live worried. Instead of carrying every fear by yourself, bring each one to Him in prayer with thanks, and take life one day at a time. That is His way out of worry: pray, and trust Him daily." });
-    msgs.push({ role: "user", content: userPrompt(q, picked) });
+    msgs.push({ role: "user", content: userPrompt(q, (picked || []).slice(0, mi.small ? 5 : 8), teach) });
     if (mi.noSystem) msgs[0] = { role: "user", content: SYSTEM + "\n\n" + msgs[0].content };
     return msgs;
   }
+
+  /* ---------------- teachings in the prompt (v7.6) ----------------
+     The same Augustine / Calvin retrieval as the source cards, now also handed to the model as short, labelled,
+     cited context next to the KJV verses: up to 2 excerpts of about 300 characters (1 of about 220 for small models),
+     cut around the sentences that match the question. Only for teaching / doctrine questions or a passage that covers
+     most of the question. The corpus loads lazily; if it is not ready in time (first use, offline) the answer goes
+     ahead with verses only, and the cards still appear under it when retrieval finishes. */
+  var TEACH_RE = /\b(teach|teaches|teaching|teachings|taught|doctrines?|doctrinal|theolog\w*|church fathers?|fathers of the church|augustine|calvin|calvinis\w*|reformed|reformers?|reformation|predestin\w*|elect|election|trinity|triune|original sin|free will|freedom of (the )?will|providence|sovereignty|sacraments?|baptism|justification|justified|sanctification|atonement|incarnation|creeds?|catechism|confessions|institutes|heresy|heretics?|what do christians believe|christians? believe|church teach\w*|historic(al)? christian)\b/i;
+  function wantsTeaching(q) { return TEACH_RE.test(String(q || "")); }
+  function shortLabel(h) {
+    var a = String(h.author || "").replace(/ of hippo$/i, "").split(" ").pop() || "Unknown author";
+    var w = /confessions/i.test(h.work || "") ? "Confessions" : (/institutes/i.test(h.work || "") ? "Institutes" : String(h.work || "").split(",")[0]);
+    var sec = String(h.section || "").split(".")[0].replace(/\s+/g, " ").trim().toLowerCase().replace(/^(book|chapter)\b/, function (x) { return x[0].toUpperCase() + x.slice(1); });
+    return a + ", " + w + (sec && sec.length < 24 ? " (" + sec.replace(/\b([ivxlc]+)\b/g, function (x) { return x.toUpperCase(); }) + ")" : "");
+  }
+  // A window of whole sentences around the ones that match the question, capped at max characters.
+  function teachExcerpt(text, terms, max) {
+    text = String(text || "").replace(/\s+/g, " ").trim(); if (text.length <= max) return text;
+    var ss = text.match(/[^.!?;]+[.!?;]+["')\]]*\s*|[^.!?;]+$/g) || [text], t = (terms || []).map(function (x) { return String(x).toLowerCase(); });
+    var sc = ss.map(function (x) { var l = x.toLowerCase(), n = 0; t.forEach(function (w) { if (l.indexOf(w) >= 0) n++; }); return n; });
+    var best = 0; for (var i = 1; i < ss.length; i++) if (sc[i] > sc[best]) best = i;
+    var lo = best, hi = best, out = ss[best].trim();
+    while (out.length < max) {
+      var nx = hi + 1 < ss.length ? ss[hi + 1] : null, pv = lo > 0 ? ss[lo - 1] : null;
+      if (nx && (out + " " + nx.trim()).length <= max) { hi++; out = out + " " + nx.trim(); }
+      else if (pv && (pv.trim() + " " + out).length <= max) { lo--; out = pv.trim() + " " + out; }
+      else break;
+    }
+    var cut = out.length > max; if (cut) out = out.slice(0, max - 3).replace(/\s+\S*$/, "").replace(/[,;:]$/, "");
+    return (lo > 0 ? "..." : "") + out + ((cut || hi < ss.length - 1) && !/[.!?]["')\]]*$/.test(out) ? "..." : "");
+  }
+  function pickTeachings(hits, question, mi) {
+    if (!hits || !hits.length) return [];
+    var intent = wantsTeaching(question), n = mi.small ? 1 : 2, max = mi.small ? 220 : 300;
+    return hits.filter(function (h) { return h && h.text && (intent || (h.query_coverage || 0) >= 0.75); }).slice(0, n)
+      .map(function (h) { return { id: h.id, label: shortLabel(h), excerpt: teachExcerpt(h.text, h.matched_terms, max), author: h.author, work: h.work, section: h.section, source_url: h.source_url }; });
+  }
+  function settleWithin(p, ms) { return Promise.race([Promise.resolve(p).catch(function () { return null; }), new Promise(function (r) { setTimeout(function () { r(null); }, ms); })]); }
 
   /* ---------------- quote repair ---------------- */
   function norm(s) { return String(s || "").replace(/\s+([,.;:!?])/g, "$1").replace(/[\u201c\u201d"*]/g, "").replace(/\s+/g, " ").trim().toLowerCase(); }
@@ -290,6 +373,18 @@
     api.lastRepair = { fixed: fixed, dropped: dropped };
     return out;
   }
+  // v7.6: very small models sometimes copy the worked example (Philippians 4:6, Matthew 6:34) instead of the verses found for
+  // the question. Drop those copied lines unless the example verses were really retrieved, and if no quote is left, lead with
+  // the top two retrieved verses word for word so every answer still shows real, relevant KJV text.
+  var EXAMPLE_REFS = { "Philippians 4:6": 1, "Matthew 6:34": 1 };
+  function dropExampleCopies(text, picked) {
+    picked = picked || []; var have = {}, dropped = 0; picked.forEach(function (v) { have[v.ref] = 1; });
+    var lines = String(text || "").split("\n").filter(function (l) { var m = LINE_RE.exec(l); if (!m) return true; var v = findByReference(m[1])[0]; if (v && EXAMPLE_REFS[v.ref] && !have[v.ref]) { dropped++; return false; } return true; });
+    var out = lines.join("\n").replace(/^\s+/, "").replace(/\n{3,}/g, "\n\n");
+    if (dropped && !lines.some(function (l) { return LINE_RE.test(l); }) && picked.length)
+      out = picked.slice(0, 2).map(function (v) { return v.ref + ": \"" + v.text + "\""; }).join("\n") + "\n\n" + out;
+    return out.trim();
+  }
   function stripThink(t) { return String(t || "").replace(/<think>[\s\S]*?(<\/think>|$)/g, "").replace(/<\/?think>/g, "").replace(/^\s+/, ""); }
 
   /* ---------------- settings + device ---------------- */
@@ -313,10 +408,22 @@
   var st = { state: "idle", backend: "", percent: 0, text: "", modelId: "", error: "" };
   function status() { return Object.assign({}, st, { config: getConfig() }); }
   function set(p) { Object.assign(st, p); emit(); }
-  // Gemma 3 1B has only an f16 WebGPU build: on a GPU without shader-f16, Auto picks the CPU build instead.
+  // Which WebLLM build this device can use for a model (null if none): Gemma 3 1B has only an f16 build, so a GPU without shader-f16 can't run it.
+  function gpuId(mi, c) { if (!mi.webgpu || !c.webgpu) return null; return c.f16 ? (mi.webgpu.f16 || mi.webgpu.f32) : mi.webgpu.f32; }
+  // Auto picks WebGPU when this device can run the model's WebGPU build, else CPU. A model with no build for the chosen
+  // backend (WebGPU-only Qwen3.5 / LFM2.5, CPU-only LFM2 / Granite / ERNIE / Gemma 270M) falls back to the build it has.
   async function backendFor(cfg, mi) { var c = await detectCapabilities(); mi = mi || modelInfo(cfg.modelId);
-    if (cfg.backend === "webgpu") return "webgpu"; if (cfg.backend === "cpu") return "cpu";
-    return c.webgpu && (c.f16 || mi.webgpu.f32) ? "webgpu" : "cpu"; }
+    if (cfg.backend === "webgpu") return mi.webgpu ? "webgpu" : "cpu";
+    if (cfg.backend === "cpu") return mi.cpu ? "cpu" : "webgpu";
+    return gpuId(mi, c) || !mi.cpu ? "webgpu" : "cpu"; }
+  // availability(id) -> { ok, backend, note }: whether this device can run the model, and how.
+  async function availability(modelId) {
+    var mi = modelInfo(modelId), c = await detectCapabilities(), be = await backendFor(getConfig(), mi), cfgBe = getConfig().backend;
+    if (be === "webgpu" && !gpuId(mi, c)) return { ok: false, backend: be, note: !c.webgpu ? "Needs WebGPU, which this browser doesn't have" : "Needs WebGPU with shader-f16 here" + (mi.cpu ? ". Choose Auto or CPU" : "") };
+    if (be === "cpu" && !c.wasm) return { ok: false, backend: be, note: "This browser can't run on-device AI" };
+    var fell = cfgBe !== "auto" && cfgBe !== be;
+    return { ok: true, backend: be, note: (be === "webgpu" ? "Runs on WebGPU here" : "Runs on CPU here") + (fell ? " (no " + (cfgBe === "webgpu" ? "WebGPU" : "CPU") + " build)" : "") };
+  }
 
   /* ---------------- engines ---------------- */
   // One model in memory at a time: switching models (or backends) disposes the old engine first so phone RAM stays sane.
@@ -339,9 +446,10 @@
     })();
   }
   async function loadWebLLM(prog, mi) {
-    var c = await detectCapabilities(); if (!c.webgpu) throw new Error("WebGPU is not available in this browser");
-    var id = c.f16 ? mi.webgpu.f16 : mi.webgpu.f32;
-    if (!id) throw new Error(mi.model + " needs WebGPU with shader-f16 here. Choose Auto or CPU in Settings > AI Engine");
+    var c = await detectCapabilities();
+    if (!c.webgpu) throw new Error(mi.cpu ? "WebGPU is not available in this browser" : mi.model + " needs WebGPU, which this browser doesn't have. Pick a model that runs on CPU in Settings > AI Engine");
+    var id = gpuId(mi, c);
+    if (!id) throw new Error(mi.model + " needs WebGPU with shader-f16 here. " + (mi.cpu ? "Choose Auto or CPU in Settings > AI Engine" : "Pick a model that runs on CPU in Settings > AI Engine"));
     prog({ percent: 0, stage: "engine", text: "Loading WebLLM..." });
     var W = await import(WEBLLM_URL);
     var e = await W.CreateMLCEngine(id, { initProgressCallback: function (r) { prog({ percent: Math.round((r.progress || 0) * 100), stage: /fetch|download|loading model from cache/i.test(r.text || "") ? "download" : "load", text: r.text || "" }); } });
@@ -352,6 +460,7 @@
     }, unload: function () { return e.unload(); } };
   }
   async function loadCPU(prog, mi) {
+    if (!mi.cpu) throw new Error(mi.model + " has no CPU build. It needs WebGPU: pick Auto or WebGPU, or another model, in Settings > AI Engine");
     prog({ percent: 0, stage: "engine", text: "Loading the CPU engine..." });
     var T = await import(TJS_URL);
     T.env.allowLocalModels = false; T.env.useBrowserCache = true;
@@ -362,13 +471,17 @@
       var l = 0, t = 0; for (var k in files) { l += files[k].l; t += files[k].t; }
       if (t) prog({ percent: Math.min(99, Math.round(l / t * 100)), stage: "download", text: "Downloading " + mi.name + " (" + mi.model + ")... " + Math.round(l / 1048576) + " of " + Math.round(t / 1048576) + " MB" });
     };
-    var tok = await T.AutoTokenizer.from_pretrained(mi.cpu, { progress_callback: cb });
-    var model = await T.AutoModelForCausalLM.from_pretrained(mi.cpu, { dtype: mi.dtype, device: "wasm", progress_callback: cb });
-    return { backend: "cpu", modelId: mi.cpu + " (" + mi.dtype + ")", raw: model, tokenizer: tok, gen: async function (msgs, onDelta) {
+    var tok = await T.AutoTokenizer.from_pretrained(mi.cpu, Object.assign({ progress_callback: cb }, mi.rev ? { revision: mi.rev } : {}));
+    var model = await T.AutoModelForCausalLM.from_pretrained(mi.cpu, Object.assign({ dtype: mi.dtype, device: "wasm", progress_callback: cb }, mi.rev ? { revision: mi.rev } : {}));
+    // Exports that take num_logits_to_keep (a newer optimum input Transformers.js 3.8.1 never feeds): pass 1 = last-token logits.
+    var extra = {}, names = (model.sessions && model.sessions.model && model.sessions.model.inputNames) || [];
+    if (names.indexOf("num_logits_to_keep") >= 0 && typeof BigInt64Array !== "undefined") { if (model.forward_params && model.forward_params.indexOf("num_logits_to_keep") < 0) model.forward_params.push("num_logits_to_keep"); extra.num_logits_to_keep = new T.Tensor("int64", new BigInt64Array([BigInt(1)]), []); }
+    if (mi.eos) extra.eos_token_id = mi.eos;
+    return { backend: "cpu", modelId: mi.cpu + (mi.rev ? "@" + mi.rev.slice(0, 7) : "") + " (" + mi.dtype + ")", raw: model, tokenizer: tok, gen: async function (msgs, onDelta) {
       var o = { add_generation_prompt: true, return_dict: true }; if (mi.thinking) o.enable_thinking = false;
       var inp = tok.apply_chat_template(msgs, o);
       var streamer = new T.TextStreamer(tok, { skip_prompt: true, skip_special_tokens: true, callback_function: function (t) { if (t) onDelta(t); } });
-      await model.generate(Object.assign({}, inp, { max_new_tokens: MAX_NEW, do_sample: false, repetition_penalty: 1.1, streamer: streamer }));
+      await model.generate(Object.assign({}, inp, extra, { max_new_tokens: MAX_NEW, do_sample: false, repetition_penalty: 1.1, streamer: streamer }));
     }, unload: function () { return model.dispose && model.dispose(); } };
   }
   async function unload() { var e = eng; eng = null; if (e && e.unload) { try { await e.unload(); } catch (x) {} } set({ state: "idle", model: "", modelId: "", percent: 0, text: "" }); }
@@ -408,16 +521,30 @@
     if (!out.length) (picked || []).slice(0, 3).forEach(function (v) { var x = findByReference(v.ref)[0]; if (x && !seen[x.ref]) { seen[x.ref] = 1; out.push(x); } });
     return out.map(function (v) { return { ref: v.ref, text: v.text, b: v.b, c: v.c, v: v.v }; });
   }
-  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}), modelId }) -> { text, sources, refs, offTopic, engine, model }
+  // prepareAsk(question, { modelId, teachWaitMs }) -> retrieval for one answer: KJV verses (always) plus matching teachings
+  // (when the theology corpus answers in time). R.messages is exactly what the model is given. No model is loaded here.
+  async function prepareAsk(question, opts) {
+    opts = opts || {}; var mi = modelInfo(opts.modelId);
+    var R = await retrieve(question, mi.id), intent = wantsTeaching(question);
+    // Off-topic: theology passages are the only evidence (single content word is enough). Teaching questions: also 1+.
+    // Everything else: the stricter guard (2+ matched terms, half the question covered).
+    R.theologyP = theologyTry(question, R.offTopic || intent ? 1 : 2);
+    R.teachings = [];
+    if (!R.offTopic) {
+      var wait = opts.teachWaitMs != null ? opts.teachWaitMs : (intent ? 2500 : 1200);
+      R.teachings = pickTeachings(await settleWithin(R.theologyP, wait), question, mi);
+      if (R.teachings.length) R.messages = buildMessages(question, R.picked, mi.id, R.teachings);
+    }
+    return R;
+  }
+  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}), modelId }) -> { text, sources, refs, offTopic, engine, model, theology?, teachings? }
   async function generate(question, opts) {
     opts = opts || {}; var prog = opts.onProgress || function () {}, mi = modelInfo(opts.modelId);
     if (!KJV) prog({ percent: 0, stage: "bible", text: "Opening the King James Bible..." });
-    var R = await retrieve(question, mi.id);
-    // Additive commentary route: for off-topic questions, theology passages are the only evidence offered
-    // (single content word is enough); for on-topic questions, they are clearly separated commentary
-    // cards added AFTER the Bible answer, and a stricter relevance guard applies (2+ matched terms).
-    // The model prompt never changes: generated answers come from KJV verses only.
-    var thP = theologyTry(question, R.offTopic ? 1 : 2);
+    var R = await prepareAsk(question, { modelId: mi.id }), thP = R.theologyP;
+    // Additive commentary route: for off-topic questions, theology passages are the only evidence offered;
+    // for on-topic questions they are clearly separated cards added AFTER the Bible answer, and the few that
+    // matched in time are also given to the model as short, labelled teachings (never as Scripture).
     if (R.offTopic) {
       var th0 = await thP;
       // Off-topic: no verse genuinely matched, so attach no verse chips or cards - the reply's
@@ -427,10 +554,12 @@
     }
     var e = await loadModel(prog, mi.id), raw = "";
     await e.gen(R.messages, function (d) { raw += d; if (opts.onToken) try { opts.onToken(stripThink(raw)); } catch (x) {} });
-    var text = repairQuotes(stripThink(raw).trim(), R.picked);
+    var text = dropExampleCopies(repairQuotes(stripThink(raw).trim(), R.picked), R.picked);
     if (!text) throw new Error("empty-local-answer");
-    var th = await thP, out = { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
-    if (th) out.theology = th;
+    var th = await settleWithin(thP, 4000), out = { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
+    var used = {}; R.teachings.forEach(function (t) { used[t.id] = 1; });
+    if (th) out.theology = th.map(function (h) { return used[h.id] ? Object.assign({}, h, { usedInAnswer: true }) : h; });
+    if (R.teachings.length) out.teachings = R.teachings;
     return out;
   }
 
@@ -445,7 +574,7 @@
     var FX = window.BibleyFX; if (FX && FX.jumpToVerse) FX.jumpToVerse(+b.dataset.b, +b.dataset.c, +b.dataset.v || null);
   });
 
-  /* ---------------- quick switcher in the AI panel (Cloud AI / Model 1 / Model 2) ---------------- */
+  /* ---------------- quick switcher in the AI panel (Cloud AI / Model 1 ... Model 12) ---------------- */
   function label(cfg) { cfg = cfg || getConfig(); if (cfg.mode !== "local") return "Cloud AI"; var mi = modelInfo(cfg.modelId); return mi.name + " \u00b7 " + mi.family + " " + mi.params; }
   function pill() {
     var b = document.getElementById("aiEnginePill"); if (!b) return;
@@ -469,7 +598,7 @@
     m.id = "laiMenu"; m.className = "lai-menu"; m.setAttribute("role", "menu");
     var opt = function (v, t, s, on, fam) { return '<button type="button" role="menuitemradio" aria-checked="' + on + '" class="lai-opt' + (on ? " on" : "") + '" data-v="' + v + '"><span class="lai-t">' + escH(t) + (fam ? ' <em class="lai-fam ' + fam.toLowerCase() + '">' + fam + "</em>" : "") + "<small>" + escH(s) + '</small></span><span class="lai-ck">' + (on ? "\u2713" : "") + "</span></button>"; };
     m.innerHTML = opt("cloud", "Cloud AI", "Fast, needs internet", cfg.mode !== "local") +
-      MODELS.map(function (mi, i) { return opt(mi.id, "Model " + (i + 1) + ": " + mi.name + " \u00b7 " + mi.model, mi.tag + " \u00b7 " + mi.size.split(" / ")[0] + " \u00b7 KJV verse lookup", cfg.mode === "local" && cfg.modelId === mi.id, mi.family); }).join("") +
+      MODELS.map(function (mi, i) { return opt(mi.id, "Model " + (i + 1) + ": " + mi.name + " \u00b7 " + mi.model, mi.tag + " \u00b7 " + mi.size.split(" / ")[0] + " \u00b7 KJV verses + teachings", cfg.mode === "local" && cfg.modelId === mi.id, mi.family); }).join("") +
       '<button type="button" class="lai-opt lai-set" data-v="settings"><span class="lai-t">AI Engine settings\u2026<small>Download, test, backend</small></span></button>';
     document.body.appendChild(m);
     var W = Math.min(330, innerWidth - 16); m.style.width = W + "px"; m.style.left = Math.max(8, Math.min(r.right - W, innerWidth - W - 8)) + "px"; m.style.top = (r.bottom + 6) + "px";
@@ -480,10 +609,13 @@
     var b = document.getElementById("aiEnginePill"); if (!b || b.dataset.wired) return pill(); b.dataset.wired = "1";
     b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openMenu(b); });
     if (!document.getElementById("laiCss")) { var s = document.createElement("style"); s.id = "laiCss"; s.textContent =
-      ".lai-menu{position:fixed;z-index:90;background:var(--bg-panel,#0d1326);color:var(--ink,#eee);border:1px solid var(--panel-border,#c9a86744);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.45);padding:6px;box-sizing:border-box}" +
+      ".lai-menu{position:fixed;z-index:90;max-height:min(70vh,560px);overflow-y:auto;overscroll-behavior:contain;background:var(--bg-panel,#0d1326);color:var(--ink,#eee);border:1px solid var(--panel-border,#c9a86744);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.45);padding:6px;box-sizing:border-box}" +
       ".lai-opt{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:inherit;text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer;font:500 14px/1.3 system-ui,-apple-system,sans-serif}.lai-opt:hover,.lai-opt.on{background:#c9a8671f}" +
       ".lai-t{flex:1;min-width:0}.lai-t small{display:block;font-weight:400;font-size:12px;opacity:.7;margin-top:2px}.lai-ck{color:var(--gold,#c9a867);font-weight:700}.lai-set{border-top:1px solid #c9a86726;border-radius:0 0 10px 10px;margin-top:4px}" +
       ".lai-fam{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;vertical-align:1px}.lai-fam.qwen{background:#7fa3b833;color:#9cc3da}.lai-fam.gemma{background:#9c90b833;color:#c0b5e6}" +
+      // v7.6: family colours for the new models, shared with the Settings cards (.ai-fam)
+      ".lai-fam.liquid,.ai-fam.liquid{background:#5fb39a33;color:#8fd6bf}.lai-fam.granite,.ai-fam.granite{background:#7f8fa833;color:#aebad0}.lai-fam.ernie,.ai-fam.ernie{background:#c98a6733;color:#e7b08f}.lai-fam.smollm,.ai-fam.smollm{background:#c9b86733;color:#e3d28d}" +
+      "html.theme-light .ai-fam.liquid,html.theme-sepia .ai-fam.liquid{color:#2c6e5a}html.theme-light .ai-fam.granite,html.theme-sepia .ai-fam.granite{color:#44526a}html.theme-light .ai-fam.ernie,html.theme-sepia .ai-fam.ernie{color:#8a4a26}html.theme-light .ai-fam.smollm,html.theme-sepia .ai-fam.smollm{color:#6e5d14}" +
       ".lai-refs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}.lai-refs span{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-right:2px}" +
       ".lai-chip{border:1px solid var(--gold,#c9a867);background:#c9a86714;color:var(--gold,#c9a867);border-radius:999px;padding:5px 11px;font:600 12.5px/1 system-ui,-apple-system,sans-serif;cursor:pointer}.lai-chip:hover{background:#c9a86733}" +
       ".lai-theo{margin-top:10px}.lai-theo>span{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:6px}" +
@@ -500,14 +632,16 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountPill); else mountPill();
   window.addEventListener("storage", function (e) { if (e.key === KEY) emit(); });
 
-  var api = { version: "7.0", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
-    MODELS: MODELS.map(function (m) { return { id: m.id, name: m.name, family: m.family, model: m.model, params: m.params, tag: m.tag, size: m.size, desc: m.desc, webgpu: [m.webgpu.f16, m.webgpu.f32].filter(Boolean), cpu: m.cpu, dtype: m.dtype }; }),
+  var api = { version: "7.6", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
+    // webgpu: [] when a model has no WebGPU build; cpu: null when it has no CPU build; backends lists what it has.
+    MODELS: MODELS.map(function (m) { return { id: m.id, name: m.name, family: m.family, model: m.model, params: m.params, tag: m.tag, size: m.size, desc: m.desc, webgpu: m.webgpu ? [m.webgpu.f16, m.webgpu.f32].filter(Boolean) : [], cpu: m.cpu || null, rev: m.rev || null, dtype: m.dtype, backends: [m.webgpu ? "webgpu" : "", m.cpu ? "cpu" : ""].filter(Boolean) }; }),
+    availability: availability, prepareAsk: prepareAsk, wantsTeaching: wantsTeaching, teachExcerpt: teachExcerpt,
     modelInfo: function (id) { var m = modelInfo(id); return api.MODELS.filter(function (x) { return x.id === m.id; })[0]; }, label: label,
     getConfig: getConfig, setConfig: setConfig, isLocal: function () { return getConfig().mode === "local"; }, detectCapabilities: detectCapabilities,
     loadModel: loadModel, generate: generate, ask: generate, retrieve: retrieve, clearCache: clearCache, isCached: isCached, status: status, unload: unload,
     on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
     ensureKJV: ensureKJV, kjvReady: function () { return !!KJV; }, passage: passage, findByReference: findByReference, searchKJV: searchKJV, search: searchKJV, isOffTopic: isOffTopic, offTopicReply: offTopicReply,
-    buildMessages: buildMessages, buildPrompt: buildMessages, repairQuotes: repairQuotes, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
+    buildMessages: buildMessages, buildPrompt: buildMessages, repairQuotes: repairQuotes, dropExampleCopies: dropExampleCopies, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
     theologyTry: theologyTry, theologyHtml: theologyHtml,
     openSwitcher: function () { var b = document.getElementById("aiEnginePill"); if (b) openMenu(b); } };
   window.BibleyLocalAI = api;

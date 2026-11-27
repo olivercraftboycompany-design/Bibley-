@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.4";
+  const APP_VER = "1.9", WEB_VER = "7.6";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -385,7 +385,7 @@
     ["Study AI depth", "ai depth simple deep explain", "study", "depth"], ["Study Notebook", "notes notebook", "study", "nb"], ["Memory verses", "memorize memory", "study", "mem"],
     ["Reading plans", "plans streak", "study", "plans"], ["Read aloud speed", "audio speech voice read aloud speed tts", "audio", "tts"],
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
-    ["AI Engine", "ai engine bibley 2.1 2.2 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma model 1 model 2 second model cloud ai switch verse lookup", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
+    ["AI Engine", "ai engine bibley 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 2.10 2.11 2.12 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma lfm liquid granite ernie smollm model 1 model 2 twelve models cloud ai switch verse lookup teachings augustine calvin", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["More on-device models: Bibley 2.3 to 2.12", "more models small models under 1b qwen3.5 0.8b lfm2 700m qwen2.5 0.5b lfm2.5 350m lfm2 350m liquid granite 4.0 350m ibm ernie 4.5 0.3b baidu smollm2 360m 135m gemma 3 270m bibley 2.3 2.4 2.5 2.6 2.7 2.8 2.9 2.10 2.11 2.12 webgpu only cpu only", "aiengine", "aimodel3"], ["Teachings in on-device answers", "teachings theology doctrine augustine confessions calvin institutes historic christian writers on-device ai sources", "aiengine", "aidl"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Compare differences", "compare diff differences parallel translations highlight words percent", "reading", "cmpdiff"],
     ["Recap", "recap daily weekly monthly summary stats statistics history progress time streak week month review", "study", "recap"], ["Recap week starts on", "week start sunday monday recap calendar", "study", "recapweek"],
@@ -687,7 +687,7 @@
     });
   } };
 
-  /* ---------- v7.0: AI Engine (Cloud AI, or one of two on-device models sharing the KJV verse lookup, bibley-local-ai.js) ---------- */
+  /* ---------- v7.0: AI Engine (Cloud AI, or one of the on-device models sharing the KJV verse lookup, bibley-local-ai.js; v7.6: twelve models, teachings) ---------- */
   PAGES.aiengine = { title: "AI Engine", render(el) {
     const L = window.BibleyLocalAI;
     if (!L) { el.innerHTML = '<p class="bs-note">The AI engine switcher is still loading.</p>'; return; }
@@ -696,7 +696,7 @@
     const card = (m, i) => { const on = local && c.modelId === m.id;
       return '<div class="ai-model' + (on ? " on" : "") + '" data-model="' + m.id + '" data-anchor="aimodel' + (i + 1) + '"><div class="ai-mh"><span class="ai-mname">Model ' + (i + 1) + ": " + esc(m.name) + '</span><em class="ai-fam ' + m.family.toLowerCase() + '">' + esc(m.family) + "</em>" + (on ? '<span class="ai-use">In use</span>' : "") + "</div>" +
         '<div class="ai-msub">' + esc(m.model) + " \u00b7 " + esc(m.params) + " parameters \u00b7 " + esc(m.tag) + " \u00b7 " + esc(m.size) + "</div>" +
-        '<p class="ai-mdesc">' + esc(m.desc) + ' Full King James verse lookup built in.</p><div class="ai-mid">WebGPU: <code>' + m.webgpu.map(esc).join("</code> / <code>") + "</code><br>CPU: <code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")</div>" +
+        '<p class="ai-mdesc">' + esc(m.desc) + ' Full King James verse lookup and teachings built in.</p><div class="ai-mid">WebGPU: ' + (m.webgpu && m.webgpu.length ? "<code>" + m.webgpu.map(esc).join("</code> / <code>") + "</code>" : "none (CPU only)") + "<br>CPU: " + (m.cpu ? "<code>" + esc(m.cpu) + "</code> (" + esc(m.dtype) + ")" : "none (WebGPU only)") + '</div><div class="ai-mav bs-note" style="margin:4px 0 0"></div>' +
         '<div class="ai-mst">Checking\u2026</div><div class="ai-prog" hidden><i></i></div><div class="ai-btns">' +
         (on ? "" : '<button type="button" class="fx-btn small primary" data-act="use-' + m.id + '">Use this model</button>') +
         '<button type="button" class="fx-btn small' + (on ? " primary" : "") + '" data-act="dl-' + m.id + '">Download &amp; Load</button><button type="button" class="fx-btn small" data-act="test-' + m.id + '">Test</button><button type="button" class="fx-btn small" data-act="clear-' + m.id + '">Clear</button></div></div>'; };
@@ -705,7 +705,7 @@
         group("Device backend", be("auto", "Auto (WebGPU if available, else CPU)", "Recommended") + be("webgpu", "WebGPU (WebLLM)", "Fastest, on devices with WebGPU") + be("cpu", "CPU (WASM)", "Works in almost any browser, slower"), "aibackend") +
         '<p class="bs-note ai-caps">Detected: checking this device\u2026</p>'
       : 
-        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
+        group("On-device models", MS.map((m, i) => row({ ic: IC.chip, t: "Model " + (i + 1) + ": " + m.name + " \u00b7 " + m.model, s: m.tag + " \u00b7 " + m.params + " \u00b7 " + m.size, act: "use-" + m.id })).join("")));
     const capEl = el.querySelector(".ai-caps");
     const paint = s => {
       if (!el.isConnected) return;
@@ -721,7 +721,9 @@
     if (local) {
       paint(s0);
       const un = L.on(s => { if (!el.isConnected) { un(); return; } paint(s); });
-      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : "") + (k.webgpu && !k.f16 ? " \u00b7 Model 2 runs on CPU here (no shader-f16)" : ""); });
+      L.detectCapabilities().then(k => { if (capEl && el.isConnected) capEl.textContent = k.label + (k.mobile ? " \u00b7 phone" : "") + (k.webgpu && !k.f16 ? " \u00b7 Model 2 runs on CPU here (no shader-f16)" : "") + (!k.webgpu ? " \u00b7 WebGPU-only models (Bibley 2.3, 2.6) can't run here" : ""); });
+      // v7.6: per-model line: where it runs on this device, or why it can't (WebGPU-only / CPU-only builds fall back or show unavailable)
+      if (L.availability) el.querySelectorAll(".ai-model").forEach(box => { const av = box.querySelector(".ai-mav"); L.availability(box.dataset.model).then(a => { if (av && el.isConnected) { av.textContent = (a.ok ? "\u2713 " : "\u26a0 ") + a.note; box.classList.toggle("ai-unavail", !a.ok); } }).catch(() => {}); });
     }
     const nm = id => (L.modelInfo(id) || {}).name || "the model";
     wire(el, {
@@ -746,11 +748,12 @@
   const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
-    ["ai", "Two on-device AI models", "Bibley 2.1 (Qwen3 0.6B, about 335-395 MB) is fast and light. Bibley 2.2 (Google Gemma 3 1B, about 600-880 MB) gives fuller, more careful answers and is best on newer devices.", "qwen gemma model 1 model 2 local offline download size", "aiengine"],
-    ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI, Bibley 2.1 or Bibley 2.2 without opening Settings.", "switcher pill cloud local engine", ""],
-    ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed", "aiengine"],
-    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2. Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
-    ["ai", "Real KJV verse lookup", "Both models look up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
+    ["ai", "Twelve on-device AI models", "Bibley 2.1 (Qwen3 0.6B) is fast and light; Bibley 2.2 (Google Gemma 3 1B) gives fuller answers on newer devices. Bibley 2.3 to 2.12 are ten more models under 1B parameters: Qwen3.5 0.8B (the smartest small one), LFM2 700M, Qwen2.5 0.5B, LFM2.5 350M, LFM2 350M, IBM Granite 4.0 350M, Baidu ERNIE 4.5 0.3B, SmolLM2 360M, Gemma 3 270M and SmolLM2 135M (the smallest, about 185-270 MB). Each card shows its download size.", "qwen gemma qwen3.5 lfm2 lfm2.5 liquid granite ibm ernie baidu smollm model 1 model 2 more models local offline download size under 1b small", "aiengine"],
+    ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI or any on-device model (Bibley 2.1 to 2.12) without opening Settings.", "switcher pill cloud local engine", ""],
+    ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Some models have only one build: Qwen3.5 0.8B and LFM2.5 350M need WebGPU, while LFM2, Granite, ERNIE and Gemma 3 270M run on CPU. A model without a build for your chosen backend uses the one it has, and its card says if it can't run on this device. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed only unavailable", "aiengine"],
+    ["ai", "Teachings in answers", "For questions about teaching and doctrine (or when a passage closely matches), on-device answers also get a short excerpt from Augustine's Confessions or Calvin's Institutes, clearly labelled as that writer's words, never Scripture. The full passages appear as cards under the answer with a link to the public-domain source. If the writings aren't downloaded yet or you're offline, the answer uses the Bible verses alone.", "teachings theology doctrine augustine calvin confessions institutes sources commentary offline", "aiengine"],
+    ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2 and the larger CPU builds (around 800 MB and up). Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
+    ["ai", "Real KJV verse lookup", "Every on-device model looks up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
     ["ai", "Referenced Verses chips", "Under an AI answer, tap a Referenced Verses chip to jump straight to that verse in the reader.", "chips references tap jump", ""],
     ["ai", "Cloud AI", "Cloud AI answers instantly with Bibley's online AI and needs internet. In the chat, \u2713 marks a verse reference that was checked as real and \u26a0 one that doesn't exist.", "cloud online internet fast check verify", "aiengine"],
     ["ai", "What Bibley remembers", "Bibley keeps a few short lines from your chats (like your name) to pick up where you left off. On a call, say \u201cforget that\u201d or \u201cforget everything\u201d. Edit it any time.", "memory remember forget call chat history", "memory"],

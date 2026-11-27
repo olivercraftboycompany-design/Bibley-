@@ -398,9 +398,15 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.5";
+  const APP_VERSION = "7.6";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.6", date: "November 2026", items: [
+      ["Ten new on-device AI models", "Bibley 2.3 to 2.12 join Bibley 2.1 and 2.2, all under 1B parameters: Qwen3.5 0.8B, LFM2 700M, Qwen2.5 0.5B, LFM2.5 350M, LFM2 350M, IBM Granite 4.0 350M, Baidu ERNIE 4.5 0.3B, SmolLM2 360M, Gemma 3 270M and SmolLM2 135M. Pick one from the pill at the top of the AI panel or in Settings > AI Engine; each downloads once and works offline."],
+      ["Every model looks up real verses", "All twelve on-device models use the same King James verse lookup, quote the verses word for word and show tappable Referenced Verses."],
+      ["Teachings in on-device answers", "Ask about a teaching or doctrine and on-device answers can also draw on a short passage from Augustine's Confessions or Calvin's Institutes, clearly labelled as that writer's words, never Scripture. The full passages show under the answer with a link to the source. Offline, answers use the verses alone."],
+      ["Runs where it can", "Some models need WebGPU and some run only on your CPU: each model card says whether it runs on this device. CPU mode for Bibley 2.1 and 2.2 now uses builds that load reliably in the browser."]
+    ] },
     { v: "7.5", date: "November 2026", items: [
       ["Find a verse with AI", "Describe a verse in your own words, like \u201cthe one about not worrying about tomorrow\u201d, and Bibley finds it. Type it in the Books search or the Study Notebook search. Every verse is checked against the Bible text before it's shown; tap one to open it."],
       ["Notes look like notes", "In the Study Notebook, Write mode now shows your formatting as you type: bold is bold, headings, lists, checklists, quotes and dividers look finished, with no ** marks. New: code blocks."]
