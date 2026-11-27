@@ -398,9 +398,15 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.6";
+  const APP_VERSION = "7.7";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.7", date: "November 2026", items: [
+      ["Writings", "A new Writings tab in the bottom bar. Read studies and reflections from people on Bibley, search them, and switch between All, Mine and Shared with me. Writings need your Bibley account (Settings > Account & Cloud Sync)."],
+      ["Post from your notebook", "In the Study Notebook, tap Post to share a note as a writing. Anyone with Bibley can read it. Changed the note later? Tap Post again to update it."],
+      ["Comments", "Leave a comment on any writing, and delete your own. Authors can remove comments on their writings."],
+      ["Write together", "Add friends by their username so they can edit your writing too. Edits show formatting as you type, and if two people save at once Bibley asks whose version to keep."]
+    ] },
     { v: "7.6", date: "November 2026", items: [
       ["Ten new on-device AI models", "Bibley 2.3 to 2.12 join Bibley 2.1 and 2.2, all under 1B parameters: Qwen3.5 0.8B, LFM2 700M, Qwen2.5 0.5B, LFM2.5 350M, LFM2 350M, IBM Granite 4.0 350M, Baidu ERNIE 4.5 0.3B, SmolLM2 360M, Gemma 3 270M and SmolLM2 135M. Pick one from the pill at the top of the AI panel or in Settings > AI Engine; each downloads once and works offline."],
       ["Every model looks up real verses", "All twelve on-device models use the same King James verse lookup, quote the verses word for word and show tappable Referenced Verses."],

@@ -297,7 +297,7 @@
     else if (!openOverlay() && canBack()) back();
     syncSentinelSoon();
   });
-  const openOverlay = () => !!(document.querySelector(".fx-sheet.open, .bs-root.open, .bn-search.open, .lb-root.open, .dv-focus.open") || /\b(snbx-on|bsc-lock)\b/.test(document.documentElement.className));
+  const openOverlay = () => !!(document.querySelector(".fx-sheet.open, .bs-root.open, .bn-search.open, .lb-root.open, .dv-focus.open") || /\b(snbx-on|bsc-lock|bwr-on)\b/.test(document.documentElement.className));
 
   /* =====================================================================
      Print chapter

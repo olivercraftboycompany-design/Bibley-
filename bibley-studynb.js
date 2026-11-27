@@ -11,6 +11,7 @@
    Older notes are READ ONLY from their own keys and shown as imported notebooks:
      bibley_notes_v1 (verse notes from the reader), bibley_notebook_v1 (the paged notebook),
      bible_highlights_v2, bible_bookmarks_v2, bibley_vbm_v1. Those keys are never written here.
+   7.7 (2026-11-27): Post (editor header and More) publishes the note to Writings (bibley-writings.js).
    7.5 (2026-11-27): Write mode is a live formatting editor (bibley-mdedit.js): bold shows bold, headings,
      lists, checklists, quotes, code and dividers show as they are, and no ** marks are seen. The note is
      still stored as the same Markdown (the hidden textarea stays the source of truth for save, Preview,
@@ -427,6 +428,7 @@
         <span class="snbx-grow"></span>
         ${imp ? "" : segH("snbx-hseg", MODES)}
         ${imp ? "" : `<button type="button" class="snbx-hb" data-a="grammar" aria-label="AI Grammar Fix" title="AI Grammar Fix: fix spelling and grammar (selection or whole note)">${I.spark}<span>Grammar</span></button><button type="button" class="snbx-hb snbx-mob" data-a="verse" aria-label="Insert Verse">${I.plus}<span>Verse</span></button>`}
+        ${imp ? "" : `<button type="button" class="snbx-hb" data-a="post" aria-label="Post to Writings" title="Post to Writings: share this note with everyone on Bibley">${I.share}<span>Post</span></button>`}
         <button type="button" class="snb-ib snbx-dsk ${n.pinned ? "on" : ""}" data-a="pin" aria-label="Pin" title="Pin">${I.pin}</button>
         <button type="button" class="snb-ib snbx-dsk" data-a="focus" aria-label="Focus mode" title="Focus mode">${I.focus}</button>
         <button type="button" class="snb-ib" data-a="more" aria-label="More: templates, paper, focus, export, delete" title="More">${I.more}</button></div>
@@ -447,7 +449,7 @@
       e.currentTarget.classList.toggle("on", n.pinned); toast(n.pinned ? "Pinned to the top" : "Unpinned"); drawSide(); drawItems(); };
     $('[data-a="focus"]', ed).onclick = () => toggleFocus();
     $('[data-a="more"]', ed).onclick = moreMenu;
-    if (!imp) { $('[data-a="grammar"]', ed).onclick = grammar; $('[data-a="verse"]', ed).onclick = insertVerse; }
+    if (!imp) { $('[data-a="grammar"]', ed).onclick = grammar; $('[data-a="verse"]', ed).onclick = insertVerse; $('[data-a="post"]', ed).onclick = postNote; }
     if (imp) { $('[data-a="convert"]', ed).onclick = () => {
       const now = Date.now(), nbid = books().some(x => x.id === st.nb) ? st.nb : ensureDefault()[0].id;
       const head = n.verseText && n.ref0 ? `> "${n.verseText}" \u2014 ${refLabel(n.ref0)}\n\n` : (n.ref0 ? refLabel(n.ref0) + "\n\n" : "");
@@ -748,6 +750,13 @@
     };
   }
   /* modal */
+  // 7.7: Post this note to Writings (bibley-writings.js): confirm sheet, then "Open in Writings"; posted again = "Update post"
+  function postNote() {
+    const W = window.BibleyWritings; if (!W) { toast("Writings is still loading"); return; }
+    const it = curItem(); if (!it || cur.imp) return;
+    if (!it.id) { toast("Write something first, then Post"); return; }
+    W.postFromNote({ id: it.id, title: it.title, body: it.body });
+  }
   function modal(title, html, wire) {
     const m = $(".snbx-modal");
     m.innerHTML = `<div class="snbx-mbox" role="dialog" aria-label="${esc(title)}"><div class="snbx-mh"><b>${esc(title)}</b><button type="button" class="snb-ib" data-a="mx" aria-label="Close">${I.x}</button></div><div class="snbx-mb"></div></div>`;
@@ -780,7 +789,7 @@
     const B = (a, ic, l) => `<button type="button" class="snbx-mi" data-m="${a}">${ic}<span>${l}</span></button>`;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition, nbs = books();
     modal("This note", `<div class="snbx-menu">
-      ${cur.imp ? "" : `<div class="snbx-mt">Note</div>${B("pin", I.pin, cur.n.pinned ? "Unpin" : "Pin to the top")}${B("focus", I.focus, "Focus mode")}${SR ? B("mic", I.mic, rec ? "Stop dictation" : "Dictate with your voice") : ""}${B("tpl", I.plus, "New note from a template")}
+      ${cur.imp ? "" : `<div class="snbx-mt">Note</div>${B("pin", I.pin, cur.n.pinned ? "Unpin" : "Pin to the top")}${B("focus", I.focus, "Focus mode")}${SR ? B("mic", I.mic, rec ? "Stop dictation" : "Dictate with your voice") : ""}${B("tpl", I.plus, "New note from a template")}${B("post", I.share, window.BibleyWritings && it.id && window.BibleyWritings.postedFor(it.id) ? "Update post in Writings" : "Post to Writings")}
       ${nbs.length > 1 ? `<div class="snbx-mt">Move to notebook</div><div class="snbx-mvs">${nbs.map(b => `<button type="button" class="snbx-pill${b.id === ($(".snb-nbsel") || {}).value ? " on" : ""}" data-mv="${esc(b.id)}"><i class="snb-dot" style="background:${colorOf(b.color)}"></i>${esc(b.name)}</button>`).join("")}</div>` : ""}`}
       <div class="snbx-mt">Export note</div>${B("md", I.dl, "Export as Markdown (.md)")}${B("txt", I.dl, "Export as text (.txt)")}${B("copy", I.copy, "Copy formatted text")}${B("print", I.print, "Print / Save as PDF")}${B("share", I.share, "Share")}
       <div class="snbx-mt">${esc(lt)} \u00b7 ${listNow.length} note${listNow.length === 1 ? "" : "s"}</div>${B("nbmd", I.dl, "Export notebook as Markdown")}${B("nbtxt", I.dl, "Export notebook as text")}${B("nbprint", I.print, "Print notebook")}
@@ -793,6 +802,7 @@
         if (a === "focus") toggleFocus(true);
         if (a === "mic") dictate($('.snbx-tools [data-f="mic"]'));
         if (a === "tpl") pickTemplate(null);
+        if (a === "post") postNote();
         if (a === "md") download(fileName(it.title, "md"), mdOf(it), "text/markdown");
         if (a === "txt") download(fileName(it.title, "txt"), noteText(it), "text/plain");
         if (a === "copy") copy(noteText(it));
