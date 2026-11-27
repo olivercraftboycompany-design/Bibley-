@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.3";
+  const APP_VERSION = "7.4";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.4", date: "November 2026", items: [
+      ["Your recap: day, week and month", "More > Recap (or \u201cYour recap\u201d on Today's streak card) shows what you read and studied: chapters, time in Bibley, active days, your best streak, most-read books, notes, highlights and saved verses. Look back day by day, week by week or month by month, tap any day to open it, and copy or share it as text."],
+      ["This week at a glance", "The streak card on Today and in Reading plans now shows the days you've been in the Word this week."],
+      ["Honest numbers", "Recaps only count what Bibley recorded on your devices; days with nothing recorded stay empty. Time in Bibley is counted from this version on, while Bibley is open and in use, and syncs with your account."]
+    ] },
     { v: "7.3", date: "November 2026", items: [
       ["Back and forward", "New arrows next to Books in the top bar take you back to the chapters you just read, and forward again, like a web browser. Your phone's Back button steps back through them too."],
       ["See what's different in Compare", "Open Compare and the words that differ between the two translations are underlined in both panes. The chip in the second pane shows how different the chapter is, like \u201c23%\u201d. Tap it to turn the marks off."],

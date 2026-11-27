@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.3";
+  const APP_VER = "1.9", WEB_VER = "7.4";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -388,6 +388,7 @@
     ["AI Engine", "ai engine bibley 2.1 2.2 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma model 1 model 2 second model cloud ai switch verse lookup", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Compare differences", "compare diff differences parallel translations highlight words percent", "reading", "cmpdiff"],
+    ["Recap", "recap daily weekly monthly summary stats statistics history progress time streak week month review", "study", "recap"], ["Recap week starts on", "week start sunday monday recap calendar", "study", "recapweek"],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
   const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
@@ -581,11 +582,15 @@
       group("", row({ ic: IC.notes, t: "Study Notebook", s: "Notebooks, templates, highlights", act: "nb", anchor: "nb" }) +
         row({ ic: IC.star, t: "My Bible", s: "Highlights, notes and bookmarks", act: "mb" }) +
         row({ ic: IC.flame, t: "Reading plans", s: (FX.plan() ? FX.plan().name + " \u00b7 day " + FX.plan().day : "Pick a plan"), act: "plans", anchor: "plans" }) +
-        row({ ic: IC.study, t: "Memory verses", s: "Practise the verses you're memorizing", act: "mem", anchor: "mem" }));
-    wire(el, { seg: (k, v) => { try { if (v) localStorage.setItem("bibley_ai_depth_v1", v); else localStorage.removeItem("bibley_ai_depth_v1"); } catch {} toast("Study AI: " + (v || "normal")); },
+        (window.BibleyRecap ? row({ ic: window.BibleyRecap.icon, t: "Recap", s: "Your day, week and month in Bibley", act: "recap", anchor: "recap" }) : "") +
+        row({ ic: IC.study, t: "Memory verses", s: "Practise the verses you're memorizing", act: "mem", anchor: "mem" })) +
+      (window.BibleyRecap ? field("Recap week starts on", seg("recapWeek", window.BibleyRecap.weekStart(), [["auto", "Automatic"], ["0", "Sunday"], ["1", "Monday"]]), "recapweek") +
+        '<p class="bs-note">Automatic follows your device\u2019s region (' + (window.BibleyRecap.weekStartResolved() === 0 ? "Sunday" : "Monday") + ").</p>" : "");
+    wire(el, { seg: (k, v) => { if (k === "recapWeek") { if (window.BibleyRecap) window.BibleyRecap.setWeekStart(v); return; } try { if (v) localStorage.setItem("bibley_ai_depth_v1", v); else localStorage.removeItem("bibley_ai_depth_v1"); } catch {} toast("Study AI: " + (v || "normal")); },
       act: a => { close(() => {
         if (a === "nb") { const b = document.querySelector('.fx-dock [data-a="notes"]'); if (b) b.click(); }
         if (a === "mb") FX.open.myBible(); if (a === "plans") FX.open.plans();
+        if (a === "recap" && window.BibleyRecap) window.BibleyRecap.open();
         if (a === "mem") { if (window.BibleyStudio) window.BibleyStudio.memoryList(); }
       }, 150); } });
   } };
@@ -762,6 +767,7 @@
     ["read", "Back and forward", "The arrows next to Books in the top bar retrace the chapters you opened, like a web browser. Your phone's Back button steps back through them too when nothing else is open. The list lasts until you close Bibley.", "history back forward previous chapter arrows retrace undo navigation", ""],
     ["read", "Compare differences", "In Compare, words that differ between the two translations are underlined in both panes, and the chip in the second pane's toolbar shows how different the chapter is. Tap the chip to turn it off; Settings > Reading has the same switch.", "compare diff differences percent parallel translations underline", "reading"],
     ["read", "Print a chapter", "More (\u22ee) > Print chapter prints a clean page with section headings, your highlights and notes, or saves it as a PDF. In Compare it prints both translations side by side, verse by verse. Printing works in the browser; the Android app can't print yet.", "print pdf save paper export chapter", ""],
+    ["read", "Your recap", "More (\u22ee) > Recap shows your day, week or month: chapters read, time in Bibley, active days, your best streak, most-read books, notes, highlights and saved verses. Use the arrows (or swipe) to look back, tap a day to open it, and Copy or Share it as text. It only counts what Bibley recorded; time in Bibley is recorded from 7.4 on. Today's streak card has a shortcut too.", "recap daily weekly monthly summary stats history progress time streak share copy week month", "study"],
     ["read", "Tap any verse", "Tap a verse to highlight it, bookmark it, add a note, ask the AI or send it to the Notebook.", "verse tap highlight bookmark note ai", ""],
     ["read", "Listen to a chapter", "Tap the speaker on a chapter to hear it read aloud. The voice comes from your device's text-to-speech; change the speed in Audio.", "audio listen read aloud tts speaker voice speed", "audio"],
     ["read", "Reading plans & streaks", "Pick a plan, then tap \u201cMark chapter read\u201d at the end of a chapter. When every chapter for the day is read, the day checks itself off and your streak grows.", "plans streak mark read daily", "study"],
@@ -889,7 +895,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Bibley 7.3: back & forward, Compare differences, Print", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Bibley 7.4: Daily, Weekly and Monthly recaps", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

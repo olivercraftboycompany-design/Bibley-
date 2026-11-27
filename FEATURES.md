@@ -50,12 +50,13 @@ Oliver's feature list (sent 2026-11-26), tracked here. Status:
 - 🗑 Custom reading-plan builder — **Removed in 7.2.2** (built in 7.2): Plus > Reading plans+ > Build a custom plan (choose books and pace).
 - 🗑 Catch-up & skip-day — **Removed in 7.2.2** (built in 7.2): behind-schedule banner with Catch up; Skip this day on the current reading.
 - 🗑 Seasonal plans (Advent, Lent, Easter/Holy Week) — **Removed in 7.2.2** (built in 7.2): dates are computed each year (e.g. Lent starts Ash Wednesday).
-- 🗑 Daily recap — **Removed in 7.2.2** (built in 7.2): Plus > Daily recap (reading, notes, highlights, saved verses, prayers, memory, journal, streak; copyable).
-- 🗑 Monthly recap — **Removed in 7.2.2** (built in 7.2): Plus > Monthly recap (chapters, active days, best streak, top books, prayers, memory; browsable by month).
+- ✅ Daily recap — **Built in 7.4** (rebuilt from scratch, no Plus menu): More (⋮) > Recap, the "Your recap" button on the streak card (Today and Reading plans), or Settings > Study & notes > Recap. The Day tab shows chapters read, time in Bibley, study marks, the current streak, reading-plan progress (and plan days completed), and the notes, highlights, saved and liked verses and memory verses from that day, each tappable to open the verse. Browse back day by day (arrows, swipe or ←/→); Copy or Share as text.
+- ✅ Weekly recap — **Built in 7.4** (new): the Week tab shows chapters read, active days, time in Bibley, best streak, a day-by-day strip (tap a day to open it), most-read books, books finished, study counts and last week for comparison. Weeks start on Sunday or Monday automatically from the device's region, or as chosen in Settings > Study & notes > Recap week starts on. Browse previous weeks; Copy or Share as text. The streak card on Today also shows this week as seven dots.
+- ✅ Monthly recap — **Built in 7.4** (rebuilt from scratch): the Month tab shows chapters read, active days, best streak, time in Bibley, a calendar of the month shaded by chapters read (tap a day to open it), the top five books, books finished, study counts and last month for comparison. Browse previous months; Copy or Share as text.
 
-Recaps only count activity recorded on the device; they don't invent history for days with no records.
+Recaps only count what Bibley recorded (chapters marked read, the streak's activity days, plan days, and the time stamps on notes, highlights, saved, liked and memory verses); days with no records stay empty and nothing is estimated. New in 7.4 and recorded from then on: time in Bibley (while the app is on screen and in use: a tap, scroll or key in the last 2 minutes, or read-aloud playing) and chapters opened (30 seconds of that time on a chapter), kept per day and per device in `bibley_daylog_v1`, which syncs with the account and rides in backups; the week-start choice is `bibley_recap_v1` (synced); the device id `bibley_recap_device_v1` never syncs.
 
-Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks. The three ✅ 7.3 items above were rebuilt from scratch inside the reader (no Plus menu) and share none of the 7.2 code.
+Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks. The ✅ 7.3 and 7.4 items above were rebuilt from scratch inside the reader (no Plus menu) and share none of the 7.2 code.
 
 ## Still to do (summary)
 
