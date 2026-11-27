@@ -414,6 +414,7 @@
 
 <script src="bibley-ai.js"></script>
 <script src="bibley-local-ai.js"></script>
+<script src="bibley-theology.js"></script>
 <script src="bibley-sync.js"></script>
 <script>
 (() => {
@@ -2573,7 +2574,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
           onToken: t=>{ if(t.trim()){ thinkingDiv.innerHTML=formatAiAnswer(t); aiContent.scrollTop=aiContent.scrollHeight; } }
         });
         thinkingDiv.remove();
-        addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text) + (LAI.chipsHtml ? LAI.chipsHtml(ans.refs) : "") + '<div class="ai-engine-note">'+escapeHtml(LAI.label ? LAI.label() : "Bibley 2.1")+' \u00b7 on this device \u00b7 KJV verse lookup</div>', ans.sources);
+        addMsg("ai", (CRISIS_RE.test(q) ? CRISIS_NOTE : "") + formatAiAnswer(ans.text) + (LAI.chipsHtml ? LAI.chipsHtml(ans.refs) : "") + (LAI.theologyHtml && ans.theology ? LAI.theologyHtml(ans.theology) : "") + '<div class="ai-engine-note">'+escapeHtml(LAI.label ? LAI.label() : "Bibley 2.1")+' \u00b7 on this device \u00b7 KJV verse lookup</div>', ans.sources);
         memSoon();
       } catch(err){
         thinkingDiv.remove(); console.warn("[Bibley 2.1]", err);
