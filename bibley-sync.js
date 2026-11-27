@@ -18,7 +18,7 @@
   const API = location.origin === HOME ? "" : HOME;   // the github.io copy syncs to the same database
   const SKIP = new Set([K_ACC, K_META, "bible_search_index_v1", "bible_esv_api_key_v1", "bible_chat_history_v1", "bible_chat_summary_v1",
     "bibley_ai6_cache_v1", "bibley_ai_pause_v1", "bibley_ai_last_v1", "bibley_scroll_prefetch", "bibley_seen_version",
-    "bibley_install_dismissed_v1", "bibley_apk_pill_dismissed", "bibley_push_v1", "bibley_focus_v1", "bibley_page_anim", "bibley_today_seen_v1"]);
+    "bibley_install_dismissed_v1", "bibley_apk_pill_dismissed", "bibley_push_v1", "bibley_focus_v1", "bibley_page_anim", "bibley_today_seen_v1", "bibley_recap_device_v1"]);
   const RELOAD_KEYS = /^(bibley_prefs_v1|bibley_settings_v2|bibley_flags_v1|bibley_nb_v1_|bibley_notebook_v1|bibley_ai_engine_v1|bibley_device_v1|bible_version_)/;
   const MAX_VALUE = 900 * 1024;
   const isSyncKey = k => typeof k === "string" && /^bibley?_/.test(k) && !SKIP.has(k) && k.indexOf("bibley_lostbooks_") !== 0 && /^[A-Za-z0-9_.:-]{1,80}$/.test(k);

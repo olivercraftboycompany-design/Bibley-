@@ -1,0 +1,147 @@
+/* bibley-recap.css - Bibley 7.4 recaps (bibley-recap.js): the Recap sheet (Day | Week | Month),
+   and the week dots + "Your recap" button inside the streak card on Today and in Reading plans.
+   Uses the reader's own tokens (--gold, --ink, --ui-surface ...) so dark, black, sepia and light all follow. */
+
+.rc { --rc-hair: var(--ui-hair, var(--border)); --rc-surface: var(--ui-surface, #ffffff08); }
+.rc .ui-ic { flex-shrink: 0; }
+
+/* tabs + period navigation */
+.rc-tabs { margin-bottom: 12px; }
+.rc-tabs button { padding: 9px 6px; }
+.rc-nav { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+.rc-arrow { width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px;
+  border: 1px solid var(--rc-hair); background: var(--rc-surface); color: var(--gold-soft); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rc-arrow:active { background: var(--ui-press, #c9a8671f); }
+.rc-arrow:disabled { color: var(--ink-faint); opacity: .45; cursor: default; }
+.rc-arrow:disabled:active { background: var(--rc-surface); }
+@media (hover: hover) { .rc-arrow:not(:disabled):hover { background: var(--ui-press, #c9a8671f); } }
+.rc-label { flex: 1; min-width: 0; text-align: center; }
+.rc-label b { display: block; font: 500 19px/1.2 'Fraunces', Georgia, serif; color: var(--gold-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-label small { display: block; min-height: 17px; margin-top: 2px; font-size: 12.5px; color: var(--ink-dim); }
+
+.rc-view { min-height: 120px; }
+.rc-view.rc-in-r { animation: rcInR .22s ease-out; }
+.rc-view.rc-in-l { animation: rcInL .22s ease-out; }
+@keyframes rcInR { from { opacity: .3; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes rcInL { from { opacity: .3; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+html.bs-motion-off .rc-view, html.bs-motion-reduced .rc-view { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .rc-view { animation: none !important; } }
+
+/* stat tiles */
+.rc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.rc-stats.four { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 520px) { .rc-stats.four { grid-template-columns: repeat(2, 1fr); } }
+.rc-stat { min-width: 0; padding: 12px 10px 11px; border: 1px solid var(--rc-hair); border-radius: var(--ui-r, 14px); background: var(--rc-surface); text-align: center; }
+.rc-stat b { display: block; font: 500 22px/1.15 'Fraunces', Georgia, serif; color: var(--gold-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-stat span { display: block; margin-top: 4px; font-size: 12px; line-height: 1.3; color: var(--ink-dim); }
+.rc-stat small { display: block; font-size: 11px; color: var(--ink-faint); }
+
+/* streak line (Day, today) */
+.rc-streak { display: flex; align-items: center; gap: 10px; margin: 0 2px 12px; }
+.rc-streak .rc-fl { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #ff9a4d; background: #ff8a3d1a; flex: none; }
+.rc-streak.off .rc-fl { color: var(--ink-faint); background: var(--rc-surface); }
+.rc-streak b { display: block; font: 500 15px/1.25 'Fraunces', Georgia, serif; color: var(--gold-soft); }
+.rc-streak small { display: block; font-size: 12.5px; color: var(--ink-dim); }
+
+/* cards */
+.rc-card { margin-bottom: 12px; }
+.rc-card .fx-eyebrow { margin-bottom: 8px; }
+.rc-card .fx-chips { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-sum { font: 17px/1.35 'Fraunces', Georgia, serif; color: var(--gold-soft); }
+.rc-also { margin-top: 14px; }
+.rc-card .fx-bar { margin: 10px 0 6px; }
+.rc-p, .rc-fin { display: flex; align-items: center; gap: 7px; margin: 2px 0 0; font-size: 14px; color: var(--ink); }
+.rc-p .ui-ic, .rc-fin .ui-ic { width: 17px; height: 17px; color: #7fbf8e; }
+.rc-fin { margin-top: 12px; }
+
+/* study list (Day) */
+html body .fx-card.rc-list { padding-top: 4px; padding-bottom: 4px; }
+.rc-row { display: flex; gap: 12px; padding: 10px 0; }
+.rc-row + .rc-row { border-top: 1px solid var(--rc-hair); }
+.rc-ic { width: 32px; height: 32px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--ui-press, #c9a8671f); color: var(--gold); flex: none; }
+.rc-ic .ui-ic { width: 17px; height: 17px; }
+.rc-rt { flex: 1; min-width: 0; }
+.rc-rt b { display: block; font: 500 14.5px/1.3 'Fraunces', Georgia, serif; color: var(--gold-soft); margin-top: 7px; }
+.rc-rt b em { font-style: normal; font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; color: var(--ink-dim); margin-left: 4px; }
+.rc-rt .fx-muted { margin-top: 6px; }
+.rc-refs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rc-ref { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--rc-hair); background: var(--ui-surface-2, #ffffff0d);
+  color: var(--ink); font: 13px/1.3 'Source Serif 4', Georgia, serif; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-tap-highlight-color: transparent; }
+.rc-ref.plain { cursor: default; }
+button.rc-ref:active { background: var(--ui-press, #c9a8671f); }
+.rc-more { align-self: center; font-size: 12.5px; color: var(--ink-dim); padding: 0 4px; }
+.rc-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--gold); }
+.rc-dot.hl-yellow { background: #fde68a; } .rc-dot.hl-green { background: #a7f3d0; } .rc-dot.hl-blue { background: #bfdbfe; }
+.rc-dot.hl-pink { background: #fbcfe8; } .rc-dot.hl-purple { background: #ddd6fe; }
+html.theme-light .rc-dot, html.theme-sepia .rc-dot { box-shadow: 0 0 0 1px #0002; }
+
+/* day-by-day strip (Week) */
+.rc-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.rc-sd { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 0 7px; min-width: 0; border-radius: 12px; border: 1px solid transparent;
+  background: none; color: var(--ink-dim); font: 12px/1 'Source Serif 4', Georgia, serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rc-sd:disabled { cursor: default; opacity: .45; }
+.rc-sd:not(:disabled):active { background: var(--ui-press, #c9a8671f); }
+@media (hover: hover) { .rc-sd:not(:disabled):hover { background: var(--ui-press, #c9a8671f); } }
+.rc-sd.today { border-color: #c9a86766; }
+.rc-sw { font: 600 11px/1 'Fraunces', Georgia, serif; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+.rc-sb { position: relative; width: 14px; height: 58px; border-radius: 7px; background: var(--rc-surface); border: 1px solid var(--rc-hair); overflow: hidden; }
+.rc-sb i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); }
+.rc-sd.on .rc-sb { border-color: #c9a86755; }
+.rc-sn { height: 15px; display: inline-flex; align-items: center; font: 500 13px/1 'Fraunces', Georgia, serif; color: var(--gold-soft); }
+.rc-sn .ui-ic { width: 13px; height: 13px; color: var(--gold); }
+.rc-sdt { font-size: 11.5px; color: var(--ink-faint); }
+.rc-sd.today .rc-sdt { color: var(--gold); font-weight: 600; }
+
+/* month calendar */
+.rc-cal-h, .rc-cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.rc-cal-h { margin-bottom: 6px; }
+.rc-ch { text-align: center; font: 600 10.5px/1 'Fraunces', Georgia, serif; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+.rc-cd { aspect-ratio: 1 / 1; min-width: 0; max-height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid var(--rc-hair);
+  background: var(--rc-surface); color: var(--ink-dim); font: 13px/1 'Source Serif 4', Georgia, serif; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rc-cd.pad { border-color: transparent; background: none; cursor: default; }
+.rc-cd:disabled { opacity: .4; cursor: default; }
+.rc-cd.l1 { border: 1px dashed #c9a867aa; color: var(--ink); background: transparent; }
+.rc-cd.l2 { background: #c9a86726; border-color: #c9a867aa; color: var(--gold-soft); }
+.rc-cd.l3 { background: #c9a86766; border-color: var(--gold); color: var(--ink); }
+.rc-cd.l4 { background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 600; }
+html.theme-light .rc-cd.l2, html.theme-sepia .rc-cd.l2 { background: #c9a86733; color: var(--ink); }
+.rc-cd.today { outline: 2px solid var(--gold); outline-offset: 1px; }
+.rc-cd:not(:disabled):not(.pad):active { transform: scale(.94); }
+@media (min-width: 700px) { .rc-cal { max-width: 420px; margin: 0 auto; } }
+.rc-hint { margin: 10px 0 0; font-size: 12px; text-align: center; }
+
+/* most read */
+.rc-books { display: grid; gap: 9px; }
+.rc-book { display: grid; grid-template-columns: minmax(84px, 34%) 1fr 30px; align-items: center; gap: 10px; }
+.rc-bn { font: 15px/1.2 'Fraunces', Georgia, serif; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-bar { height: 8px; border-radius: 4px; background: var(--rc-surface); border: 1px solid var(--rc-hair); overflow: hidden; }
+.rc-bar i { display: block; height: 100%; border-radius: 4px; background: var(--gold); }
+.rc-bc { text-align: right; font: 500 14px/1 'Fraunces', Georgia, serif; color: var(--gold-soft); }
+
+/* study counts */
+.rc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-tags span { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--rc-hair); background: var(--ui-surface-2, #ffffff0d); font-size: 13px; color: var(--ink); }
+.rc-cmp { margin: 2px 2px 12px; }
+
+/* empty state */
+.rc-empty { text-align: center; padding: 22px 16px 18px; border: 1px dashed var(--rc-hair); border-radius: var(--ui-r, 14px); margin-bottom: 12px; }
+.rc-empty-ic { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--ui-press, #c9a8671f); color: var(--gold); }
+.rc-empty b { display: block; font: 500 16px/1.3 'Fraunces', Georgia, serif; color: var(--gold-soft); }
+.rc-empty p { margin: 6px auto 14px; max-width: 320px; }
+.rc-empty + .rc-streak { margin-top: 4px; }
+
+/* copy / share */
+.rc-actions { display: flex; gap: 8px; margin: 4px 0 10px; }
+.rc-actions .fx-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; }
+.rc-foot { font-size: 12px; margin: 4px 2px 6px; }
+
+/* Today / Reading plans streak card: this week + "Your recap" */
+.rc-today { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ui-hair, var(--border)); }
+.rc-tw { flex: 1; display: flex; justify-content: space-between; gap: 4px; min-width: 0; max-width: 240px; }
+.rc-twd { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.rc-twd i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--ui-hair, var(--border)); background: transparent; }
+.rc-twd.on i { background: var(--gold); border-color: var(--gold); }
+.rc-twd.today i { box-shadow: 0 0 0 2px #c9a86744; border-color: var(--gold); }
+.rc-twd.fut i { opacity: .45; }
+.rc-twd small { font: 600 10px/1 'Fraunces', Georgia, serif; letter-spacing: .05em; color: var(--ink-dim); text-transform: uppercase; }
+.rc-today .rc-open { flex: none; display: inline-flex; align-items: center; }

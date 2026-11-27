@@ -463,7 +463,9 @@
   }
   // 5.7: the Study Notebook keys ride along; older backups without them import exactly as before.
   const SNB_KEYS = ["bibley_nb_v1_notebooks", "bibley_nb_v1_notes", "bibley_nb_v1_meta"];
-  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB].concat(SNB_KEYS);
+  // 7.4: the recap day log (time in Bibley, chapters opened) rides along too.
+  const K_DAYLOG = "bibley_daylog_v1";
+  const BACKUP_KEYS = [K.HL, K.BM, K.NOTES, K.VBM, K.PLAN, K.READ, K.ACT, K.PREFS, K.NB].concat(SNB_KEYS).concat([K_DAYLOG]);
   function exportBackup() {
     const data = {}; BACKUP_KEYS.forEach(k => { const v = load(k, null); if (v != null) data[k] = v; });
     const blob = new Blob([JSON.stringify({ app: "Bibley", kind: "backup", v: 1, exported: new Date().toISOString(), data }, null, 1)], { type: "application/json" });
@@ -483,6 +485,7 @@
     if (d[K.PLAN]) { const cur = getPlan(); if (!cur || Object.keys(d[K.PLAN].done || {}).length > Object.keys(cur.done || {}).length) save(K.PLAN, d[K.PLAN]); }
     if (d[K.PREFS] && !localStorage.getItem(K.PREFS)) { save(K.PREFS, d[K.PREFS]); applyPrefs(); }
     if (d[K.NB] && window.BibleyNotes && window.BibleyNotes.importData) window.BibleyNotes.importData(d[K.NB]);
+    if (d[K_DAYLOG]) { if (window.BibleyRecap) window.BibleyRecap.importLog(d[K_DAYLOG]); else if (!localStorage.getItem(K_DAYLOG)) save(K_DAYLOG, d[K_DAYLOG]); }
     if ((d[SNB_KEYS[0]] || d[SNB_KEYS[1]]) && window.BibleyStudyNB) window.BibleyStudyNB.importData({ notebooks: d[SNB_KEYS[0]], notes: d[SNB_KEYS[1]], meta: d[SNB_KEYS[2]] });
     C.rerender(); C.refreshLists(); updateDock(); toast("Backup imported ✓");
     return true;
@@ -508,7 +511,8 @@
   }
   function plansSheet() {
     openSheet("plans", "Reading plans", body => {
-      body.append(h(`<div class="fx-card">${streakCard()}</div>`));
+      const sc = h(`<div class="fx-card">${streakCard()}<div class="rc-slot"></div></div>`); body.append(sc);
+      if (window.BibleyRecap) window.BibleyRecap.renderToday(sc.querySelector(".rc-slot")); else sc.querySelector(".rc-slot").remove();
       const st = planState();
       if (st) { const c = h(`<div class="fx-card gold">${todayPlanHtml(st)}</div>`); body.append(c); wirePlanCard(c); }
       body.append(h(`<div class="fx-eyebrow" style="margin:6px 0 10px">${st ? "Switch plan" : "Pick a plan"}</div>`));
@@ -582,8 +586,10 @@
       // v5.8: Time with God quick toggle (bibley-device.js).
       const tw = h(`<div class="dv-today-slot"></div>`); body.append(tw); if (window.BibleyDevice) window.BibleyDevice.renderToday(tw);
       const st = planState();
-      const pc = h(`<div class="fx-card fx-today-plan">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">${IC.flame}Start a reading plan</button>`}</div>`);
+      const pc = h(`<div class="fx-card fx-today-plan">${streakCard()}${st ? `<div style="height:12px"></div>${todayPlanHtml(st)}` : `<p class="fx-muted" style="margin:10px 0">Pick a reading plan to build a daily habit.</p><button class="fx-btn block" data-a="plans">${IC.flame}Start a reading plan</button>`}<div class="rc-slot"></div></div>`);
       body.append(pc); wirePlanCard(pc);
+      // v7.4: this week at a glance + the way into the recap (bibley-recap.js)
+      if (window.BibleyRecap) window.BibleyRecap.renderToday(pc.querySelector(".rc-slot")); else pc.querySelector(".rc-slot").remove();
       const pb = pc.querySelector('[data-a="plans"]'); if (pb) pb.onclick = plansSheet;
       const links = h(`<div class="fx-row fx-today-links"><button class="fx-btn small" data-a="mb" style="flex:1">${IC.bookmark}My Bible</button><button class="fx-btn small" data-a="pl" style="flex:1">${IC.flame}Plans</button><button class="fx-btn small" data-a="aa" style="flex:1">${IC.type}Settings</button></div>`);
       body.append(links);
