@@ -635,7 +635,7 @@
       return { key: FX().voice.vKey(t.b, t.c, t.v), bookIdx: t.b, chapter: t.c, verseNum: t.v, text: hit.text, version: t.ver, ref: FX().voice.refOf(t.b, t.c, t.v) };
     }
     async function closeOverlays() {
-      for (var i = 0; i < 6 && history.state && typeof history.state === "object"; i++) { history.back(); await wait(170); }
+      for (var i = 0; i < 6 && history.state && typeof history.state === "object" && !history.state.bibleyReadBack; i++) { history.back(); await wait(170); }
       try { if (window.BibleySettings && window.BibleySettings.isOpen && window.BibleySettings.isOpen()) { window.BibleySettings.close(); await wait(220); } } catch (e) {}
       try { if (FX().voice.sheetOpen()) FX().voice.closeSheet(); } catch (e) {}
       try { if (window.BibleyNav) window.BibleyNav.closeMenu(); } catch (e) {}

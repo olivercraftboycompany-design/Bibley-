@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.1";
+  const APP_VER = "1.9", WEB_VER = "7.3";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -387,6 +387,7 @@
     ["Export backup", "backup export save", "data", "export"], ["Import backup", "backup import restore", "data", "import"], ["Storage used", "storage space", "data", "usage"],
     ["AI Engine", "ai engine bibley 2.1 2.2 on-device on device local ai offline ai webllm webgpu cpu wasm qwen gemma model 1 model 2 second model cloud ai switch verse lookup", "aiengine", "aimode"], ["Download Bibley 2.1 model", "download load local model bibley 2.1 offline ai qwen", "aiengine", "aimodel1"], ["Model 2: Bibley 2.2 (Gemma 3 1B)", "gemma model 2 bibley 2.2 deeper study second ai model download test qwen", "aiengine", "aimodel2"], ["Clear local model cache", "clear delete local model cache bibley 2.1 storage", "aiengine", "aidl"],
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
+    ["Compare differences", "compare diff differences parallel translations highlight words percent", "reading", "cmpdiff"],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
   const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
@@ -477,6 +478,7 @@
       field("Verse numbers", seg("vnum", s.vnum, [["sup", "Small"], ["inline", "Inline"], ["hidden", "Hidden"]]), "vnum") +
       field("Layout", seg("layout", s.layout, [["paragraph", "Paragraph"], ["verse", "Verse per line"]]), "layout") +
       (window.BibleySections ? (() => { const sp = window.BibleySections.prefs(); return group("Sections", swRow("secHead", "Section headings", "", sp.head, "sections") + (sp.head ? swRow("secCtx", "Section context", "", sp.ctx, "sectionctx") : "")); })() : "") +
+      (window.BibleyReading ? group("Compare", swRow("cmpDiff", "Highlight differences", "Mark the words that differ between the two translations and show how different each chapter is", window.BibleyReading.diff.get(), "cmpdiff")) : "") +
       field("Bible version", '<select class="fx-input bs-select" data-anchor="version">' + (vs ? vs.innerHTML : "") + "</select>", "version") +
       group("", row({ ic: IC.lock, t: "ESV API key", s: esv ? "Saved on this phone. Tap to change" : "Needed only to read the ESV", act: "esv", anchor: "esv" }) +
         row({ ic: IC.book, t: "Classic reading sheet", s: "The quick size, font and theme sheet", act: "classic" }));
@@ -484,6 +486,7 @@
     wire(el, { seg: (k, v) => setS({ [k]: v }), sw: (k, on) => {
       if (k === "secHead" && window.BibleySections) { window.BibleySections.setPrefs({ head: on }); rerender(); }
       if (k === "secCtx" && window.BibleySections) window.BibleySections.setPrefs({ ctx: on });
+      if (k === "cmpDiff" && window.BibleyReading) window.BibleyReading.diff.set(on);
     }, act: a => {
       if (a === "esv") { const cur = (() => { try { return localStorage.getItem("bible_esv_api_key_v1") || ""; } catch { return ""; } })(); const k = prompt("Paste your free ESV API key from api.esv.org. It is stored only on this phone.", cur); if (k != null && k.trim()) { try { localStorage.setItem("bible_esv_api_key_v1", k.trim()); } catch {} toast("ESV key saved"); rerender(); } }
       if (a === "classic") { close(() => FX.readingSheet(), 120); }
@@ -756,6 +759,9 @@
     ["nb", "Paper, focus & dictation", "From \u22ef pick Clean, Warm Parchment or Lined paper, turn on Focus mode for distraction-free writing, or dictate with your voice where the browser supports it.", "paper parchment lined focus mode dictation voice microphone", ""],
     ["nb", "Export & print", "From \u22ef export a note or a whole notebook as Markdown or text, copy it, share it, or Print / Save as PDF.", "export markdown md txt pdf print share copy", ""],
     ["nb", "Keyboard shortcuts", "Ctrl/\u2318+B bold, Ctrl/\u2318+I italic, Ctrl/\u2318+Z undo, Shift+Ctrl/\u2318+Z or Ctrl+Y redo, Esc closes popups and Focus mode. Enter continues lists.", "keyboard shortcuts ctrl cmd undo redo bold italic escape", ""],
+    ["read", "Back and forward", "The arrows next to Books in the top bar retrace the chapters you opened, like a web browser. Your phone's Back button steps back through them too when nothing else is open. The list lasts until you close Bibley.", "history back forward previous chapter arrows retrace undo navigation", ""],
+    ["read", "Compare differences", "In Compare, words that differ between the two translations are underlined in both panes, and the chip in the second pane's toolbar shows how different the chapter is. Tap the chip to turn it off; Settings > Reading has the same switch.", "compare diff differences percent parallel translations underline", "reading"],
+    ["read", "Print a chapter", "More (\u22ee) > Print chapter prints a clean page with section headings, your highlights and notes, or saves it as a PDF. In Compare it prints both translations side by side, verse by verse. Printing works in the browser; the Android app can't print yet.", "print pdf save paper export chapter", ""],
     ["read", "Tap any verse", "Tap a verse to highlight it, bookmark it, add a note, ask the AI or send it to the Notebook.", "verse tap highlight bookmark note ai", ""],
     ["read", "Listen to a chapter", "Tap the speaker on a chapter to hear it read aloud. The voice comes from your device's text-to-speech; change the speed in Audio.", "audio listen read aloud tts speaker voice speed", "audio"],
     ["read", "Reading plans & streaks", "Pick a plan, then tap \u201cMark chapter read\u201d at the end of a chapter. When every chapter for the day is read, the day checks itself off and your streak grows.", "plans streak mark read daily", "study"],
@@ -883,7 +889,7 @@
     const fl = flagsState();
     el.innerHTML = '<div class="bs-about"><div class="bs-logo">' + IC.book + "</div><b>Bibley</b><small>Read, study and pray</small></div>" +
       group("", '<button type="button" class="bs-row" data-act="ver" data-anchor="ver"><span class="bs-ic">' + IC.info + '</span><span class="bs-t">Version<small>App ' + APP_VER + " \u00b7 web " + WEB_VER + "</small></span>" + (fl.unlocked ? '<span class="bs-tag">Tester on</span>' : "") + "</button>" +
-        row({ ic: IC.star, t: "What's new", s: "Bibley 7.1: Tips, Grammar Fix, mobile Notebook", act: "wn", anchor: "wn" }) +
+        row({ ic: IC.star, t: "What's new", s: "Bibley 7.3: back & forward, Compare differences, Print", act: "wn", anchor: "wn" }) +
         row({ ic: IC.shield, t: "Privacy", s: "What stays on this phone", go: "privacy" })) +
       '<p class="bs-note bs-center">Made with care by Oliver Apps.</p>';
     wire(el, { act: a => {

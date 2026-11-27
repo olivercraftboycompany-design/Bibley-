@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.1";
+  const APP_VERSION = "7.3";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.3", date: "November 2026", items: [
+      ["Back and forward", "New arrows next to Books in the top bar take you back to the chapters you just read, and forward again, like a web browser. Your phone's Back button steps back through them too."],
+      ["See what's different in Compare", "Open Compare and the words that differ between the two translations are underlined in both panes. The chip in the second pane shows how different the chapter is, like \u201c23%\u201d. Tap it to turn the marks off."],
+      ["Print a chapter", "More > Print chapter gives a clean page to print or save as PDF: section headings, your highlights and notes, and both translations side by side when Compare is open."]
+    ] },
     { v: "7.1", date: "November 2026", items: [
       ["AI Grammar Fix", "Tap Grammar in any note to fix spelling, punctuation and grammar in your selection or the whole note. Your voice, Markdown and quoted Bible verses stay as they are, you review every change first, and Undo reverts it."],
       ["Notebook made for phones", "Switch notebooks with one tap from the pills under the header, clean note cards, a tidy top bar with Grammar, Verse and a \u22ef menu, Write | Preview tabs and a one-row formatting bar with bigger buttons."],
