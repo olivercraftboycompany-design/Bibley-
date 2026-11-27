@@ -94,7 +94,7 @@
     "This week": "Esta semana", "No streak yet": "A\u00fan sin racha", "Mark a chapter read to start one": "Marca un cap\u00edtulo como le\u00eddo para empezar una", "active": "activo", "Bibley recap": "Resumen de Bibley",
     "Practised today": "Practicado hoy", "Notebook": "Cuaderno", "Note": "Nota", "{n} min": "{n} min", "{h} h {m} min": "{h} h {m} min", "{h} h": "{h} h", "less than a minute": "menos de un minuto",
     "Open {s}": "Abrir {s}", "Tap a day to see it.": "Toca un d\u00eda para verlo.", "Previous day": "D\u00eda anterior", "Next day": "D\u00eda siguiente",
-    "Previous week": "Semana anterior", "Next week": "Semana siguiente", "Previous month": "Mes anterior", "Next month": "Mes siguiente", "Recap periods": "Periodos del resumen"
+    "Previous week": "Semana anterior", "Next week": "Semana siguiente", "Previous month": "Mes anterior", "You read {c}": "Le\u00edste {c}", "You read {c} across {d}": "Le\u00edste {c} en {d}", "You spent {t} in Bibley": "Pasaste {t} en Bibley", "You spent {t} in Bibley across {d}": "Pasaste {t} en Bibley en {d}", "You opened Bibley and kept up your study": "Abriste Bibley y seguiste estudiando", "You opened Bibley on {d}": "Abriste Bibley {d}", ", and spent {t} in Bibley": ", y pasaste {t} en Bibley", "Most of it was in {b}": "Casi todo fue en {b}", ", which you finished": ", que terminaste", "You finished {b}.": "Terminaste {b}.", "Along the way: {s}.": "Por el camino: {s}.", "That keeps a {n}-day streak going.": "As\u00ed sigue tu racha de {n} d\u00edas.", "Your best run was {n}.": "Tu mejor racha fue de {n}.", "Verses you kept": "Vers\u00edculos que guardaste", "Through the day": "A lo largo del d\u00eda", "Week by week": "Semana a semana", "Nothing recorded": "Nada registrado", "Highlighted": "Resaltado", "Saved": "Guardado", "Liked": "Te gust\u00f3", "Memorizing": "Memorizando", "Practised": "Practicado", "Active": "Activo", "Streak": "Racha", "Chapters opened": "Cap\u00edtulos abiertos", "Plan days": "D\u00edas del plan", "Last {n} weeks": "\u00daltimas {n} semanas", "Less": "Menos", "More": "M\u00e1s", "{n} book": "{n} libro", "{n} books": "{n} libros", "Next month": "Mes siguiente", "Recap periods": "Periodos del resumen"
   };
   const isEs = () => /^es\b/i.test(document.documentElement.lang || "");
   const T = (s, vars) => { let out = (isEs() && ES[s]) || s; if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => vars[k] != null ? vars[k] : m); return out; };
@@ -203,10 +203,10 @@
       Object.keys(dd).forEach(dev => { const r = dd[dev]; if (!r || typeof r !== "object") return; const x = D(day); x.secs += Math.max(0, +r.s || 0); (Array.isArray(r.o) ? r.o : []).forEach(k => { if (parseCh(k)) x.opened.add(k); }); });
     });
     // verses that point at a place in the Bible: {ref, bookIdx, chapter, verseNum}
-    const at = (o, extra) => Object.assign({ ref: o.ref || (BOOKS[o.bookIdx] ? refOf(o.bookIdx, o.chapter) + (o.verseNum ? ":" + o.verseNum : "") : ""), b: BOOKS[o.bookIdx] ? o.bookIdx : null, c: o.chapter, v: o.verseNum, verses: o.verses }, extra || {});
-    const notes = obj(K.NOTES); Object.keys(notes).forEach(k => { const n = notes[k]; if (!n || !n.text) return; const d = tsDay(n.added || n.updated); if (d) D(d).notes.push(at(n, { kind: "verse", t: n.added || n.updated })); });
+    const at = (o, extra) => Object.assign({ ref: o.ref || (BOOKS[o.bookIdx] ? refOf(o.bookIdx, o.chapter) + (o.verseNum ? ":" + o.verseNum : "") : ""), b: BOOKS[o.bookIdx] ? o.bookIdx : null, c: o.chapter, v: o.verseNum, verses: o.verses, q: o.verseText != null ? o.verseText : o.text }, extra || {});
+    const notes = obj(K.NOTES); Object.keys(notes).forEach(k => { const n = notes[k]; if (!n || !n.text) return; const d = tsDay(n.added || n.updated); if (d) D(d).notes.push(at(n, { kind: "verse", t: n.added || n.updated, q: n.verseText || "", body: n.text })); });
     const snb = load(K.SNB, []); (Array.isArray(snb) ? snb : []).forEach(n => { if (!n || !n.id) return; const d = tsDay(n.created); if (d) D(d).notes.push({ kind: "nb", ref: String(n.title || "").trim() || T("Note"), t: n.created }); });
-    const nb = load(K.NB, null); (nb && Array.isArray(nb.notes) ? nb.notes : []).forEach(n => { if (!n || !n.id) return; const d = tsDay(n.created); if (d) D(d).notes.push(BOOKS[n.bookIdx] ? at(n, { kind: "page", t: n.created }) : { kind: "page", ref: String(n.title || n.ref || "").trim() || T("Note"), t: n.created }); });
+    const nb = load(K.NB, null); (nb && Array.isArray(nb.notes) ? nb.notes : []).forEach(n => { if (!n || !n.id) return; const d = tsDay(n.created); if (d) D(d).notes.push(BOOKS[n.bookIdx] ? at(n, { kind: "page", t: n.created, q: "" }) : { kind: "page", ref: String(n.title || n.ref || "").trim() || T("Note"), t: n.created }); });
     const hls = obj(K.HL); Object.keys(hls).forEach(k => { const x = hls[k]; if (!x) return; const d = tsDay(x.added); if (d) D(d).hls.push(at(x, { color: x.color, t: x.added })); });
     const vb = obj(K.VBM); Object.keys(vb).forEach(k => { const x = vb[k]; if (!x) return; const d = tsDay(x.added); if (d) D(d).saved.push(at(x, { t: x.added })); });
     const lk = obj(K.LIKES); Object.keys(lk).forEach(k => { const x = lk[k]; if (!x) return; const d = tsDay(x.added); if (d) D(d).likes.push(at(x, { t: x.added })); });
@@ -389,19 +389,13 @@
   }
 
   /* ---------- pieces ---------- */
-  const stat = (n, label, sub) => '<div class="rc-stat"><b>' + esc(n) + "</b><span>" + esc(label) + "</span>" + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</div>";
   const chip = (b, c, done, v) => '<button type="button" class="fx-chip' + (done ? " done" : "") + '" data-b="' + b + '" data-c="' + c + '"' + (v ? ' data-v="' + v + '"' : "") + ' aria-label="' + esc(T("Open {s}", { s: refOf(b, c) })) + '">' + esc(refOf(b, c)) + "</button>";
   function refLink(x) {
     const dot = x.color ? '<i class="rc-dot hl-' + esc(String(x.color).replace(/[^a-z]/g, "")) + '"></i>' : "";
     if (x.b != null && BOOKS[x.b]) return '<button type="button" class="rc-ref" data-b="' + x.b + '" data-c="' + x.c + '"' + (x.v ? ' data-v="' + x.v + '"' : "") + ">" + dot + esc(x.ref) + "</button>";
     return '<span class="rc-ref plain">' + dot + esc(x.ref) + "</span>";
   }
-  function listRow(icon, title, items, extra) {
-    if (!items.length && !extra) return "";
-    const shown = items.slice(0, 8), more = items.length - shown.length;
-    return '<div class="rc-row"><span class="rc-ic">' + icon + '</span><div class="rc-rt"><b>' + esc(title) + (items.length ? ' <em>' + items.length + "</em>" : "") + "</b>" +
-      (shown.length ? '<div class="rc-refs">' + shown.map(refLink).join("") + (more > 0 ? '<span class="rc-more">+' + more + "</span>" : "") + "</div>" : "") + (extra ? '<div class="fx-muted">' + extra + "</div>" : "") + "</div></div>";
-  }
+
   function empty(title) {
     const today = state.tab === "day" ? state.day === dayStr() : period()[1] >= dayStr();
     return '<div class="rc-empty"><span class="rc-empty-ic">' + IC.book + "</span><b>" + esc(T(title)) + "</b><p class=\"fx-muted\">" + esc(T("Mark a chapter read, highlight a verse or write a note and it shows up here.")) + "</p>" +
@@ -418,48 +412,163 @@
     if (a.openedOnly.length) bits.push(P(a.openedOnly.length, "{n} chapter opened", "{n} chapters opened"));
     return bits;
   }
-  function topBooks(a, max) {
+
+
+  /* ---------- Journal: a written summary, a timeline and the verses you kept ---------- */
+  const em = s => "<em>" + esc(s) + "</em>";
+  const nb = s => String(s).replace(/ /g, "\u00a0");   // keep "30 min" or "5 days" on one line
+  const andList = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " " + (isEs() ? "y" : "and") + " " + xs[xs.length - 1];
+  const quoteOf = x => { const q = String(x.q || "").trim(); return q.replace(/[.\s\u2026]/g, "").length >= 3 ? q : ""; };
+  const clock = t => { try { return fmt(new Date(t), { hour: "numeric", minute: "2-digit" }); } catch (e) { return ""; } };
+  // "You read 13 chapters across 5 days, and spent 1 h 35 min in Bibley."
+  function headline(a, isDay) {
+    const days = nb(P(a.active, "{n} day", "{n} days")), t = a.secs >= 60 ? em(nb(dur(a.secs))) : "";
+    let s;
+    if (a.read.length) s = isDay ? T("You read {c}", { c: em(summarize(a.read)) }) : T("You read {c} across {d}", { c: em(nb(P(a.read.length, "{n} chapter", "{n} chapters"))), d: em(days) });
+    else if (t) s = isDay ? T("You spent {t} in Bibley", { t }) : T("You spent {t} in Bibley across {d}", { t, d: em(days) });
+    else s = isDay ? T("You opened Bibley and kept up your study") : T("You opened Bibley on {d}", { d: em(days) });
+    if (a.read.length && t) s += T(", and spent {t} in Bibley", { t });
+    return '<h3 class="rj-head">' + s + ".</h3>";
+  }
+  function lede(idx, a, isDay) {
+    const L = [];
+    if (!isDay && a.top.length) {
+      const b = a.top[0][0];
+      L.push(esc(T("Most of it was in {b}", { b: bookName(b) })) + (a.finished.includes(b) ? esc(T(", which you finished")) : "") + ".");
+      const others = a.finished.filter(x => x !== b).map(bookName);
+      if (others.length) L.push(esc(T("You finished {b}.", { b: andList(others) })));
+    } else if (a.finished.length) L.push(esc(T("You finished {b}.", { b: andList(a.finished.map(bookName)) })));
+    if (isDay && state.day === dayStr()) { const s = currentStreak(idx); if (s.n > 1) L.push(esc(T("That keeps a {n}-day streak going.", { n: s.n }))); }
+    else if (!isDay && a.best > 1) L.push(esc(T("Your best run was {n}.", { n: P(a.best, "{n} day", "{n} days") })));
+    return L.length ? '<p class="rj-lede">' + L.join(" ") + "</p>" : "";
+  }
+  const KIND = { hls: "Highlighted", saved: "Saved", likes: "Liked", notes: "Note", memAdded: "Memorizing" };
+  // verses kept in the period, newest first, one card per verse
+  function keptVerses(a, max) {
+    const seen = new Set(), out = [];
+    ["hls", "notes", "saved", "likes", "memAdded"].forEach(f => a[f].forEach(x => out.push(Object.assign({ f }, x))));
+    out.sort((p, q) => (q.t || 0) - (p.t || 0));
+    const list = out.filter(x => { const k = x.ref + "|" + (x.kind === "nb" || x.kind === "page" ? x.t : ""); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, max);
+    if (!list.length) return "";
+    return '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Verses you kept")) + '</h4><div class="rj-verses">' + list.map(x => {
+      const q = quoteOf(x), body = x.f === "notes" && x.body ? String(x.body) : "";
+      const tag = x.b != null && BOOKS[x.b] ? 'button type="button" data-b="' + x.b + '" data-c="' + x.c + '"' + (x.v ? ' data-v="' + x.v + '"' : "") : "div";
+      return "<" + tag + ' class="rj-verse' + (x.color ? " hl-" + esc(String(x.color).replace(/[^a-z]/g, "")) : "") + '">' + (q ? "<q>" + esc(q) + "</q>" : "") +
+        (body ? '<span class="rj-note">' + esc(body) + "</span>" : "") + '<span class="rj-ref"><b>' + esc(x.ref) + "</b><small>" + esc(T(KIND[x.f])) + "</small></span></" + tag.split(" ")[0] + ">";
+    }).join("") + "</div></div>";
+  }
+  // one line of what a day held, for the timeline
+  function dayLine(d) {
+    const x = d.x, bits = [];
+    if (!x || !d.active) return '<p class="rj-none">' + esc(T("Nothing recorded")) + "</p>";
+    let html = "";
+    if (x.read.length) html += '<p class="rj-read">' + esc(summarize(x.read)) + "</p>";
+    else if (x.opened.size) html += '<p class="rj-read dim">' + esc(T("Also spent time in")) + " " + esc(summarize([...x.opened].map(parseCh).filter(Boolean))) + "</p>";
+    if (x.hls.length) bits.push(P(x.hls.length, "{n} highlight", "{n} highlights"));
+    if (x.notes.length) bits.push(P(x.notes.length, "{n} note", "{n} notes"));
+    if (x.saved.length) bits.push(P(x.saved.length, "{n} saved verse", "{n} saved verses"));
+    if (x.likes.length) bits.push(P(x.likes.length, "{n} liked verse", "{n} liked verses"));
+    if (x.memAdded.length) bits.push(P(x.memAdded.length, "{n} memory verse added", "{n} memory verses added"));
+    if (x.plan.length) bits.push(x.plan.map(n => T("Day {n} completed", { n })).join(", "));
+    if (x.secs >= 60) bits.push(dur(x.secs));
+    if (bits.length) html += '<p class="rj-meta">' + esc(bits.join(" \u00b7 ")) + "</p>";
+    if (!html) html = '<p class="rj-meta">' + esc(T("Active")) + "</p>";
+    return html;
+  }
+  function timeline(a) {
+    const today = dayStr();
+    return '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Day by day")) + '</h4><ol class="rj-tl">' + a.list.filter(d => !d.future).map(d => {
+      const dt = toDate(d.day);
+      return '<li class="' + (d.active ? "on" : "off") + (d.day === today ? " today" : "") + '"><button type="button" class="rj-date" data-day="' + d.day + '" aria-label="' + esc(fmt(dt, { weekday: "long", month: "long", day: "numeric" })) + '">' +
+        "<small>" + esc(fmt(dt, { weekday: "short" })) + "</small><b>" + dt.getDate() + '</b></button><span class="rj-pin"></span><div class="rj-body">' + dayLine(d) + "</div></li>";
+    }).join("") + "</ol></div>";
+  }
+
+  /* ---------- Dashboard pieces: compact tiles with deltas, rings and heat squares ---------- */
+  const lvlOf = d => d.n >= 4 ? 4 : d.n >= 2 ? 3 : d.n === 1 ? 2 : d.active ? 1 : 0;
+  function tile(icon, n, label, delta) {   // delta: number vs the period before (null = nothing to compare)
+    const dl = delta == null || delta === 0 ? "" : '<em class="' + (delta > 0 ? "up" : "down") + '">' + (delta > 0 ? "\u2191" : "\u2193") + Math.abs(delta) + "</em>";
+    return '<div class="rd-tile"><span class="rd-ti">' + icon + '</span><div class="rd-tv"><b>' + n + dl + "</b><span>" + esc(label) + "</span></div></div>";
+  }
+  function ring(pct, big, label, sub) {
+    const r = 30, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+    return '<div class="rd-ring"><svg viewBox="0 0 72 72" aria-hidden="true"><circle class="bg" cx="36" cy="36" r="' + r + '"/><circle class="fg" cx="36" cy="36" r="' + r + '" stroke-dasharray="' + (c * p / 100).toFixed(1) + " " + c.toFixed(1) + '"/></svg>' +
+      "<b>" + big + '</b><div class="rd-rl"><span>' + esc(label) + "</span>" + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</div></div>";
+  }
+  function dayTip(d) { return fmt(toDate(d.day), { weekday: "long", month: "short", day: "numeric" }) + ": " + P(d.n, "{n} chapter", "{n} chapters") + (d.secs >= 60 ? ", " + dur(d.secs) : ""); }
+  const legend = left => '<div class="rd-legend"><span>' + esc(left) + '</span><span class="rd-lg">' + esc(T("Less")) + ' <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> ' + esc(T("More")) + "</span></div>";
+  // GitHub-style squares, one column per week, ending with the week that holds `to`
+  function heatGrid(idx, from, to, weeks) {
+    const end = addDays(weekOf(to), 6), start = addDays(weekOf(to), -7 * (weeks - 1)), a = aggregate(idx, start, end), today = dayStr();
+    const ws = weekStartDay(), rows = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(2023, 0, 1 + ((ws + i) % 7)); rows.push('<span class="rd-hl">' + (i % 2 ? "" : esc(fmt(d, { weekday: "narrow" }))) + "</span>"); }   // 2023-01-01 was a Sunday
+    const cells = a.list.map(d => '<button type="button" class="rd-hc l' + lvlOf(d) + (d.day >= from && d.day <= to ? " in" : "") + (d.day === today ? " today" : "") + '"' + (d.future ? " disabled" : ' data-day="' + d.day + '"') +
+      ' aria-label="' + esc(dayTip(d)) + '" title="' + esc(dayTip(d)) + '"></button>').join("");
+    return '<div class="rd-heat" style="--wk:' + weeks + '"><div class="rd-hrows">' + rows.join("") + '</div><div class="rd-hgrid">' + cells + "</div></div>" + legend(fmt(toDate(start), { month: "short", day: "numeric" }));
+  }
+  // a week as seven heat squares with the chapter count in each (tap one to open that day)
+  function weekSquares(a, sel) {
+    const today = dayStr();
+    return '<div class="rd-wk" role="list">' + a.list.map(d => '<button type="button" role="listitem" class="rd-wd l' + lvlOf(d) + (d.day === today ? " today" : "") + (d.day === sel ? " sel" : "") + '"' + (d.future ? " disabled" : ' data-day="' + d.day + '"') +
+      ' aria-label="' + esc(dayTip(d)) + '" title="' + esc(dayTip(d)) + '"><small>' + esc(fmt(toDate(d.day), { weekday: "narrow" })) + "</small><b>" + (d.n ? d.n : d.active ? IC.check : "") + "</b><span>" + toDate(d.day).getDate() + "</span></button>").join("") + "</div>";
+  }
+  // study counts as one compact strip of six
+  function studyGrid(a) {
+    const it = [[IC.note, a.notes.length, T("Notes")], [IC.hl, a.hls.length, T("Highlights")], [IC.mark, a.saved.length, T("Saved verses")], [IC.heart, a.likes.length, T("Liked verses")],
+      [IC.brain, a.memAdded.length, T("Memory verses")], [IC.plan, a.plan.length, T("Plan days")]];
+    return '<div class="rd-sg">' + it.map(([ic, n, l]) => '<div class="' + (n ? "" : "zero") + '" title="' + esc(l) + '">' + ic + "<b>" + n + "</b><span>" + esc(l) + "</span></div>").join("") + "</div>";
+  }
+  function studySec(a) {
+    if (!a.marks && !a.plan.length && !a.openedOnly.length) return "";
+    return '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Study")) + (a.openedOnly.length ? "<small>" + esc(P(a.openedOnly.length, "{n} chapter opened", "{n} chapters opened")) + "</small>" : "") + "</h4>" + studyGrid(a) + "</div>";
+  }
+  function booksTable(a, max) {
     if (!a.top.length) return "";
-    const top = a.top.slice(0, max), hi = top[0][1];
-    return '<div class="fx-card rc-card"><div class="fx-eyebrow">' + esc(T("Most read")) + '</div><div class="rc-books">' +
-      top.map(([b, n]) => '<div class="rc-book"><span class="rc-bn">' + esc(bookName(b)) + '</span><span class="rc-bar"><i style="width:' + Math.max(8, Math.round(n / hi * 100)) + '%"></i></span><span class="rc-bc">' + n + "</span></div>").join("") + "</div>" +
+    const hi = a.top[0][1], tot = a.read.length;
+    return '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Most read")) + "<small>" + esc(P(a.top.length, "{n} book", "{n} books")) + "</small></h4>" +
+      '<div class="rd-books">' + a.top.slice(0, max).map(([b, n]) => '<div class="rd-book"><span class="rd-bn">' + esc(bookName(b)) + (a.finished.includes(b) ? '<i title="' + esc(T("Finished")) + '">' + IC.check + "</i>" : "") + '</span><span class="rd-bar"><i style="width:' + Math.max(6, Math.round(n / hi * 100)) + '%"></i></span><span class="rd-bc">' + n + '</span><span class="rd-bp">' + Math.round(n / tot * 100) + "%</span></div>").join("") + "</div>" +
       (a.finished.length ? '<p class="rc-fin">' + IC.check + "<span>" + esc(T("Finished")) + ": " + esc(a.finished.map(bookName).join(", ")) + "</span></p>" : "") + "</div>";
   }
-  function studyCard(a) {
-    const bits = studyCounts(a);
-    if (!bits.length) return "";
-    return '<div class="fx-card rc-card"><div class="fx-eyebrow">' + esc(T("Study")) + '</div><div class="rc-tags">' + bits.map(b => "<span>" + esc(b) + "</span>").join("") + "</div></div>";
+  // Week / Month: four tiles (with the change against the period before), then the rings
+  function periodTiles(a, p) {
+    return '<div class="rd-tiles">' + tile(IC.book, esc(a.read.length), T("Chapters read"), p ? a.read.length - p.read.length : null) +
+      tile(IC.clock, esc(durShort(a.secs)), T("Time in Bibley"), null) + tile(IC.flame, esc(P(a.best, "{n} day", "{n} days")), T("Best streak"), null) +
+      tile(IC.hl, esc(a.marks), T("Study marks"), p ? a.marks - p.marks : null) + "</div>";
   }
-  function compareLine(idx, a, prevFrom, prevTo, key) {
-    const p = aggregate(idx, prevFrom, prevTo); if (!p.any) return "";
-    const s = P(p.read.length, "{n} chapter", "{n} chapters") + " \u00b7 " + T("{a} of {b}", { a: p.active, b: p.total }) + " " + T("Active days").toLowerCase();
-    return '<p class="fx-muted rc-cmp">' + esc(T(key, { s })) + "</p>";
+  function periodRings(idx, a, p, kind) {
+    const pl = a.to >= dayStr() && FX() && FX().plan ? FX().plan() : null;
+    const r2 = pl ? ring(pl.pct, esc(pl.pct) + "<small>%</small>", T("Reading plan"), T("Day {a} of {b}", { a: pl.day, b: pl.total })) :
+      a.plan.length ? ring(a.total ? a.plan.length / a.total * 100 : 0, esc(a.plan.length), T("Plan days"), idx.planId ? PLAN_NAMES[idx.planId] : "") : "";
+    return '<div class="rd-rings' + (r2 ? " two" : "") + '">' + ring(a.total ? a.active / a.total * 100 : 0, esc(a.active) + "<small>/" + esc(a.total) + "</small>", T("Active days"),
+      p ? T(kind === "week" ? "Last week: {s}" : "Last month: {s}", { s: T("{a} of {b}", { a: p.active, b: p.total }) }) : "") + r2 + "</div>";
   }
 
   /* ---------- Day ---------- */
   function dayView(idx, a) {
-    const el = h('<div class="rc-day"></div>');
-    const isToday = state.day === dayStr(), x = a.list[0].x;
+    const el = h('<div class="rc-day rj"></div>');
+    const isToday = state.day === dayStr();
     if (!a.any) { el.innerHTML = empty(isToday ? "Nothing recorded for today yet" : "Nothing recorded for this day") + (isToday ? streakLine(idx) : ""); return el; }
-    let html = '<div class="rc-stats">' + stat(a.read.length, T("Chapters read")) + stat(dur(a.secs), T("Time in Bibley")) + stat(a.marks, T("Study marks")) + "</div>";
-    if (isToday) html += streakLine(idx);
-    if (a.read.length || a.openedOnly.length) {
-      html += '<div class="fx-card gold rc-card">';
-      if (a.read.length) html += '<div class="fx-eyebrow">' + esc(T("Read")) + '</div><div class="rc-sum">' + esc(summarize(a.read)) + '</div><div class="fx-chips">' + a.read.slice().sort((p, q) => p[0] - q[0] || p[1] - q[1]).map(([b, c]) => chip(b, c, true)).join("") + "</div>";
-      if (a.openedOnly.length) html += '<div class="fx-eyebrow rc-also">' + esc(T("Also spent time in")) + '</div><div class="fx-chips">' + a.openedOnly.slice(0, 12).map(([b, c]) => chip(b, c, false)).join("") + "</div>";
-      html += "</div>";
-    }
-    const planBits = [];
-    if (a.plan.length) planBits.push(a.plan.sort((p, q) => p - q).map(n => T("Day {n} completed", { n })).join(" \u00b7 "));
-    const pl = isToday && FX() && FX().plan ? FX().plan() : null;
-    if (planBits.length || pl) {
-      html += '<div class="fx-card rc-card"><div class="fx-eyebrow">' + esc(T("Reading plan")) + (pl ? " \u00b7 " + esc(pl.name) : idx.planId ? " \u00b7 " + esc(PLAN_NAMES[idx.planId]) : "") + "</div>" +
-        (planBits.length ? '<p class="rc-p">' + IC.check + "<span>" + esc(planBits[0]) + "</span></p>" : "") +
-        (pl ? '<div class="fx-bar"><i style="width:' + pl.pct + '%"></i></div><div class="fx-muted">' + esc(T("Day {a} of {b}", { a: pl.day, b: pl.total })) + " \u00b7 " + pl.pct + "%</div>" : "") + "</div>";
-    }
-    const rows = listRow(IC.note, T("Notes"), a.notes) + listRow(IC.hl, T("Highlights"), a.hls) + listRow(IC.mark, T("Saved verses"), a.saved) + listRow(IC.heart, T("Liked verses"), a.likes) +
-      listRow(IC.brain, T("Memory verses"), a.memAdded, a.memPr.length ? esc(T("Practised today") + ": " + a.memPr.map(m => m.ref).join(", ")) : "");
-    if (rows) html += '<div class="fx-card rc-card rc-list">' + rows + "</div>";
+    const s = isToday ? currentStreak(idx) : null;
+    let html = headline(a, true) + lede(idx, a, true);
+    if (a.read.length || a.openedOnly.length) html += '<div class="fx-chips rj-chips">' + a.read.slice().sort((p, q) => p[0] - q[0] || p[1] - q[1]).map(([b, c]) => chip(b, c, true)).join("") + a.openedOnly.slice(0, 12).map(([b, c]) => chip(b, c, false)).join("") + "</div>";
+    html += '<div class="rd-tiles">' + tile(IC.book, esc(a.read.length), T("Chapters read"), null) + tile(IC.clock, esc(durShort(a.secs)), T("Time in Bibley"), null) +
+      tile(IC.hl, esc(a.marks), T("Study marks"), null) + (s ? tile(IC.flame, esc(P(s.n, "{n} day", "{n} days")), T("Streak"), null) : tile(IC.check, esc(a.opened.size), T("Chapters opened"), null)) + "</div>";
+    // the plan ring and this week's squares, the selected day outlined
+    const pl = isToday && FX() && FX().plan ? FX().plan() : null, wk = weekOf(state.day);
+    html += '<div class="fx-card rc-card rb-glance">';
+    if (pl || a.plan.length) html += '<div class="rd-rings">' + ring(pl ? pl.pct : 0, pl ? esc(pl.pct) + "<small>%</small>" : esc(a.plan.length), pl ? pl.name : PLAN_NAMES[idx.planId] || T("Reading plan"),
+      [pl ? T("Day {a} of {b}", { a: pl.day, b: pl.total }) : "", a.plan.length ? a.plan.slice().sort((p, q) => p - q).map(n => T("Day {n} completed", { n })).join(", ") : ""].filter(Boolean).join(" \u00b7 ")) + "</div>";
+    html += '<div class="rb-wk"><div class="rd-h"><span class="fx-eyebrow">' + esc(T("This week")) + "</span></div>" + weekSquares(aggregate(idx, wk, addDays(wk, 6)), state.day) + "</div></div>";
+    // through the day: everything with a time stamp, in order, with the verse itself
+    const ev = [];
+    [["hls", "Highlighted"], ["notes", "Note"], ["saved", "Saved"], ["likes", "Liked"], ["memAdded", "Memorizing"], ["memPr", "Practised"]].forEach(([f, l]) => a[f].forEach(x => ev.push(Object.assign({ f, l }, x))));
+    ev.sort((p, q) => (p.t || 0) - (q.t || 0));
+    if (ev.length) html += '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Through the day")) + '</h4><ol class="rj-tl rj-hours">' + ev.map(x => {
+      const q = quoteOf(x), body = x.f === "notes" && x.body ? String(x.body) : "";
+      return '<li class="on"><span class="rj-date"><b>' + esc(clock(x.t)) + '</b></span><span class="rj-pin"></span><div class="rj-body"><p class="rj-meta">' + esc(T(x.l)) + " \u00b7 " + refLink(x) + "</p>" +
+        (q ? '<p class="rj-q' + (x.color ? " hl-" + esc(String(x.color).replace(/[^a-z]/g, "")) : "") + '">\u201c' + esc(q) + "\u201d</p>" : "") + (body ? '<p class="rj-note">' + esc(body) + "</p>" : "") + "</div></li>";
+    }).join("") + "</ol></div>";
+    html += studySec(a);
     el.innerHTML = html;
     return el;
   }
@@ -469,47 +578,49 @@
   }
 
   /* ---------- Week ---------- */
-  function weekView(idx, a) {
-    const el = h('<div class="rc-week"></div>');
-    let html = '<div class="rc-stats four">' + stat(a.read.length, T("Chapters read")) + stat(T("{a} of {b}", { a: a.active, b: a.total || 7 }), T("Active days")) + stat(dur(a.secs), T("Time in Bibley")) + stat(P(a.best, "{n} day", "{n} days"), T("Best streak")) + "</div>";
-    html += '<div class="fx-card rc-card"><div class="fx-eyebrow">' + esc(T("Day by day")) + "</div>" + strip(a) + "</div>";
-    if (!a.any) { html += empty("Nothing recorded this week"); el.innerHTML = html; return el; }
-    html += topBooks(a, 3) + studyCard(a) + compareLine(idx, a, addDays(state.week, -7), addDays(state.week, -1), "Last week: {s}");
-    el.innerHTML = html;
-    return el;
+  const WEEKS = 18;
+  function rhythm(idx, a) {
+    return '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Last {n} weeks", { n: WEEKS })) + "</h4>" + heatGrid(idx, a.from, a.to, WEEKS) + "</div>";
   }
-  function strip(a) {
-    const hi = Math.max(1, ...a.list.map(d => d.n)), today = dayStr();
-    return '<div class="rc-strip" role="list">' + a.list.map(d => {
-      const dt = toDate(d.day), lvl = d.n ? Math.max(18, Math.round(d.n / hi * 100)) : d.active ? 10 : 0;
-      const tip = fmt(dt, { weekday: "long", month: "short", day: "numeric" }) + ": " + P(d.n, "{n} chapter", "{n} chapters") + (d.secs >= 60 ? ", " + dur(d.secs) : "");
-      return '<button type="button" role="listitem" class="rc-sd' + (d.active ? " on" : "") + (d.day === today ? " today" : "") + '"' + (d.future ? " disabled" : ' data-day="' + d.day + '"') + ' aria-label="' + esc(tip) + '" title="' + esc(tip) + '">' +
-        '<span class="rc-sw">' + esc(fmt(dt, { weekday: "narrow" })) + '</span><span class="rc-sb"><i style="height:' + lvl + '%"></i></span><span class="rc-sn">' + (d.n ? d.n : d.active ? IC.check : "") + "</span>" +
-        '<span class="rc-sdt">' + dt.getDate() + "</span></button>";
-    }).join("") + "</div>";
+  function weekView(idx, a) {
+    const el = h('<div class="rc-week rj"></div>');
+    if (!a.any) { el.innerHTML = empty("Nothing recorded this week") + rhythm(idx, a); return el; }
+    const prev = aggregate(idx, addDays(state.week, -7), addDays(state.week, -1)), p = prev.any ? prev : null;
+    el.innerHTML = headline(a, false) + lede(idx, a, false) + periodTiles(a, p) +
+      '<div class="fx-card rc-card rb-glance">' + periodRings(idx, a, p, "week") + '<div class="rb-wk">' + weekSquares(a) + "</div></div>" +
+      timeline(a) + booksTable(a, 3) + keptVerses(a, 4) + studySec(a) + rhythm(idx, a);
+    return el;
   }
 
   /* ---------- Month ---------- */
   function monthView(idx, a) {
-    const el = h('<div class="rc-month"></div>');
-    let html = '<div class="rc-stats four">' + stat(a.read.length, T("Chapters read")) + stat(T("{a} of {b}", { a: a.active, b: a.total }), T("Active days")) + stat(P(a.best, "{n} day", "{n} days"), T("Best streak")) + stat(dur(a.secs), T("Time in Bibley")) + "</div>";
-    html += '<div class="fx-card rc-card"><div class="fx-eyebrow">' + esc(T("Your month")) + "</div>" + calendar(a) + "</div>";
-    if (!a.any) { html += empty("Nothing recorded this month"); el.innerHTML = html; return el; }
-    html += topBooks(a, 5) + studyCard(a) + compareLine(idx, a, monthStart(shiftMonth(state.month, -1)), monthEnd(shiftMonth(state.month, -1)), "Last month: {s}");
-    el.innerHTML = html;
+    const el = h('<div class="rc-month rj"></div>');
+    const cal = '<div class="fx-card rc-card rb-cal">' + calendar(a) + "</div>";
+    if (!a.any) { el.innerHTML = cal + empty("Nothing recorded this month"); return el; }
+    const prev = aggregate(idx, monthStart(shiftMonth(state.month, -1)), monthEnd(shiftMonth(state.month, -1))), p = prev.any ? prev : null;
+    // week by week
+    const weeks = [];
+    for (let w = weekOf(a.from); w <= a.to; w = addDays(w, 7)) {
+      const f = w < a.from ? a.from : w, t = addDays(w, 6) > a.to ? a.to : addDays(w, 6);
+      if (f > dayStr()) break;
+      weeks.push([f, t, aggregate(idx, f, t)]);
+    }
+    const wk = '<div class="rj-sec"><h4 class="rj-h">' + esc(T("Week by week")) + '</h4><ol class="rj-tl rj-weeks">' + weeks.map(([f, t, w]) =>
+      '<li class="' + (w.any ? "on" : "off") + (f <= dayStr() && t >= dayStr() ? " today" : "") + '"><button type="button" class="rj-date" data-day="' + f + '" aria-label="' + esc(rangeLabel(f, t, false)) + '"><b>' + toDate(f).getDate() + (f !== t ? "\u2013" + toDate(t).getDate() : "") + '</b></button><span class="rj-pin"></span><div class="rj-body">' +
+      (w.any ? '<p class="rj-read">' + esc(P(w.read.length, "{n} chapter", "{n} chapters")) + '<span class="rj-of"> \u00b7 ' + esc(T("{a} of {b}", { a: w.active, b: w.total }) + " " + T("Active days").toLowerCase()) + "</span></p>" +
+        (w.top.length ? '<p class="rj-meta">' + esc(w.top.slice(0, 3).map(([b, n]) => bookName(b) + " " + n).join(" \u00b7 ")) + "</p>" : "") : '<p class="rj-none">' + esc(T("Nothing recorded")) + "</p>") + "</div></li>").join("") + "</ol></div>";
+    el.innerHTML = headline(a, false) + lede(idx, a, false) + periodTiles(a, p) + '<div class="fx-card rc-card rb-glance">' + periodRings(idx, a, p, "month") + "</div>" +
+      cal + wk + booksTable(a, 5) + keptVerses(a, 6) + studySec(a);
     return el;
   }
+  // the month as heat squares under weekday letters, with the chapter count in each
   function calendar(a) {
     const ws = weekStartDay(), first = toDate(a.from), lead = (first.getDay() - ws + 7) % 7, today = dayStr();
     const hdr = []; for (let i = 0; i < 7; i++) { const d = new Date(2023, 0, 1 + ((ws + i) % 7)); hdr.push('<span class="rc-ch">' + esc(fmt(d, { weekday: "narrow" })) + "</span>"); }   // 2023-01-01 was a Sunday
-    const cells = []; for (let i = 0; i < lead; i++) cells.push('<span class="rc-cd pad"></span>');
-    a.list.forEach(d => {
-      const lv = d.n >= 4 ? 4 : d.n >= 2 ? 3 : d.n === 1 ? 2 : d.active ? 1 : 0;
-      const tip = fmt(toDate(d.day), { weekday: "long", month: "long", day: "numeric" }) + ": " + P(d.n, "{n} chapter", "{n} chapters") + (d.secs >= 60 ? ", " + dur(d.secs) : "");
-      cells.push('<button type="button" class="rc-cd l' + lv + (d.day === today ? " today" : "") + '"' + (d.future ? " disabled" : ' data-day="' + d.day + '"') + ' aria-label="' + esc(tip) + '" title="' + esc(tip) + '"><span>' + toDate(d.day).getDate() + "</span></button>");
-    });
-    return '<div class="rc-cal"><div class="rc-cal-h">' + hdr.join("") + '</div><div class="rc-cal-g">' + cells.join("") + "</div></div>" +
-      '<p class="fx-muted rc-hint">' + esc(T("Tap a day to see it.")) + "</p>";
+    const cells = []; for (let i = 0; i < lead; i++) cells.push('<span class="rd-cd pad"></span>');
+    a.list.forEach(d => cells.push('<button type="button" class="rd-cd l' + lvlOf(d) + (d.day === today ? " today" : "") + '"' + (d.future ? " disabled" : ' data-day="' + d.day + '"') + ' aria-label="' + esc(dayTip(d)) + '" title="' + esc(dayTip(d)) + '"><span>' + toDate(d.day).getDate() + "</span>" + (d.n ? "<b>" + d.n + "</b>" : "") + "</button>"));
+    return '<div class="rd-h"><span class="fx-eyebrow">' + esc(T("Your month")) + "</span></div>" +
+      '<div class="rc-cal"><div class="rc-cal-h">' + hdr.join("") + '</div><div class="rd-calg">' + cells.join("") + "</div></div>" + legend(T("Tap a day to see it."));
   }
 
   /* ---------- copy / share text ---------- */
