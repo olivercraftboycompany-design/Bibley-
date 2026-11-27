@@ -17,11 +17,11 @@ Oliver's feature list (sent 2026-11-26), tracked here. Status:
 
 ## 2. Reading & Comparison
 
-- 🗑 Word-level & % diff highlighting between parallel translations — **Removed in 7.2.2** (built in 7.2): open Compare, tap "Diff" in the second pane's toolbar; changed words are underlined and the pane shows "% different".
+- ✅ Word-level & % diff highlighting between parallel translations — **Built in 7.3** (rebuilt from scratch): open Compare (More > Compare translations) and the words that differ are marked in both panes; the chip in the second pane's toolbar shows how different the chapter is (e.g. "31% different") and turns the marks on or off. Same switch in Settings > Reading > Compare; the choice is saved and syncs. Word-level Myers diff that ignores case, punctuation, apostrophes and accents; verses only one translation has are marked whole, and when the verse numbering differs (e.g. psalm titles counted as verse 1) the chapter is compared as one passage.
 - 🕓 Red-letter mode (words of Jesus) — the bundled translations carry no red-letter markup; needs a licensed words-of-Jesus dataset.
-- 🗑 Back/forward chapter history — **Removed in 7.2.2** (built in 7.2): ‹ › buttons in the reading toolbar retrace the chapters you visited.
+- ✅ Back/forward chapter history — **Built in 7.3** (rebuilt from scratch): back / forward arrows next to Books in the top bar retrace the chapters you opened, like a browser (going somewhere new after going back drops the forward list) and return you to where you were in the chapter. The phone's Back button steps back through them too when no sheet or screen is open, and closes the Books drawer or Study panel if one is open. Kept for the session (until Bibley is closed). On phones the forward arrow appears once you've gone back.
 - 🕓 Multi-language Bibles + multi-language UI — large content + translation project.
-- 🗑 Print-friendly reading & study view — **Removed in 7.2.2** (built in 7.2): Plus > Tools > Print this chapter (browser "Save as PDF" works from the same view).
+- ✅ Print-friendly reading & study view — **Built in 7.3** (rebuilt from scratch): More (⋮) > Print chapter ("Print both translations" in Compare) prints a clean page: the chapter with section headings, your highlights and notes, the copyright lines, and in Compare both translations side by side verse by verse (with the differences underlined if they're on). The browser's own Print / Save as PDF gives the same page. The Android app's WebView can't print yet, so it says so; use Bibley in Chrome.
 
 ## 3. Study & Original Languages
 
@@ -53,7 +53,7 @@ Oliver's feature list (sent 2026-11-26), tracked here. Status:
 
 Recaps only count activity recorded on the device; they don't invent history for days with no records.
 
-Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks.
+Note: everything marked 🗑 was removed from the app on 2026-11-26 at Oliver's request ("Remove bibley plus"). The 7.2 code remains in git history and can be restored if he asks. The three ✅ 7.3 items above were rebuilt from scratch inside the reader (no Plus menu) and share none of the 7.2 code.
 
 ## Still to do (summary)
 

@@ -25,7 +25,8 @@
     gear: sv('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 7.5l2.1 1.2M17.7 15.3l2.1 1.2M4.2 16.5l2.1-1.2M17.7 8.7l2.1-1.2"/><circle cx="12" cy="12" r="6.3"/>'),
     scroll: sv('<path d="M7 4h11a2 2 0 0 1 2 2v1h-4"/><path d="M16 7v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1h10"/><path d="M7 4a2 2 0 0 0-2 2v11"/>'),
     heart: sv('<path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z"/>'),
-    lock: sv('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>')
+    lock: sv('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>'),
+    print: sv('<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>')
   };
   const bname = b => b[1] === "Psalm" ? "Psalms" : b[1];
   const GROUP_NAMES = { law: "Law", history: "History", "history-nt": "History", poetry: "Poetry & Wisdom", wisdom: "Poetry & Wisdom", prophets: "Prophets", "major-prophets": "Major prophets", "minor-prophets": "Minor prophets", gospels: "Gospels", letters: "Letters", "pauline": "Paul's letters", "general": "General letters", prophecy: "Prophecy" };
@@ -44,8 +45,8 @@
   function menuItems() {
     const bm = $("bookmarkBtn"), cmp = $("compareBtn"), fs = $("fullscreenBtn");
     const marked = bm && bm.classList.contains("active"), comparing = cmp && cmp.classList.contains("active"), full = fs && fs.classList.contains("active");
-    return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing],
-      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]].concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]);
+    return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing]].concat(window.BibleyReading ? [["print", IC.print, comparing ? "Print both translations" : "Print chapter"]] : []).concat([
+      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]]).concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"], ["set", IC.gear, "Settings"]]);
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; document.removeEventListener("pointerdown", outside, true); } }
   function outside(e) { if (menu && !menu.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) closeMenu(); }
@@ -60,6 +61,7 @@
       if (k === "cmp") { const x = $("compareBtn"); if (x) x.click(); }
       if (k === "fs") { const x = $("fullscreenBtn"); if (x) x.click(); }
       if (k === "focus" && window.BibleyFocusUI) window.BibleyFocusUI.set(!window.BibleyFocusUI.get().on);
+      if (k === "print" && window.BibleyReading) window.BibleyReading.print();
       if (k === "tts") { const x = document.querySelector('.tts-btn[data-pane="a"]'); if (x) x.click(); }
       if (k === "today") FX.open.today();
       if (k === "set") FX.open.settings();

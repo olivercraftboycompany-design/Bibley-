@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="bibley-call.css" />
 <link rel="stylesheet" href="bibley-sections.css" />
 <link rel="stylesheet" href="bibley-focus.css" />
+<link rel="stylesheet" href="bibley-reading.css" />
 <script>/* v5.9 early appearance (bibley_settings_v2 / bibley_flags_v1), applied before first paint */try{var bs=JSON.parse(localStorage.getItem("bibley_settings_v2")||"{}"),de=document.documentElement,bc=[];if(bs.themeMode==="black")bc.push("theme-black");if(bs.mode)bc.push("mode-"+bs.mode);if(bs.density==="compact")bc.push("bs-compact");if(bs.radius)bc.push("bs-r-"+bs.radius);if(bs.motion&&bs.motion!=="on")bc.push("bs-motion-"+bs.motion);if(bs.accent&&bs.accent!=="gold")de.setAttribute("data-accent",bs.accent);var bf=JSON.parse(localStorage.getItem("bibley_flags_v1")||"{}").flags||{};for(var k in bf)if(bf[k])bc.push("flag-"+k);bc.forEach(function(c){de.classList.add(c)});}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
@@ -1648,6 +1649,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     } else {
       headerTitle.textContent = BOOKS[panes.a.bookIdx][1]+" "+panes.a.chapter;
     }
+    try { document.dispatchEvent(new CustomEvent("bibley:compare", { detail:{ on:compareMode } })); } catch {}
   });
 
   // --- Fullscreen ---
@@ -1837,8 +1839,11 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
   document.querySelectorAll(".prev-btn").forEach(btn=> btn.addEventListener("click", ()=> goPrev(btn.dataset.pane)));
   document.querySelectorAll(".next-btn").forEach(btn=> btn.addEventListener("click", ()=> goNext(btn.dataset.pane)));
 
+  // v7.3: tell bibley-reading.js (chapter history, Compare differences) a pane is about to show a chapter
+  function emitReader(type, k){ const p=panes[k]; try { document.dispatchEvent(new CustomEvent("bibley:"+type, { detail:{ pane:k, bookIdx:p.bookIdx, chapter:p.chapter, version:p.version } })); } catch {} }
   function loadPane(k){
     ttsStop();
+    emitReader("navigate", k);
     const p=panes[k]; const book=BOOKS[p.bookIdx];
     if(k==="a") rememberPosition();
     updateHeader(k); updatePager(k);
@@ -1885,7 +1890,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     return "public domain";
   }
   function renderLoading(k){ const inner=paneEl(".reader-inner", k); inner.innerHTML=""; const w=document.createElement("div"); w.className="skeleton"; for(let i=0;i<7;i++){ const l=document.createElement("div"); l.className="skel-line"; l.style.width=(70+(i%3)*10)+"%"; w.appendChild(l);} inner.appendChild(w); }
-  function renderError(k, reason){ const p=panes[k]; const b=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", k);
+  function renderError(k, reason){ setTimeout(()=> emitReader("chapter", k), 0); const p=panes[k]; const b=BOOKS[p.bookIdx]; const inner=paneEl(".reader-inner", k);
     const offline = reason==="offline" || !navigator.onLine || /Failed to fetch|NetworkError|Load failed/i.test(String(reason||""));
     if(reason==="not-in-this-translation"){ inner.innerHTML = `<div class="state-msg"><p>${b[1]} ${p.chapter} isn't included in ${versionFullName(p.version)}. Try another version.</p></div>`; return; }
     if(offline){ inner.innerHTML = `<div class="state-msg"><span class="offline-ico"></span><p>You're offline, and ${b[1]} ${p.chapter} (${versionName(p.version)}) isn't saved on this device yet.</p><p style="font-size:14px">Chapters you've opened before work offline.</p><button class="retry-btn" type="button">Try again</button></div>`; const rb=inner.querySelector(".retry-btn"); if(rb) rb.addEventListener("click", ()=> loadPane(k)); return; }
@@ -1938,6 +1943,7 @@ WHAT YOU REFUSE (gently, then redirect to something biblical):
     const chapBtn=document.getElementById(`chapBmBtn-${paneKey}`);
     if(chapBtn){ chapBtn.addEventListener("click", ()=>{ toggleBookmark(p.bookIdx,p.chapter); renderBookmarkList(); renderChapterGrid(); renderBookList(""); updateBookmarkUI(); renderVerses(paneKey, verses); if(currentTab==="marks") renderMarks(); }); }
     if(window.BibleyFX && typeof window.BibleyFX.onChapter==="function"){ try { window.BibleyFX.onChapter(paneKey, {bookIdx:p.bookIdx, chapter:p.chapter, version:p.version, count:verses.length}); } catch(err){ console.warn("chapter hook failed", err); } }
+    emitReader("chapter", paneKey);
   }
 
   // One assistant voice (the mode buttons were removed in v4.2). Kept as a constant so saved
@@ -2700,6 +2706,8 @@ Ground every point in the actual chapter text provided. Be specific and concrete
     fetchVerseText: (ref, version)=> fetchVerseText(ref, version),
     chapterVerses: async (version, bookIdx, chapter)=>{ const key=version+"/"+BOOKS[bookIdx][0]+"/"+chapter; if(cache[key]) return cache[key]; return null; },
     isCompare: ()=> compareMode,
+    // v7.3: the verses a pane is showing right now (null while loading or on an error)
+    paneVerses: (k)=>{ const p=panes[k||"a"]; if(!p || !BOOKS[p.bookIdx]) return null; return cache[p.version+"/"+BOOKS[p.bookIdx][0]+"/"+p.chapter] || null; },
     goPrev: (k)=> goPrev(k||"a"), goNext: (k)=> goNext(k||"a"),
     goTo: (bookIdx, chapter)=>{ if(!BOOKS[bookIdx]) return; const p=panes.a; p.bookIdx=bookIdx; p.chapter=Math.max(1, Math.min(chapter, BOOKS[bookIdx][2])); renderBookList(bookSearch.value); renderChapterGrid(); updateBookmarkUI(); closeDrawer(); loadPane("a"); },
     rerender: ()=>{ ["a","b"].forEach(k=>{ if(k==="b" && !compareMode) return; const p=panes[k]; const key=p.version+"/"+BOOKS[p.bookIdx][0]+"/"+p.chapter; if(cache[key]){ const sc=paneEl(".reader-main", k).scrollTop; renderVerses(k, cache[key]); paneEl(".reader-main", k).scrollTop=sc; } }); if(currentTab==="marks") renderMarks(); },
@@ -2741,6 +2749,7 @@ Ground every point in the actual chapter text provided. Be specific and concrete
 <div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
 <script src="pwa.js" defer></script>
 <script src="bibley-features.js" defer></script>
+<script src="bibley-reading.js" defer></script>
 <script src="bibley-sections.js" defer></script>
 <script src="bibley-focus.js" defer></script>
 <script src="bibley-study.js" defer></script>
