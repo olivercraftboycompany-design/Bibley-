@@ -1,0 +1,45 @@
+/* bibley-versefind.css - Bibley 7.5 (2026-11-27): Find a verse with AI (bibley-versefind.js).
+   The pop-up is the app's shared bottom sheet (.fx-sheet); these rules style its contents and the
+   "Find verses with AI" rows in the Books drawer and the Study Notebook search. */
+
+/* above the full-page Study Notebook (.snbx, z-index 70) while the finder is open */
+html.bvf-on .fx-scrim { z-index: 76; }
+html.bvf-on .fx-sheet { z-index: 77; }
+
+.bvf { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.bvf-form { display: flex; gap: 8px; align-items: center; margin: 0; }
+.bvf-box { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--bg); border-radius: 12px; padding: 0 12px; color: var(--gold); }
+.bvf-box:focus-within { border-color: var(--gold); }
+.bvf-q { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--ink); font: 15px 'Source Serif 4', Georgia, serif; padding: 11px 0; }
+.bvf-q::placeholder { color: var(--ink-faint); }
+.bvf-ic { flex-shrink: 0; }
+
+.bvf-out { display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.bvf-status, .bvf-note, .bvf-hint, .bvf-foot { margin: 2px 2px 0; color: var(--ink-dim); font-size: 13px; line-height: 1.5; }
+.bvf-note { font-family: 'Fraunces', Georgia, serif; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-top: 6px; }
+.bvf-foot { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+.bvf-status { display: flex; align-items: center; gap: 10px; color: var(--gold-soft); }
+.bvf-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--gold); animation: bvf-spin .8s linear infinite; flex-shrink: 0; }
+@keyframes bvf-spin { to { transform: rotate(360deg); } }
+
+.bvf-r { border: 1px solid var(--border); background: var(--bg-panel); border-radius: 14px; padding: 12px 14px; }
+.bvf-go { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer; font: inherit; }
+.bvf-ref { display: flex; align-items: baseline; gap: 8px; font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 600; color: var(--gold-soft); }
+.bvf-ref em { font-style: normal; font-weight: 400; font-size: 10.5px; letter-spacing: .12em; color: var(--ink-faint); }
+.bvf-t { display: block; margin-top: 5px; font: 15px/1.6 'Source Serif 4', Georgia, serif; color: var(--ink); }
+.bvf-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.bvf-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bvf-empty b { color: var(--ink); font-weight: 600; }
+
+.bvf-sk i { display: block; height: 11px; border-radius: 6px; margin: 7px 0; background: linear-gradient(90deg, var(--border), rgba(201,168,103,.08), var(--border)); background-size: 200% 100%; animation: bvf-sh 1.2s ease-in-out infinite; }
+.bvf-sk i:first-child { width: 32%; height: 14px; }
+.bvf-sk i:last-child { width: 74%; }
+@keyframes bvf-sh { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* entry rows: Books drawer search and Study Notebook search */
+.bvf-entry { display: flex; width: 100%; align-items: center; gap: 10px; border: 1px dashed var(--border); background: rgba(201,168,103,.07); color: var(--gold-soft); border-radius: 12px; padding: 10px 12px; margin: 6px 0; font: 15px 'Source Serif 4', Georgia, serif; text-align: left; cursor: pointer; }
+.bvf-entry span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bvf-entry:active { transform: scale(.99); }
+.snbx-items .bvf-entry { margin: 0 0 8px; }
+
+@media (prefers-reduced-motion: reduce) { .bvf-spin, .bvf-sk i { animation: none; } }

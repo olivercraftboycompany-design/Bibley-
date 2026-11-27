@@ -313,3 +313,31 @@ html.theme-light .snbx-seg button.on, html.theme-sepia .snbx-seg button.on { col
 .snbx-meta .snbx-mdate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .snbx-mpaper { display: flex; } .snbx-mpaper button { flex: 1; }
 .snbx-gtext del { margin-right: 3px; }
+
+/* 7.5 (2026-11-27): live formatting editor in Write mode (bibley-mdedit.js). The textarea stays as the
+   hidden Markdown source; .snb-wys shows the note formatted. Also ``` code blocks in Preview. */
+.snbx-work.has-wys .snb-ta { display: none !important; }
+.snbx-work[data-mode="preview"] .snb-wys { display: none; }
+.snb-wys { position: relative; min-height: 46vh; outline: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; caret-color: var(--gold); font: 400 16.5px/28px Georgia, "Iowan Old Style", serif; color: var(--ink); padding: 0 0 24px; }
+.snb-wys.mde-empty::before { content: attr(data-ph); position: absolute; left: 0; top: 0; right: 0; color: var(--ink-faint); pointer-events: none; white-space: normal; }
+.snb-wys p { margin: 0; min-height: 28px; }
+.snb-wys h2.snb-h1, .snb-wys h3.snb-h2, .snb-wys h4 { margin: 10px 0 4px; }
+.snb-wys > :first-child { margin-top: 0; }
+.snb-wys blockquote { margin: 8px 0; padding: 6px 14px; border: 1px solid #c9a86744; background: #c9a8670d; border-radius: 12px; }
+.snb-wys blockquote.mde-quote { font-style: italic; }
+.snb-wys blockquote.mde-callout { border-color: #c9a86755; background: #c9a8671a; }
+.snb-wys blockquote.mde-callout::before { content: attr(data-label); display: block; font: 700 11.5px/1.6 system-ui, -apple-system, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); user-select: none; -webkit-user-select: none; }
+.snb-wys blockquote.mde-callout[data-callout="PRAYER"] { border-color: #b88a9655; background: #b88a961a; }
+.snb-wys blockquote.mde-callout[data-callout="WARNING"] { border-color: #e0a84a66; background: #e0a84a1a; }
+.snb-wys ul, .snb-wys ol { margin: 2px 0; padding-left: 24px; }
+.snb-wys ul.snb-cl { list-style: none; padding-left: 0; }
+.snb-wys ul.snb-cl li { display: block; position: relative; padding: 0 0 0 30px; }
+.snb-wys ul.snb-cl li::before { content: ""; position: absolute; left: 2px; top: 5px; width: 16px; height: 16px; border: 1.5px solid var(--gold); border-radius: 5px; box-sizing: border-box; cursor: pointer; }
+.snb-wys ul.snb-cl li[data-done="1"]::before { background: var(--gold); }
+.snb-wys ul.snb-cl li[data-done="1"]::after { content: ""; position: absolute; left: 7px; top: 7px; width: 5px; height: 9px; border: solid var(--bg, #0b1020); border-width: 0 2px 2px 0; transform: rotate(45deg); pointer-events: none; }
+.snb-wys ul.snb-cl li[data-done="1"] { color: var(--ink-faint); text-decoration: line-through; }
+.snb-wys hr { border: 0; border-top: 1px solid var(--snb-hair); margin: 13px 0 14px; cursor: default; }
+.snb-wys pre.mde-code, .snb-body pre.snb-code { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--snb-hair); background: var(--snb-surf, #ffffff0a); border-radius: 10px; font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.snb-body pre.snb-code code { font: inherit; }
+.snbx-tools button.on { background: var(--ui-press, #c9a8671f); color: var(--gold); }
+.snbx[data-paper="lined"] .snb-wys { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, #8fa4c833 27px, #8fa4c833 28px); background-attachment: local; }

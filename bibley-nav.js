@@ -1,4 +1,5 @@
 /* bibley-nav.js - Bibley 5.9 (app 1.9): refined top bar and Books drawer.
+   7.5 (2026-11-27): book search offers "Find verses about ... with AI" (bibley-versefind.js) when the text isn't a book name or is 3+ words; Enter opens it when no book matches.
    Top bar: Books (top-left) | chapter title | Study | version | Search (top-right) | More.
    Compare, fullscreen, bookmark and read aloud live in the More menu (the original buttons stay
    in the page, hidden, and the menu presses them, so their behaviour is unchanged).
@@ -128,8 +129,13 @@
       if (b[3] !== last) { last = b[3]; html += '<div class="bn-sec">' + esc(GROUP_NAMES[b[3]] || b[3]) + "</div>"; }
       html += '<button type="button" class="bn-book' + (i === cur ? " on" : "") + '" data-b="' + i + '"><span>' + esc(bname(b)) + (bmSet.has(i) ? '<i class="bn-dot" title="Bookmarked"></i>' : "") + "</span><small>" + b[2] + "</small></button>";
     });
-    if (!html) html = '<div class="bn-empty">No book matches \u201c' + esc(bs.value) + '\u201d.<button type="button" class="fx-btn small" data-a="vs">' + IC.search + "Search verse text instead</button></div>";
+    // 7.5: "Find verses about ... with AI" (bibley-versefind.js) when the text isn't a book name or is 3+ words
+    const VF = window.BibleyVerseFind, qt = (bs && bs.value || "").replace(/\s+/g, " ").trim();
+    const ai = VF && qt.length >= 3 && (!html || qt.split(" ").length >= 3) ? '<button type="button" class="bvf-entry" data-a="aifind">' + (VF.icon || "") + "<span>Find verses about \u201c" + esc(qt) + "\u201d with AI</span></button>" : "";
+    if (!html) html = ai + '<div class="bn-empty">No book matches \u201c' + esc(bs.value) + '\u201d.<button type="button" class="fx-btn small" data-a="vs">' + IC.search + "Search verse text instead</button></div>";
+    else html += ai;
     list.innerHTML = html;
+    const afb = list.querySelector('[data-a="aifind"]'); if (afb) afb.onclick = () => VF.open(qt, { from: "books" });
     list.querySelectorAll("[data-b]").forEach(b => b.onclick = () => showChapters(+b.dataset.b));
     const vsb = list.querySelector('[data-a="vs"]'); if (vsb) vsb.onclick = () => { const t = bs.value; openSearch(); if (ss) { ss.value = t; ss.dispatchEvent(new Event("input", { bubbles: true })); } };
   }
@@ -148,6 +154,7 @@
     tab = b.dataset.t; if (bs && bs.value) { bs.value = ""; bs.dispatchEvent(new Event("input", { bubbles: true })); } drawList();
   });
   if (bs) bs.addEventListener("input", drawList);
+  if (bs) bs.addEventListener("keydown", e => { if (e.key !== "Enter") return; const a = nav.querySelector('.bn-list [data-a="aifind"]'); if (a && !nav.querySelector(".bn-list [data-b]")) { e.preventDefault(); a.click(); } });
   function onOpen() {
     try { FX.clearSelection(); } catch {}
     document.querySelectorAll(".verses-text span.selected").forEach(s => s.classList.remove("selected"));

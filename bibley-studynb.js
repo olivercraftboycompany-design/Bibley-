@@ -10,7 +10,12 @@
      bibley_nb_v1_meta       {sort, converted:{srcId:{to,at}}, pins:{srcId:1}, paper, mode}
    Older notes are READ ONLY from their own keys and shown as imported notebooks:
      bibley_notes_v1 (verse notes from the reader), bibley_notebook_v1 (the paged notebook),
-     bible_highlights_v2, bible_bookmarks_v2, bibley_vbm_v1. Those keys are never written here. */
+     bible_highlights_v2, bible_bookmarks_v2, bibley_vbm_v1. Those keys are never written here.
+   7.5 (2026-11-27): Write mode is a live formatting editor (bibley-mdedit.js): bold shows bold, headings,
+     lists, checklists, quotes, code and dividers show as they are, and no ** marks are seen. The note is
+     still stored as the same Markdown (the hidden textarea stays the source of truth for save, Preview,
+     search, export and sync). New: ``` code blocks (toolbar Code). Notes search offers
+     "Ask AI: find verses about ..." (bibley-versefind.js). */
 (() => {
   "use strict";
   const FX = window.BibleyFX, C = window.BibleyCore;
@@ -67,6 +72,7 @@
     callout: sv('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M8 10h8M8 14h5"/>'),
     ol: sv('<path d="M10 7h10M10 12h10M10 17h10M4 6l1.5-1V9M3.6 14.2c.3-.6 2.4-.8 2.4.4 0 .9-2.4 1.6-2.4 2.9H6"/>'),
     hr: sv('<path d="M4 12h16M8 7h8M8 17h8" opacity=".9"/>'),
+    code: sv('<path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5"/>'),
     mic: sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'),
     focus: sv('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
     dl: sv('<path d="M12 4v11M8 11l4 4 4-4M5 19h14"/>'),
@@ -135,6 +141,7 @@
   function render(body) {
     const lines = String(body || "").split("\n"); let out = "", list = null, bq = null;
     const TAG = { cl: '<ul class="snb-cl">', ul: "<ul>", ol: "<ol>" }, END = { cl: "</ul>", ul: "</ul>", ol: "</ol>" };
+    let code = null; const codeOut = () => { out += `<pre class="snb-code"><code>${esc(code.join("\n"))}</code></pre>`; code = null; };
     const open = k => { if (list !== k) { close(); out += TAG[k]; list = k; } };
     const close = () => { if (list) { out += END[list]; list = null; } };
     const flush = () => { if (!bq) return; const m = bq[0].match(/^\[!(\w+)\]\s*(.*)$/); const rows = bq.slice(); if (m) rows[0] = m[2];
@@ -142,6 +149,8 @@
       out += m ? `<div class="snb-callout" data-k="${esc(m[1].toLowerCase())}"><b>${esc(CALL[m[1].toUpperCase()] || m[1])}</b><div>${inner}</div></div>` : `<blockquote class="snb-bq">${inner}</blockquote>`; bq = null; };
     lines.forEach((ln, i) => {
       let m;
+      if (code) { if (/^\s*```\s*$/.test(ln)) codeOut(); else code.push(ln); return; }
+      if (/^\s*```/.test(ln)) { flush(); close(); code = []; return; }
       if ((m = ln.match(/^\s*>\s?(.*)$/))) { close(); (bq || (bq = [])).push(m[1]); return; }
       flush();
       if ((m = ln.match(/^\s*[-*]\s\[( |x|X)\]\s?(.*)$/))) { open("cl");
@@ -154,10 +163,10 @@
       if (!ln.trim()) { out += '<div class="snb-gap"></div>'; return; }
       out += `<p>${inline(ln)}</p>`;
     });
-    flush(); close();
+    flush(); close(); if (code) codeOut();
     return out;
   }
-  const plain = body => String(body || "").replace(/\*\*([^*\n]+?)\*\*/g, "$1").replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, "$1$2").replace(/(^|[^\w])_([^_\n]+?)_(?!\w)/g, "$1$2").replace(/^#{1,3}\s+/gm, "").replace(/^\s*>\s?\[!(\w+)\]\s*/gm, (x, k) => (CALL[k.toUpperCase()] || k) + ": ").replace(/^\s*>\s?/gm, "").replace(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/gm, "\u2014\u2014\u2014").replace(/^\s*[-*]\s\[( )\]\s?/gm, "\u2610 ").replace(/^\s*[-*]\s\[[xX]\]\s?/gm, "\u2611 ").replace(/^\s*[-*]\s+/gm, "\u2022 ");
+  const plain = body => String(body || "").replace(/^\s*```.*$/gm, "").replace(/\*\*([^*\n]+?)\*\*/g, "$1").replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, "$1$2").replace(/(^|[^\w])_([^_\n]+?)_(?!\w)/g, "$1$2").replace(/^#{1,3}\s+/gm, "").replace(/^\s*>\s?\[!(\w+)\]\s*/gm, (x, k) => (CALL[k.toUpperCase()] || k) + ": ").replace(/^\s*>\s?/gm, "").replace(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/gm, "\u2014\u2014\u2014").replace(/^\s*[-*]\s\[( )\]\s?/gm, "\u2610 ").replace(/^\s*[-*]\s\[[xX]\]\s?/gm, "\u2611 ").replace(/^\s*[-*]\s+/gm, "\u2022 ");
   const snippet = body => plain(body).replace(/\s+/g, " ").trim().slice(0, 140);
 
 /* ---------- data ---------- */
@@ -299,7 +308,7 @@
     commit(); stopDictation(); closePop();
     if (window.visualViewport && vvOff) { window.visualViewport.removeEventListener("resize", vvOff); window.visualViewport.removeEventListener("scroll", vvOff); }
     if (mq.removeEventListener) mq.removeEventListener("change", onMq); document.removeEventListener("keydown", onKey, true);
-    if (root) root.remove(); root = null; cur = null; document.documentElement.classList.remove("snbx-on");
+    if (root) root.remove(); root = null; cur = null; wys = null; document.documentElement.classList.remove("snbx-on");
   }
   const isOpen = () => !!(root && root.isConnected);
   function setView(v) { if (root) root.dataset.view = v; }
@@ -346,6 +355,7 @@
     pane.querySelector('[data-a="new"]').onclick = () => pickTemplate(null);
     pane.querySelector('[data-a="srch"]').onclick = () => { st.qOpen = !st.qOpen; if (!st.qOpen && st.q) { st.q = ""; } drawList(); if (st.qOpen) { const q = pane.querySelector(".snb-q"); if (q) q.focus(); } };
     const q = pane.querySelector(".snb-q"); let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { st.q = q.value; drawItems(); }, 160); });
+    q.addEventListener("keydown", e => { if (e.key !== "Enter" || !window.BibleyVerseFind || q.value.trim().length < 3) return; st.q = q.value; if (!filtered().length) { e.preventDefault(); window.BibleyVerseFind.open(q.value.trim(), { from: "notebook" }); } });
     const nw = pane.querySelector(".snb-new"); if (nw) nw.onclick = () => pickTemplate(null);
     const so = pane.querySelector("select"); if (so) so.onchange = e => { setMeta({ sort: e.target.value }); drawItems(); };
     pane.querySelectorAll("[data-hl]").forEach(b => b.onclick = () => { st.hlTab = b.dataset.hl; drawList(); });
@@ -367,8 +377,11 @@
   function drawItems() {
     const box = $(".snbx-items"); if (!box) return; box.innerHTML = "";
     if (st.tab === "hl") { (st.hlTab === "saved" ? savedPane : hlPane)(box); return; }
-    const list = filtered();
-    box.innerHTML = list.length ? list.map(card).join("") : `<div class="snb-empty">${st.q || st.tag ? "Nothing matches that search." : st.nb === "pinned" ? "No pinned notes yet." : "No notes here yet."}</div>`;
+    const list = filtered(), VF = window.BibleyVerseFind, aq = st.q.replace(/\s+/g, " ").trim();
+    // 7.5: "Ask AI: find verses about ..." (bibley-versefind.js) for the text in the search box
+    const ai = VF && aq.length >= 3 ? `<button type="button" class="bvf-entry" data-a="aifind">${VF.icon || ""}<span>Ask AI: find verses about \u201c${esc(aq)}\u201d</span></button>` : "";
+    box.innerHTML = (list.length ? "" : ai) + (list.length ? list.map(card).join("") + ai : `<div class="snb-empty">${st.q || st.tag ? "Nothing matches that search." : st.nb === "pinned" ? "No pinned notes yet." : "No notes here yet."}</div>`);
+    const aib = box.querySelector('[data-a="aifind"]'); if (aib) aib.onclick = () => VF.open(aq, { from: "notebook" });
     box.querySelectorAll(".snb-card").forEach(c => { c.classList.toggle("on", !!(cur && cur.n.id === c.dataset.id)); const go = () => openNote(c.dataset.id); c.onclick = go; c.onkeydown = e => { if (e.key === "Enter") go(); }; });
   }
   function card(it) {
@@ -400,7 +413,7 @@
     drawEditor(); drawItems(); setView("ed");
     setTimeout(() => { const ta = $(".snb-ta"), tin = $(".snb-tin"); if (!ta) return; try {
       if (n.tpl === "blank" && !tin.value) tin.focus(); else { ta.focus(); const v = ta.value, k = ["## Observation", "## Key words", "## Main points", "## Reflect", "## Big idea", "## Praise", "## Strengths", "## Meaning"].map(x => v.indexOf(x)).filter(x => x >= 0)[0];
-        const at = k >= 0 ? v.indexOf("\n", k) + 1 : v.length; ta.setSelectionRange(at, at); }
+        const at = k >= 0 ? v.indexOf("\n", k) + 1 : v.length; if (wysOn()) wys.setMd(v, at); else ta.setSelectionRange(at, at); }
     } catch {} }, 60);
   }
   function drawEditor() {
@@ -417,18 +430,18 @@
         <button type="button" class="snb-ib snbx-dsk ${n.pinned ? "on" : ""}" data-a="pin" aria-label="Pin" title="Pin">${I.pin}</button>
         <button type="button" class="snb-ib snbx-dsk" data-a="focus" aria-label="Focus mode" title="Focus mode">${I.focus}</button>
         <button type="button" class="snb-ib" data-a="more" aria-label="More: templates, paper, focus, export, delete" title="More">${I.more}</button></div>
-      ${imp ? "" : `<div class="snbx-tools" role="toolbar" aria-label="Formatting">${tb("h1", "", "Heading 1", "H1")}${tb("h2", "", "Heading 2", "H2")}${tb("b", I.bold, "Bold")}${tb("i", I.ital, "Italic")}<span class="sep"></span>${tb("quote", I.quote, "Blockquote")}${tb("callout", I.callout, "Callout box")}${tb("ul", I.list, "Bullet list")}${tb("ol", I.ol, "Numbered list")}${tb("cl", I.check, "Checklist")}${tb("hr", I.hr, "Divider")}<span class="sep"></span>${tb("undo", I.undo, "Undo")}${tb("redo", I.redo, "Redo")}<span class="sep snbx-dsk"></span>${tb("verse", I.book, "Insert Verse", "Verse")}${tb("mic", I.mic, "Dictate")}</div>`}
+      ${imp ? "" : `<div class="snbx-tools" role="toolbar" aria-label="Formatting">${tb("h1", "", "Heading 1", "H1")}${tb("h2", "", "Heading 2", "H2")}${tb("b", I.bold, "Bold")}${tb("i", I.ital, "Italic")}<span class="sep"></span>${tb("quote", I.quote, "Blockquote")}${tb("callout", I.callout, "Callout box")}${tb("code", I.code, "Code block")}${tb("ul", I.list, "Bullet list")}${tb("ol", I.ol, "Numbered list")}${tb("cl", I.check, "Checklist")}${tb("hr", I.hr, "Divider")}<span class="sep"></span>${tb("undo", I.undo, "Undo")}${tb("redo", I.redo, "Redo")}<span class="sep snbx-dsk"></span>${tb("verse", I.book, "Insert Verse", "Verse")}${tb("mic", I.mic, "Dictate")}</div>`}
       <div class="snbx-paper"><div class="snbx-page">
         ${imp ? `<h1 class="snbx-tv">${esc(n.title || "Untitled")}</h1><div class="snb-imp">${I.book}<span>Imported from your earlier notes. The original is kept as it was.</span><button type="button" class="fx-btn small primary" data-a="convert">${I.edit}Edit as study note</button></div>
           ${n.verseText ? `<blockquote class="snb-vq">${esc(n.verseText)}<cite>${n.ref0 ? refBtn(n.ref0) : ""}${n.version ? " \u00b7 " + esc(vname(n.version)) : ""}</cite></blockquote>` : ""}`
           : `<input class="snb-tin" maxlength="100" placeholder="Title" aria-label="Title" value="${esc(n.title || "")}">`}
         <div class="snbx-meta">${imp ? "" : `<select class="snb-nbsel" aria-label="Notebook">${nbs.map(b => `<option value="${esc(b.id)}" ${b.id === n.nb ? "selected" : ""}>${esc(b.name)}</option>`).join("")}<option value="" ${!n.nb ? "selected" : ""}>No notebook</option></select>`}<span class="snbx-mdate">${n.tpl && n.tpl !== "blank" ? esc(tplOf(n.tpl).name) + " \u00b7 " : ""}${n.created ? esc(fmtDate(n.created)) : "New note"}</span>${imp ? "" : segH("snbx-mseg", MODES)}</div>
-        <div class="snbx-work" data-mode="${md === "split" && narrow() ? "write" : md}">${imp ? "" : `<textarea class="snb-ta" aria-label="Note" placeholder="Write here. Verse references like John 3:16 become links. Tap Verse to insert scripture.">${esc(n.body || "")}</textarea>`}<div class="snbx-pv snb-body" aria-label="Preview"></div></div>
+        <div class="snbx-work${!imp && MDE() ? " has-wys" : ""}" data-mode="${md === "split" && narrow() ? "write" : md}">${imp || !MDE() ? "" : `<div class="snb-wys snb-body" aria-label="Note"></div>`}${imp ? "" : `<textarea class="snb-ta" aria-label="Note" placeholder="Write here. Verse references like John 3:16 become links. Tap Verse to insert scripture.">${esc(n.body || "")}</textarea>`}<div class="snbx-pv snb-body" aria-label="Preview"></div></div>
         <div class="snb-live"></div>
         ${imp ? "" : `<label class="snb-lbl">Tags</label><input class="fx-input snb-tags-in" placeholder="faith, prayer, youth group" value="${esc((n.tags || []).join(", "))}">`}
       </div></div>
       <div class="snbx-foot"><span class="snbx-wc"></span><span class="snbx-saved" aria-live="polite">${imp ? "Read only" : c.fresh && !n.id ? "Not saved yet" : "Saved"}</span></div>`;
-    const ta = $(".snb-ta", ed), tin = $(".snb-tin", ed);
+    const ta = $(".snb-ta", ed), tin = $(".snb-tin", ed); wys = null; pendingCaret = null;
     $('[data-a="back"]', ed).onclick = () => { commit(); cur = null; relist(); drawEmpty(); setView("list"); };
     $('[data-a="pin"]', ed).onclick = e => { if (imp) { const m = meta(); if (m.pins[n.id]) delete m.pins[n.id]; else m.pins[n.id] = 1; wr(KM, m); n.pinned = !!m.pins[n.id]; } else { n.pinned = !n.pinned; dirty(); }
       e.currentTarget.classList.toggle("on", n.pinned); toast(n.pinned ? "Pinned to the top" : "Unpinned"); drawSide(); drawItems(); };
@@ -446,14 +459,34 @@
       let st2; ta.addEventListener("input", () => { clearTimeout(st2); st2 = setTimeout(snap, 400); dirty(); refresh(); });
       ta.addEventListener("keydown", keys);
       ed.querySelectorAll(".snbx-tools [data-f]").forEach(b => { b.addEventListener("mousedown", e => e.preventDefault()); b.onclick = () => tool(b.dataset.f, b); });
+      const wel = $(".snb-wys", ed);
+      if (wel) wys = MDE().create(wel, { md: ta.value, placeholder: "Write here. Verse references like John 3:16 become links. Tap Verse to insert scripture.",
+        onChange: md => { ta.value = md; clearTimeout(st2); st2 = setTimeout(snap, 400); dirty(); refresh(); },
+        onUndo: () => step(-1), onRedo: () => step(1),
+        onState: s => ed.querySelectorAll(".snbx-tools [data-f]").forEach(b => b.classList.toggle("on", !!s[b.dataset.f])) });
       snap();
     }
     $(".snbx-pv", ed).addEventListener("click", e => { const cb = e.target.closest(".snb-cb"); if (!cb) return; e.preventDefault(); if (imp) { toast("Tap Edit as study note to tick items"); return; } toggleLine(+cb.dataset.line); });
     refresh(true);
   }
   let rt;
+  /* 7.5 live editor glue: the textarea holds the Markdown; the editor (wys) shows it formatted */
+  let wys = null, pendingCaret = null;
+  const MDE = () => window.BibleyMdEditor;
+  const wysOn = () => !!(wys && wys.connected() && root && $(".snbx-work") && $(".snbx-work").dataset.mode !== "preview");
+  // copy the editor's caret / selection onto the textarea (as Markdown offsets) before a textarea-based action
+  function wysToTa() { const ta = root && $(".snb-ta"); if (!ta || !wysOn()) return false; const r = wys.selectionMd(); if (!r) return false; if (r.md !== ta.value) ta.value = r.md; ta.setSelectionRange(r.s, r.e); return true; }
+  // redraw the editor when the Markdown changed outside it (toolbar, undo, verse insert, grammar, preview ticks)
+  function syncWys() {
+    if (!wys || !wys.connected()) return; const ta = $(".snb-ta"); if (!ta) return;
+    const nv = ta.value, ov = wys.getMd(); let caret = pendingCaret; pendingCaret = null;
+    if (nv === ov) { if (caret != null) wys.setMd(nv, caret); return; }
+    if (caret == null && wys.hasFocus()) { let p = 0; const n = Math.min(nv.length, ov.length); while (p < n && nv[p] === ov[p]) p++; let q = 0; while (q < n - p && nv[nv.length - 1 - q] === ov[ov.length - 1 - q]) q++; caret = nv.length - q; }
+    wys.setMd(nv, caret);
+  }
+  function focusEditor() { const ta = root && $(".snb-ta"); if (wysOn()) wys.focus(); else if (ta) ta.focus(); }
   function grow() { const ta = root && $(".snb-ta"); if (!ta || !ta.offsetParent) return; const y = $(".snbx-paper").scrollTop; ta.style.height = "auto"; ta.style.height = Math.max(ta.scrollHeight + 4, Math.round(innerHeight * 0.46)) + "px"; $(".snbx-paper").scrollTop = y; }
-  function refresh(now) { clearTimeout(rt); grow(); const go = () => { preview(); counts(); linked(); }; if (now) go(); else rt = setTimeout(go, 140); }
+  function refresh(now) { clearTimeout(rt); syncWys(); grow(); const go = () => { preview(); counts(); linked(); }; if (now) go(); else rt = setTimeout(go, 140); }
   const bodyNow = () => { const ta = root && $(".snb-ta"); return ta ? ta.value : (cur ? cur.n.body || "" : ""); };
   function preview() { const pv = root && $(".snbx-pv"); if (!pv || !cur) return; const w = $(".snbx-work"); if (w && w.dataset.mode === "write") return; pv.innerHTML = render(bodyNow()) || '<p class="snb-faint">Nothing written yet</p>'; }
   function counts() { const el = root && $(".snbx-wc"); if (!el) return; const t = bodyNow(), w = (t.match(/[A-Za-z0-9\u00c0-\u024f']+/g) || []).length;
@@ -501,15 +534,20 @@
     const ta = $(".snb-ta"); if (!ta) return; snap();
     const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
     let t = text; if (block) { const b4 = v.slice(0, s).replace(/[ \t]+$/, ""); t = (!b4 ? "" : b4.endsWith("\n\n") ? "" : b4.endsWith("\n") ? "\n" : "\n\n") + t + (v.slice(e).startsWith("\n") ? "\n" : "\n\n"); }
-    ta.setRangeText(t, s, e, "end"); ta.focus(); snap(); dirty(); refresh();
+    ta.setRangeText(t, s, e, "end"); ta.focus(); if (wysOn()) pendingCaret = ta.selectionEnd; snap(); dirty(); refresh();
   }
   function tool(f, btn) {
     const ta = $(".snb-ta"); if (!ta) return;
     if (f === "undo") return step(-1); if (f === "redo") return step(1);
     if (f === "verse") return insertVerse();
     if (f === "mic") return dictate(btn);
+    const W = wysOn();
+    if (W && (f === "b" || f === "i")) { wys.exec(f); return; }   // live editor: real bold / italic, no ** marks
+    if (W) wysToTa();
     ta.focus(); snap();
     const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+    // live editor: keep the caret on its line through a line-prefix change (heading, list, quote...)
+    const keep = W && ["h1", "h2", "quote", "callout", "ul", "ol", "cl"].includes(f), kLine = v.slice(0, s).split("\n").length - 1, kEnd = (v.indexOf("\n", s) < 0 ? v.length : v.indexOf("\n", s)) - s;
     const wrapSel = (a, b) => { const mid = v.slice(s, e) || "text"; ta.setRangeText(a + mid + b, s, e, "select"); ta.setSelectionRange(s + a.length, s + a.length + mid.length); };
     const prefix = (p, num) => { const ls = v.lastIndexOf("\n", s - 1) + 1; let le = v.indexOf("\n", e); if (le < 0) le = v.length;
       const rows = v.slice(ls, le).split("\n"), has = rows.every(l => num ? /^\s*\d+[.)]\s/.test(l) : l.startsWith(p));
@@ -520,7 +558,27 @@
     else if (f === "quote") prefix("> "); else if (f === "callout") prefix("> [!NOTE] ");
     else if (f === "ul") prefix("- "); else if (f === "ol") prefix("", true); else if (f === "cl") prefix("- [ ] ");
     else if (f === "hr") { insertAt("---", true); return; }
+    else if (f === "code") codeBlock(ta, s, e, v);
+    if (keep) { const L = ta.value.split("\n"); let p = 0; for (let k = 0; k < kLine && k < L.length; k++) p += L[k].length + 1; pendingCaret = p + Math.max(0, (L[kLine] || "").length - kEnd); }
+    else if (W) pendingCaret = ta.selectionEnd;
     snap(); dirty(); refresh();
+  }
+  // ``` code block: wrap the selected lines, or unwrap the block the caret is in
+  function codeBlock(ta, s, e, v) {
+    const L = v.split("\n"), at = p => v.slice(0, p).split("\n").length - 1, a = at(s), b = at(e), F = /^\s*```/;
+    const before = L.slice(0, a).filter(l => F.test(l)).length, startPos = k => L.slice(0, k).reduce((n, l) => n + l.length + 1, 0);
+    let open = -1, close = -1;
+    if (before % 2 === 1) { for (let k = a - 1; k >= 0; k--) if (F.test(L[k])) { open = k; break; } }
+    else if (F.test(L[a])) open = a;
+    if (open >= 0) { for (let k = Math.max(open + 1, a); k < L.length; k++) if (/^\s*```\s*$/.test(L[k]) && k > open) { close = k; break; } }
+    if (open >= 0) {   // unwrap
+      const keepS = s - (s > startPos(open) ? L[open].length + 1 : 0);
+      if (close >= 0) L.splice(close, 1); L.splice(open, 1);
+      ta.value = L.join("\n"); const p = Math.max(0, Math.min(keepS, ta.value.length)); ta.setSelectionRange(p, p); return;
+    }
+    const empty = !L.slice(a, b + 1).join("").trim();
+    if (empty) { L.splice(a, b - a + 1, "```", "", "```"); ta.value = L.join("\n"); const p = startPos(a) + 4; ta.setSelectionRange(p, p); return; }
+    L.splice(b + 1, 0, "```"); L.splice(a, 0, "```"); ta.value = L.join("\n"); ta.setSelectionRange(s + 4, e + 4);
   }
   function toggleLine(ln) {
     const ta = $(".snb-ta"); if (!ta) return; snap(); const lines = ta.value.split("\n"); if (!lines[ln]) return;
@@ -541,8 +599,9 @@
   function insertVerse() {
     const ed = $(".snbx-ed"), ta = $(".snb-ta"); if (!ta) return;
     const old = $(".snbx-ins"); if (old) { old.remove(); return; }
+    const fromWys = wysToTa();
     let sel = [ta.selectionStart, ta.selectionEnd];
-    if (document.activeElement !== ta && sel[0] === 0 && ta.value) { const k = ta.value.indexOf("## Scripture"), at = k >= 0 ? ta.value.indexOf("\n", k) + 1 : ta.value.length; sel = [at, at]; }
+    if (document.activeElement !== ta && !fromWys && sel[0] === 0 && ta.value) { const k = ta.value.indexOf("## Scripture"), at = k >= 0 ? ta.value.indexOf("\n", k) + 1 : ta.value.length; sel = [at, at]; }
     const box = h(`<div class="snbx-ins" role="dialog" aria-label="Insert verse"><div class="snb-search">${I.book}<input type="search" class="snbx-ins-q" placeholder="John 3:16, Psalm 23:1-3 or a word like peace" aria-label="Verse reference or keywords" enterkeyhint="search"><button type="button" class="snb-ib sm" data-a="x" aria-label="Close">${I.x}</button></div><div class="snbx-ins-res"><p class="snb-hint">Type a reference or keywords. Results come from the King James Bible.</p></div></div>`);
     $(".snbx-tools", ed).after(box);
     const q = $(".snbx-ins-q", box), res = $(".snbx-ins-res", box); let found = [], tk = 0;
@@ -555,7 +614,7 @@
       } catch (e) { if (my === tk) res.innerHTML = `<p class="snb-hint">Couldn't open the Bible text (${esc(String(e && e.message || e).slice(0, 80))}).</p>`; } };
     let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 220); });
     q.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(t); run().then(() => { if (found[0]) put(found[0]); }); } });
-    $('[data-a="x"]', box).onclick = () => { box.remove(); ta.focus(); };
+    $('[data-a="x"]', box).onclick = () => { box.remove(); focusEditor(); };
     setTimeout(() => q.focus(), 30);
   }
 
@@ -590,7 +649,7 @@
     if (rec) { stopDictation(); return; }
     try { rec = new SR(); } catch { toast("Couldn't start dictation"); return; }
     rec.lang = navigator.language || "en-US"; rec.continuous = true; rec.interimResults = false;
-    rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); const ta = $(".snb-ta"); if (t && ta) { const s = ta.selectionStart; insertAt((s > 0 && !/\s$/.test(ta.value.slice(0, s)) ? " " : "") + t); } } };
+    rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); const ta = $(".snb-ta"); if (t && ta) { wysToTa(); const s = ta.selectionStart; insertAt((s > 0 && !/\s$/.test(ta.value.slice(0, s)) ? " " : "") + t); } } };
     rec.onerror = e => { toast(e.error === "not-allowed" ? "Microphone permission was blocked" : "Dictation stopped (" + e.error + ")"); };
     rec.onend = () => { rec = null; if (btn) btn.classList.remove("rec"); };
     try { rec.start(); if (btn) btn.classList.add("rec"); toast("Listening\u2026 tap the mic again to stop"); } catch { rec = null; toast("Couldn't start dictation"); }
@@ -600,7 +659,7 @@
   /* ---------- 7.1: AI Grammar Fix (selection, or the whole note). Never writes until you tap Apply. ---------- */
   const G_SYS = "You are a careful proofreader for a personal Bible-study notebook. Fix ONLY spelling, punctuation, capitalization and grammar. " +
     "Do NOT rewrite, reword, shorten or expand the author's sentences, voice or ideas. Do NOT add commentary, notes, explanations or a preamble. " +
-    "Keep every line break and blank line exactly where it is. Keep all Markdown exactly as it is: # and ## headings, **bold**, *italic*, > quotes, > [!NOTE] callouts, - and 1. lists, - [ ] and - [x] checklists, --- dividers. " +
+    "Keep every line break and blank line exactly where it is. Keep all Markdown exactly as it is: # and ## headings, **bold**, *italic*, > quotes, > [!NOTE] callouts, - and 1. lists, - [ ] and - [x] checklists, --- dividers, ``` code blocks. " +
     "Capitalize Bible book names in references (john 3:16 becomes John 3:16) but never change chapter or verse numbers. " +
     "Tokens like [[Q1]] stand for quoted Bible verses: copy them unchanged, each on its own line. " +
     "Reply with the corrected text only, wrapped exactly like this: <corrected>\n...text...\n</corrected>";
@@ -638,6 +697,7 @@
   }
   async function grammar() {
     const ta = $(".snb-ta"); if (!ta || !cur || cur.imp || gBusy) return;
+    if (!wysToTa() && wysOn()) ta.setSelectionRange(0, 0);
     let s = ta.selectionStart, e = ta.selectionEnd; const sel = e > s && ta.value.slice(s, e).trim();
     if (!sel) { s = 0; e = ta.value.length; }
     const orig = ta.value.slice(s, e);

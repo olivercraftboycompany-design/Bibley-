@@ -398,9 +398,13 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.4";
+  const APP_VERSION = "7.5";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.5", date: "November 2026", items: [
+      ["Find a verse with AI", "Describe a verse in your own words, like \u201cthe one about not worrying about tomorrow\u201d, and Bibley finds it. Type it in the Books search or the Study Notebook search. Every verse is checked against the Bible text before it's shown; tap one to open it."],
+      ["Notes look like notes", "In the Study Notebook, Write mode now shows your formatting as you type: bold is bold, headings, lists, checklists, quotes and dividers look finished, with no ** marks. New: code blocks."]
+    ] },
     { v: "7.4", date: "November 2026", items: [
       ["Your recap: day, week and month", "More > Recap (or \u201cYour recap\u201d on Today's streak card) shows what you read and studied: chapters, time in Bibley, active days, your best streak, most-read books, notes, highlights and saved verses. Look back day by day, week by week or month by month, tap any day to open it, and copy or share it as text."],
       ["This week at a glance", "The streak card on Today and in Reading plans now shows the days you've been in the Word this week."],
