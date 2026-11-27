@@ -398,9 +398,14 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.7";
+  const APP_VERSION = "7.8";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
+    { v: "7.8", date: "November 2026", items: [
+      ["AI that understands context", "Ask what a word means (\u201cwhat does virtue mean?\u201d), ask a follow-up like \u201cexplain that simpler\u201d, or ask a general question: Cloud AI and every on-device model now answer it, using the verse or chapter you're reading and your conversation so far. No more \u201cdid not find a passage\u201d replies."],
+      ["Smarter verse lookup", "Question words like \u201cwhat does ... mean\u201d are skipped when Bibley searches the King James text, so it finds the verses about the word you asked about (virtue: 2 Peter 1:5, Philippians 4:8). Verses are quoted only when they really help."],
+      ["Writings on Bibley's own database", "Writings, comments and editors now live in Bibley's SQLite database right next to your account and Cloud Sync. Posts already shared were moved over."]
+    ] },
     { v: "7.7", date: "November 2026", items: [
       ["Writings", "A new Writings tab in the bottom bar. Read studies and reflections from people on Bibley, search them, and switch between All, Mine and Shared with me. Writings need your Bibley account (Settings > Account & Cloud Sync)."],
       ["Post from your notebook", "In the Study Notebook, tap Post to share a note as a writing. Anyone with Bibley can read it. Changed the note later? Tap Post again to update it."],

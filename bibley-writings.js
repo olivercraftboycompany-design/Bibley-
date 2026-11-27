@@ -1,9 +1,12 @@
-/* bibley-writings.js - Bibley 7.7 (2026-11-27): Writings. Post a Study Notebook note as a writing anyone
+/* bibley-writings.js - Bibley 7.8 (2026-11-27): Writings. Post a Study Notebook note as a writing anyone
    signed in to Bibley can read, browse everyone's writings (All / Mine / Shared with me), search, read with
    comments, and let friends edit (the author adds them as editors by username).
-   Server: Supabase edge function (WRITINGS_API below), signed in with the same Bibley account token as
-   Accounts & Cloud Sync (bibley-sync.js). Until the server has the Writings routes (they answer 404), the screen shows a
-   friendly "Writings is almost ready" state instead of errors. Signed out: a prompt to sign in (Settings >
+   Server (v7.8): Bibley's own SQLite database on bibley.sites.tab.bot (worker /api/writings*, /api/users/lookup; tables
+   writings, writing_comments, writing_editors beside users / sessions), signed in with the same Bibley account token as
+   Accounts & Cloud Sync (bibley-sync.js), and reached the same way: same origin on bibley.sites.tab.bot, the full URL from the
+   github.io copy and the Android app. (7.7.1 used a separate Supabase function; its posts were moved into the SQLite
+   database on 2026-11-27.) If the server ever answers 404 for the routes, the screen shows a friendly
+   "Writings is almost ready" state instead of errors. Signed out: a prompt to sign in (Settings >
    Account & Cloud Sync).
    Rendering is safe: every title, name, comment and body is HTML-escaped; bodies are Markdown drawn by the
    Study Notebook's own renderer (escape first, then formatting) or a plain fallback here.
@@ -44,9 +47,8 @@
   function acc() { try { const a = JSON.parse(localStorage.getItem(K_ACC)); return a && a.token && a.user ? a : null; } catch { return null; } }
   const me = () => { const a = acc(); return a ? a.user : null; };
   const signedIn = () => !!acc() && (!window.BibleySync || window.BibleySync.isSignedIn());
-  // 7.7.1: Writings lives in its own database (Supabase project "bibley-writings"); the server checks the same
-  // Bibley account token against bibley.sites.tab.bot/api/auth/me, so people use their normal Bibley login.
-  const WRITINGS_API = "https://uofemjzghwmyaewsonbl.supabase.co/functions/v1/bibley";
+  // 7.8: Writings lives in Bibley's own SQLite database next to accounts and sync (same base as bibley-sync.js).
+  const WRITINGS_API = location.origin === HOME ? "" : HOME;
   const apiBase = () => WRITINGS_API;
   let ready = null;                       // null = not known yet, true = the server has Writings, false = not yet (404)
   function mkErr(kind, status, msg, data) { const e = new Error(msg); e.kind = kind; e.status = status; e.data = data; return e; }

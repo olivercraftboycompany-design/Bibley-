@@ -1,4 +1,9 @@
-/* bibley-local-ai.js - Bibley 7.6 (2026-11-27): On-Device AI, twelve models (all under 1.1B parameters, ten of them under 1B)
+/* bibley-local-ai.js - Bibley 7.8 (2026-11-27): context-aware answers. No more "did not find a passage" wall: every
+   question goes to the model, with the verse / chapter on screen (opts.context) and the recent conversation (context.history),
+   so word meanings ("what does virtue mean"), follow-ups ("explain that simpler") and general questions are answered
+   directly. Question filler ("what does ... mean", "explain", "tell me about") is stripped before the KJV search, so
+   "what does virtue mean" searches for virtue. KJV verses and teachings are offered as help, quoted exactly when used.
+   Was: Bibley 7.6 (2026-11-27): On-Device AI, twelve models (all under 1.1B parameters, ten of them under 1B)
    sharing one KJV verse-lookup brain plus "teachings" (Augustine and Calvin passages from bibley-theology.js) as cited context.
    Verified 2026-11-27 against WebLLM 0.2.89's prebuilt list (lib/index.js) and the Hugging Face API, and every CPU build was
    loaded with onnxruntime-web 1.22.0-dev.20250409 (the runtime Transformers.js 3.8.1 uses) and run on a short KJV prompt:
@@ -152,7 +157,11 @@
   }
 
   /* ---------------- keyword search (BM25) + topics ---------------- */
-  var STOP = {}; ("what does the bible say about is it a an and or of to in on for me my i do how should can are was be with that this you your we our they them he she his her who whom which why when where will would could about from at by as if so not no yes there their than then into out up down all any some get got have has had just like very much more most tell verse verses scripture scriptures god's").split(" ").forEach(function (w) { STOP[w] = 1; });
+  var STOP = {}; ("what does the bible say about is it a an and or of to in on for me my i do how should can are was be with that this you your we our they them he she his her who whom which why when where will would could about from at by as if so not no yes there their than then into out up down all any some get got have has had just like very much more most tell verse verses scripture scriptures god's" +
+    // v7.8: question filler, so "what does virtue mean" searches for "virtue" (and "explain this verse" for nothing extra)
+    " mean means meaning meanings meant define defines definition word words term explain explanation explaining tell telling told talk talking" +
+    " here say says said saying please simpler simple simply again also really thing things sort show understand" +
+    " chapter passage part line book bible's whats what's who's whos does did doing done am being been isn't").split(" ").forEach(function (w) { STOP[w] = 1; });
   function stem(w) {
     if (w.length > 4) w = w.replace(/(eth|est|ing|edst|ed|es|s)$/, "");
     if (w.length > 3) w = w.replace(/e$/, "").replace(/y$/, "i");
@@ -236,7 +245,8 @@
     out.topics = topics; out.terms = uniq.length; out.coverage = uniq.length ? known.length / uniq.length : 0; out.best = bestHits;
     return out;
   }
-  // Honesty gate (server.py's OFFTOPIC_GATE, here by keywords): nothing named, no topic, and the words barely occur in the KJV.
+  // v7.8: no longer a gate. "weak" = nothing named, no topic, and the words barely occur in the KJV: the verses found are then
+  // offered only as optional background and the model is told to simply answer the question (a definition, history, general).
   function isOffTopic(direct, ranked) {
     if (direct.length || ranked.topics.length) return false;
     if (!ranked.length || !ranked.terms) return true;
@@ -285,21 +295,48 @@
     }).join("") + "</div>";
   }
 
-  /* ---------------- prompt (Bibley 2.1) ---------------- */
-  var SYSTEM = "You are Bibley, a warm and honest Bible helper running right on this device. You answer questions about the Bible using the real King James verses provided. You always quote the verses word for word before explaining them, and you explain them in plain words. You are gentle: you never condemn the person asking.";
-  var INSTRUCTIONS = "Write your answer like this:\n1. Quote the 2 or 3 most important verses, each on its own line, in exactly this shape: the reference copied letter for letter from the list above, then a colon, then the exact words inside quote marks. Never change a single word or a single letter of a quote or of a reference.\n2. Then write 'In plain words:' and explain in 2 or 3 simple sentences what these verses say about the question, gently and honestly. Only claim what these verses actually say - do not add big claims they do not make. If the verses do not really answer the question, say so honestly instead of pretending they do.";
-  var TEACH_RULE = "\n3. If one of the teachings above really helps, you may add one short sentence that starts 'Teaching:' and names its author and work (for example: Teaching: Augustine, Confessions, says that ...). A teaching is a person's words, never Scripture: do not quote it as a verse and do not put it in your verse list.";
-  function userPrompt(q, picked, teach) {
+  /* ---------------- prompt (Bibley 7.8: context-aware) ----------------
+     The model always answers. It is told what the person is reading (context.ref / context.text) and gets the recent
+     conversation as real chat turns, so follow-ups work; the KJV verses found are help it may quote word for word. */
+  var SYSTEM = "You are Bibley, a warm, knowledgeable, context-aware assistant inside a Bible app, running right on this device. You can define words, explain passages in context, answer follow-up questions, and answer general questions clearly in plain language - not only Bible trivia. When King James verses or historic Christian writings are given to you, use them naturally when they really help, and if you quote a Bible verse, quote it word for word from the text given - never invent a verse. If a question does not need a Bible passage (a word meaning, history, or a general question), simply answer it directly and helpfully. You are gentle: you never condemn the person asking.";
+  var INSTRUCTIONS = "How to answer:\n1. Answer the question first, directly, in 2 to 5 plain sentences. If it asks what a word means, start with the meaning of the word. Use what the person is reading and the earlier conversation to understand what they mean (\"this\", \"that\", \"it\", \"explain that simpler\").\n2. If one or two of the verses above really help, add them after your answer, each on its own line in exactly this shape: the reference copied letter for letter, then a colon, then the exact words inside quote marks. Never change a word of a quote and never quote a verse that is not listed above. If no verse fits, do not quote any.";
+  var TEACH_RULE = "\n3. If one of the teachings above really helps, you may add one short sentence that starts 'Teaching:' and names its author and work (for example: Teaching: Augustine, Confessions, says that ...). A teaching is a person's words, never Scripture: do not quote it as a verse.";
+  function clip(t, n) { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "\u2026" : t; }
+  function readingLine(ctx, small) {
+    if (!ctx || (!ctx.ref && !ctx.text && !ctx.chapter)) return "";
+    var s = "";
+    if (ctx.ref || ctx.text) s += "The person is reading " + (ctx.ref || "a verse") + (ctx.version ? " (" + ctx.version + ")" : "") + (ctx.text ? ": \"" + clip(ctx.text, small ? 260 : 420) + "\"" : "") + "\n";
+    if (ctx.chapter && !small) s += "Chapter on screen" + (ctx.chapterRef ? " (" + ctx.chapterRef + ")" : "") + ": " + clip(ctx.chapter, 900) + "\n";
+    return s + "\n";
+  }
+  function userPrompt(q, picked, teach, ctx, weak, small) {
     var t = teach && teach.length ? "\n\nTeachings from historic Christian writers (their own words, not Scripture):\n" + teach.map(function (x) { return x.label + ": \"" + x.excerpt + "\""; }).join("\n") : "";
-    return "Question: " + q + "\n\nReal King James Bible verses found for this question:\n" + picked.map(function (v) { return v.ref + ": " + v.text; }).join("\n") + t + "\n\n" + INSTRUCTIONS + (t ? TEACH_RULE : "");
+    var vs = picked && picked.length ? "\n\n" + (weak ? "King James verses that might relate (use one only if it really fits the question):\n" : "Real King James Bible verses found for this question:\n") +
+      picked.map(function (v) { return v.ref + ": " + v.text; }).join("\n") : "";
+    return readingLine(ctx, small) + "Question: " + q + vs + t + "\n\n" + INSTRUCTIONS + (t ? TEACH_RULE : "");
+  }
+  // Recent conversation as alternating user / assistant turns (Gemma's template needs strict alternation), newest last,
+  // without the question being asked now.
+  function historyTurns(hist, q, small) {
+    var out = [], n = small ? 4 : 6, max = small ? 280 : 600;
+    (Array.isArray(hist) ? hist : []).forEach(function (m) {
+      if (!m) return; var role = m.role === "assistant" || m.role === "ai" ? "assistant" : m.role === "user" ? "user" : null;
+      var c = clip(m.content != null ? m.content : m.text, max); if (!role || !c) return;
+      if (out.length && out[out.length - 1].role === role) out[out.length - 1].content += "\n" + c; else out.push({ role: role, content: c });
+    });
+    if (out.length && out[out.length - 1].role === "user" && norm(out[out.length - 1].content) === norm(clip(q, max))) out.pop();
+    if (out.length && out[out.length - 1].role === "user") out.pop();
+    out = out.slice(-n); while (out.length && out[0].role !== "user") out.shift();
+    return out;
   }
   // Gemma (and any noSystem model) has no system role: its profile folds SYSTEM into the first user turn (same words, same example).
   // Small models get the 5 best verses instead of 8, so the prompt stays short.
-  function buildMessages(q, picked, modelId, teach) {
-    var mi = modelInfo(modelId), msgs = mi.noSystem ? [] : [{ role: "system", content: SYSTEM }], p = refVerse("Philippians 4:6"), m = refVerse("Matthew 6:34");
-    if (p && m) msgs.push({ role: "user", content: userPrompt("what does the Bible say about worry?", [p, m]) },
-      { role: "assistant", content: p.ref + ": \"" + p.text + "\"\n" + m.ref + ": \"" + m.text + "\"\n\nIn plain words: God does not want you to live worried. Instead of carrying every fear by yourself, bring each one to Him in prayer with thanks, and take life one day at a time. That is His way out of worry: pray, and trust Him daily." });
-    msgs.push({ role: "user", content: userPrompt(q, (picked || []).slice(0, mi.small ? 5 : 8), teach) });
+  function buildMessages(q, picked, modelId, teach, ctx, weak) {
+    var mi = modelInfo(modelId), msgs = mi.noSystem ? [] : [{ role: "system", content: SYSTEM }], ex = refVerse("Luke 6:36");
+    if (ex) msgs.push({ role: "user", content: userPrompt("what does mercy mean?", [ex]) },
+      { role: "assistant", content: "Mercy means kindness and compassion shown to someone who does not deserve it, like holding back a punishment they have earned or helping someone who cannot repay you. In the Bible, God shows us mercy by forgiving us, and He asks us to show the same mercy to others.\n" + ex.ref + ": \"" + ex.text + "\"" });
+    historyTurns(ctx && ctx.history, q, mi.small).forEach(function (m) { msgs.push(m); });
+    msgs.push({ role: "user", content: userPrompt(q, (picked || []).slice(0, mi.small ? 5 : 8), teach, ctx, weak, mi.small) });
     if (mi.noSystem) msgs[0] = { role: "user", content: SYSTEM + "\n\n" + msgs[0].content };
     return msgs;
   }
@@ -376,14 +413,12 @@
   // v7.6: very small models sometimes copy the worked example (Philippians 4:6, Matthew 6:34) instead of the verses found for
   // the question. Drop those copied lines unless the example verses were really retrieved, and if no quote is left, lead with
   // the top two retrieved verses word for word so every answer still shows real, relevant KJV text.
-  var EXAMPLE_REFS = { "Philippians 4:6": 1, "Matthew 6:34": 1 };
+  var EXAMPLE_REFS = { "Luke 6:36": 1, "Philippians 4:6": 1, "Matthew 6:34": 1 };
   function dropExampleCopies(text, picked) {
     picked = picked || []; var have = {}, dropped = 0; picked.forEach(function (v) { have[v.ref] = 1; });
     var lines = String(text || "").split("\n").filter(function (l) { var m = LINE_RE.exec(l); if (!m) return true; var v = findByReference(m[1])[0]; if (v && EXAMPLE_REFS[v.ref] && !have[v.ref]) { dropped++; return false; } return true; });
-    var out = lines.join("\n").replace(/^\s+/, "").replace(/\n{3,}/g, "\n\n");
-    if (dropped && !lines.some(function (l) { return LINE_RE.test(l); }) && picked.length)
-      out = picked.slice(0, 2).map(function (v) { return v.ref + ": \"" + v.text + "\""; }).join("\n") + "\n\n" + out;
-    return out.trim();
+    // v7.8: a copied example line is just dropped; answers are no longer forced to lead with verses
+    return lines.join("\n").replace(/^\s+/, "").replace(/\n{3,}/g, "\n\n").trim();
   }
   function stripThink(t) { return String(t || "").replace(/<think>[\s\S]*?(<\/think>|$)/g, "").replace(/<\/?think>/g, "").replace(/^\s+/, ""); }
 
@@ -507,12 +542,30 @@
   }
 
   /* ---------------- ask ---------------- */
-  // Retrieval only (no model): what both models are grounded on for a question.
-  async function retrieve(question, modelId) {
-    await ensureKJV();
-    var direct = findByReference(question).slice(0, 6), skip = {}; direct.forEach(function (v) { skip[v.ref] = 1; });
-    var ranked = searchKJV(question, { k: 5, skip: skip }), off = isOffTopic(direct, ranked), picked = direct.concat(ranked).slice(0, 8);
-    return { direct: direct, ranked: ranked, topics: ranked.topics, offTopic: off, picked: picked, messages: off ? null : buildMessages(question, picked, modelId), model: modelInfo(modelId).id };
+  // Retrieval only (no model): what every model is grounded on for a question. v7.8: ctx = { ref, text, version, chapter,
+  // chapterRef, history } - the verse on screen leads the verses offered, a follow-up with no words of its own ("explain that
+  // simpler") searches with the previous question, and nothing here ever refuses: messages are always built.
+  function cleanCtx(c) {
+    if (!c || typeof c !== "object") return null;
+    var o = { ref: c.ref ? String(c.ref).slice(0, 60) : "", text: c.text ? String(c.text).slice(0, 1200) : "", version: c.version ? String(c.version).slice(0, 40) : "",
+      chapter: c.chapter ? String(c.chapter).slice(0, 4000) : "", chapterRef: c.chapterRef ? String(c.chapterRef).slice(0, 60) : "", history: Array.isArray(c.history) ? c.history.slice(-12) : [] };
+    return o.ref || o.text || o.chapter || o.history.length ? o : null;
+  }
+  async function retrieve(question, modelId, ctx) {
+    await ensureKJV(); ctx = cleanCtx(ctx);
+    var direct = findByReference(question).slice(0, 6), skip = {}, onScreen = [];
+    if (ctx && ctx.ref) onScreen = findByReference(ctx.ref).slice(0, 3);
+    var sq = question;
+    if (!toks(question).length && ctx && ctx.history.length) {   // follow-up: borrow the last thing the person asked
+      var lastU = ctx.history.filter(function (m) { return m && m.role === "user" && norm(m.content || m.text) !== norm(question); }).pop();
+      if (lastU) sq = String(lastU.content || lastU.text || "") + " " + question;
+    }
+    direct.concat(onScreen).forEach(function (v) { skip[v.ref] = 1; });
+    var ranked = toks(sq).length ? searchKJV(sq, { k: 5, skip: skip }) : Object.assign([], { topics: [], coverage: 0, best: 0, terms: 0 });
+    var weak = isOffTopic(direct.concat(onScreen), ranked);
+    var seen = {}, picked = direct.concat(onScreen, weak ? ranked.slice(0, 3) : ranked).filter(function (v) { if (seen[v.ref]) return false; seen[v.ref] = 1; return true; }).slice(0, 8);
+    return { direct: direct, onScreen: onScreen, ranked: ranked, topics: ranked.topics, weak: weak, offTopic: false, context: ctx, picked: picked,
+      messages: buildMessages(question, picked, modelId, null, ctx, weak), model: modelInfo(modelId).id };
   }
   // The verses an answer actually quotes (after repair), else the top retrieved ones: for "Referenced Verses" chips.
   function citedVerses(text, picked) {
@@ -521,42 +574,31 @@
     if (!out.length) (picked || []).slice(0, 3).forEach(function (v) { var x = findByReference(v.ref)[0]; if (x && !seen[x.ref]) { seen[x.ref] = 1; out.push(x); } });
     return out.map(function (v) { return { ref: v.ref, text: v.text, b: v.b, c: v.c, v: v.v }; });
   }
-  // prepareAsk(question, { modelId, teachWaitMs }) -> retrieval for one answer: KJV verses (always) plus matching teachings
+  // prepareAsk(question, { modelId, teachWaitMs, context }) -> retrieval for one answer: KJV verses plus matching teachings
   // (when the theology corpus answers in time). R.messages is exactly what the model is given. No model is loaded here.
+  // v7.8: R.offTopic is always false - there is no refusal route; R.weak says the verses are only loosely related.
   async function prepareAsk(question, opts) {
     opts = opts || {}; var mi = modelInfo(opts.modelId);
-    var R = await retrieve(question, mi.id), intent = wantsTeaching(question);
-    // Off-topic: theology passages are the only evidence (single content word is enough). Teaching questions: also 1+.
-    // Everything else: the stricter guard (2+ matched terms, half the question covered).
-    R.theologyP = theologyTry(question, R.offTopic || intent ? 1 : 2);
-    R.teachings = [];
-    if (!R.offTopic) {
-      var wait = opts.teachWaitMs != null ? opts.teachWaitMs : (intent ? 2500 : 1200);
-      R.teachings = pickTeachings(await settleWithin(R.theologyP, wait), question, mi);
-      if (R.teachings.length) R.messages = buildMessages(question, R.picked, mi.id, R.teachings);
-    }
+    var R = await retrieve(question, mi.id, opts.context), intent = wantsTeaching(question);
+    R.theologyP = theologyTry(question, intent ? 1 : 2);
+    var wait = opts.teachWaitMs != null ? opts.teachWaitMs : (intent ? 2500 : 1200);
+    R.teachings = pickTeachings(await settleWithin(R.theologyP, wait), question, mi);
+    if (R.teachings.length) R.messages = buildMessages(question, R.picked, mi.id, R.teachings, R.context, R.weak);
     return R;
   }
-  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}), modelId }) -> { text, sources, refs, offTopic, engine, model, theology?, teachings? }
+  // generate(question, { onToken(textSoFar), onProgress({percent,stage,text}), modelId, context }) -> { text, sources, refs, offTopic, engine, model, theology?, teachings? }
+  // context = { ref, text, version, chapter, chapterRef, history: [{ role: "user"|"assistant", content }] }
   async function generate(question, opts) {
     opts = opts || {}; var prog = opts.onProgress || function () {}, mi = modelInfo(opts.modelId);
     if (!KJV) prog({ percent: 0, stage: "bible", text: "Opening the King James Bible..." });
-    var R = await prepareAsk(question, { modelId: mi.id }), thP = R.theologyP;
-    // Additive commentary route: for off-topic questions, theology passages are the only evidence offered;
-    // for on-topic questions they are clearly separated cards added AFTER the Bible answer, and the few that
-    // matched in time are also given to the model as short, labelled teachings (never as Scripture).
-    if (R.offTopic) {
-      var th0 = await thP;
-      // Off-topic: no verse genuinely matched, so attach no verse chips or cards - the reply's
-      // own words carry any loosely-related mention. Each reply shows only its own warranted refs.
-      if (th0) return { text: theologyNote(th0), sources: [], refs: [], offTopic: true, engine: "none", model: mi.id, modelName: mi.name, theology: th0 };
-      return { text: offTopicReply(R.ranked), sources: [], refs: [], offTopic: true, engine: "none", model: mi.id, modelName: mi.name };
-    }
+    var R = await prepareAsk(question, { modelId: mi.id, context: opts.context }), thP = R.theologyP;
     var e = await loadModel(prog, mi.id), raw = "";
     await e.gen(R.messages, function (d) { raw += d; if (opts.onToken) try { opts.onToken(stripThink(raw)); } catch (x) {} });
     var text = dropExampleCopies(repairQuotes(stripThink(raw).trim(), R.picked), R.picked);
     if (!text) throw new Error("empty-local-answer");
-    var th = await settleWithin(thP, 4000), out = { text: text, sources: R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: citedVerses(text, R.picked), offTopic: false, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
+    // Chips only for verses the answer really quotes (or, when the search was on-topic, the top verses found)
+    var refs = citedVerses(text, R.weak ? [] : R.picked);
+    var th = await settleWithin(thP, 4000), out = { text: text, sources: R.weak ? [] : R.picked.slice(0, 3).map(function (v) { return { ref: v.ref, text: v.text }; }), refs: refs, offTopic: false, weak: R.weak, engine: e.backend, modelId: e.modelId, model: mi.id, modelName: mi.name };
     var used = {}; R.teachings.forEach(function (t) { used[t.id] = 1; });
     if (th) out.theology = th.map(function (h) { return used[h.id] ? Object.assign({}, h, { usedInAnswer: true }) : h; });
     if (R.teachings.length) out.teachings = R.teachings;
@@ -632,7 +674,7 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountPill); else mountPill();
   window.addEventListener("storage", function (e) { if (e.key === KEY) emit(); });
 
-  var api = { version: "7.6", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
+  var api = { version: "7.8", models: { webgpu: [MODEL_F16, MODEL_F32], cpu: CPU_REPO, webllmUrl: WEBLLM_URL, transformersUrl: TJS_URL },
     // webgpu: [] when a model has no WebGPU build; cpu: null when it has no CPU build; backends lists what it has.
     MODELS: MODELS.map(function (m) { return { id: m.id, name: m.name, family: m.family, model: m.model, params: m.params, tag: m.tag, size: m.size, desc: m.desc, webgpu: m.webgpu ? [m.webgpu.f16, m.webgpu.f32].filter(Boolean) : [], cpu: m.cpu || null, rev: m.rev || null, dtype: m.dtype, backends: [m.webgpu ? "webgpu" : "", m.cpu ? "cpu" : ""].filter(Boolean) }; }),
     availability: availability, prepareAsk: prepareAsk, wantsTeaching: wantsTeaching, teachExcerpt: teachExcerpt,
@@ -641,7 +683,7 @@
     loadModel: loadModel, generate: generate, ask: generate, retrieve: retrieve, clearCache: clearCache, isCached: isCached, status: status, unload: unload,
     on: function (f) { subs.push(f); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
     ensureKJV: ensureKJV, kjvReady: function () { return !!KJV; }, passage: passage, findByReference: findByReference, searchKJV: searchKJV, search: searchKJV, isOffTopic: isOffTopic, offTopicReply: offTopicReply,
-    buildMessages: buildMessages, buildPrompt: buildMessages, repairQuotes: repairQuotes, dropExampleCopies: dropExampleCopies, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
+    buildMessages: buildMessages, buildPrompt: buildMessages, historyTurns: historyTurns, STOPWORDS: STOP, tokens: function (q) { return toks(q); }, repairQuotes: repairQuotes, dropExampleCopies: dropExampleCopies, citedVerses: citedVerses, chipsHtml: chipsHtml, stripThink: stripThink, SYSTEM: SYSTEM, INSTRUCTIONS: INSTRUCTIONS, TOPICS: Object.keys(TOPICS), lastRepair: null,
     theologyTry: theologyTry, theologyHtml: theologyHtml,
     openSwitcher: function () { var b = document.getElementById("aiEnginePill"); if (b) openMenu(b); } };
   window.BibleyLocalAI = api;

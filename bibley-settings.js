@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.7";
+  const APP_VER = "1.9", WEB_VER = "7.8";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -751,6 +751,7 @@
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
     ["ai", "Twelve on-device AI models", "Bibley 2.1 (Qwen3 0.6B) is fast and light; Bibley 2.2 (Google Gemma 3 1B) gives fuller answers on newer devices. Bibley 2.3 to 2.12 are ten more models under 1B parameters: Qwen3.5 0.8B (the smartest small one), LFM2 700M, Qwen2.5 0.5B, LFM2.5 350M, LFM2 350M, IBM Granite 4.0 350M, Baidu ERNIE 4.5 0.3B, SmolLM2 360M, Gemma 3 270M and SmolLM2 135M (the smallest, about 185-270 MB). Each card shows its download size.", "qwen gemma qwen3.5 lfm2 lfm2.5 liquid granite ibm ernie baidu smollm model 1 model 2 more models local offline download size under 1b small", "aiengine"],
+    ["ai", "Ask anything, in context", "Ask what a word means (\u201cwhat does virtue mean?\u201d), follow up with \u201cexplain that simpler\u201d, or ask a general question. Every AI uses the verse or chapter you're reading and your chat so far, and quotes real verses when they help.", "context follow up definition meaning word general question virtue explain simpler", ""],
     ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI or any on-device model (Bibley 2.1 to 2.12) without opening Settings.", "switcher pill cloud local engine", ""],
     ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Some models have only one build: Qwen3.5 0.8B and LFM2.5 350M need WebGPU, while LFM2, Granite, ERNIE and Gemma 3 270M run on CPU. A model without a build for your chosen backend uses the one it has, and its card says if it can't run on this device. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed only unavailable", "aiengine"],
     ["ai", "Teachings in answers", "For questions about teaching and doctrine (or when a passage closely matches), on-device answers also get a short excerpt from Augustine's Confessions or Calvin's Institutes, clearly labelled as that writer's words, never Scripture. The full passages appear as cards under the answer with a link to the public-domain source. If the writings aren't downloaded yet or you're offline, the answer uses the Bible verses alone.", "teachings theology doctrine augustine calvin confessions institutes sources commentary offline", "aiengine"],

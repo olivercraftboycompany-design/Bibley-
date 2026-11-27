@@ -334,9 +334,11 @@
       chat.msgs.push({ role: "user", content: q }); const a = { role: "assistant", content: "" }; chat.msgs.push(a); draw();
       list.lastElementChild.innerHTML = SKEL;
       const hist = chat.msgs.slice(0, -1).slice(-6);
-      const sys = SYS + " The user is reading " + verseLine(it) + " Answer their question about it in under 120 words.";
+      // v7.8: not only about the verse - word meanings, follow-ups and general questions get a real answer too
+      const sys = SYS + " The user is reading " + verseLine(it) + " Answer their question in under 120 words, using the verse and the conversation so far as context." +
+        " If they ask what a word means, start with the plain meaning of the word, then how it is used in this verse. Follow-up and general questions are welcome: answer them directly.";
       try {
-        const t = await window.BibleyAI.stream(sys, hist, { mode: "ask", maxTokens: 700, onText: t => { a.content = t; if (list.isConnected) { list.lastElementChild.innerHTML = fmtPlain(t); } } });
+        const t = await window.BibleyAI.stream(sys, hist, { mode: "ask", maxTokens: 700, context: { ref: it.ref, text: it.text, version: vname(it.version) }, onText: t => { a.content = t; if (list.isConnected) { list.lastElementChild.innerHTML = fmtPlain(t); } } });
         a.content = t; if (list.isConnected) draw();
       } catch (er) { a.content = errMsg(er); if (list.isConnected) draw(); }
     };

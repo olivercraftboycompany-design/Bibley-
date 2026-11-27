@@ -299,8 +299,11 @@
   function localOn() { var L = window.BibleyLocalAI; return !!(L && L.isLocal()); }
   async function streamLocal(system, user, opts) {
     var q = Array.isArray(user) ? ((user.filter(function (m) { return m.role === "user"; }).pop() || {}).content || "") : String(user || "");
+    // v7.8: the on-device model gets the same context the cloud does: what is on screen (opts.context) and the chat so far
+    var ctx = Object.assign({}, opts.context || {});
+    if (!ctx.history && Array.isArray(user)) ctx.history = user.slice(0, -1);
     try {
-      var r = await window.BibleyLocalAI.generate(q, { onToken: function (t) { if (opts.onText) { try { opts.onText(tidy(t)); } catch (e) {} } } });
+      var r = await window.BibleyLocalAI.generate(q, { context: ctx, onToken: function (t) { if (opts.onText) { try { opts.onText(tidy(t)); } catch (e) {} } } });
       api.last = { provider: r.modelName || "Bibley 2.1", model: r.modelId || r.engine, at: new Date().toISOString(), local: true };
       return tidy(r.text);
     } catch (e) { try { console.warn("[Bibley AI] on-device AI failed, using Cloud AI", e); } catch (x) {} return streamNow(system, user, opts); }
