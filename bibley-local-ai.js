@@ -4,7 +4,8 @@
    directly. Question filler ("what does ... mean", "explain", "tell me about") is stripped before the KJV search, so
    "what does virtue mean" searches for virtue. KJV verses and teachings are offered as help, quoted exactly when used.
    Was: Bibley 7.6 (2026-11-27): On-Device AI, twelve models (all under 1.1B parameters, ten of them under 1B)
-   sharing one KJV verse-lookup brain plus "teachings" (Augustine and Calvin passages from bibley-theology.js) as cited context.
+   sharing one KJV verse-lookup brain plus "teachings" (Augustine and Calvin, and from 7.9 the Church Fathers and Aquinas's Summa Theologiae,
+   from bibley-theology.js - each collection can be switched off in Settings > Historic Writings) as cited context.
    Verified 2026-11-27 against WebLLM 0.2.89's prebuilt list (lib/index.js) and the Hugging Face API, and every CPU build was
    loaded with onnxruntime-web 1.22.0-dev.20250409 (the runtime Transformers.js 3.8.1 uses) and run on a short KJV prompt:
      2.3 Qwen3.5 0.8B      WebGPU Qwen3.5-0.8B-q4f16_1-MLC / q4f32_1 (no CPU build: Transformers.js 3.8.1 has no qwen3_5 support)
@@ -259,7 +260,8 @@
   }
 
   /* ---------------- theology retrieval (bibley-theology.js bridge) ----------------
-     Lexical search over Augustine's Confessions (Pusey) and Calvin's Institutes (Allen, vol. 1).
+     Lexical search over Augustine's Confessions (Pusey) and Calvin's Institutes (Allen, vol. 1), plus (7.9) the Church Fathers and
+     Aquinas's Summa Theologiae - only the collections switched on in Settings > Historic Writings (search returns [] with AI use off).
      Retrieval only: no model call, no generated answer from these sources. The matched passages
      are their authors' words, never Scripture, and the UI labels them separately. */
   async function theologyTry(q, minTerms) {
@@ -290,7 +292,8 @@
     return '<div class="lai-theo"><span>From historic Christian writings - not Scripture</span>' + hits.map(function (h) {
       var head = '<b>' + escH(h.work || "") + '</b>' + (h.section ? ' <u>' + escH(h.section) + '</u>' : '') + '<i>' + escH(h.author || "unknown author") + (h.edition ? ' \u00b7 ' + escH(h.edition) : '') + (h.usedInAnswer ? ' \u00b7 given to the AI with the verses' : '') + '</i>';
       var snippet = escH((h.text || "").slice(0, 140)) + (h.text && h.text.length > 140 ? "\u2026" : "");
-      var link = h.source_url ? '<a class="lai-theo-src" href="' + escH(h.source_url) + '" target="_blank" rel="noopener">Read this in the full public-domain source text</a>' : "";
+      var link = (h.hw_key && window.BibleyHistoric && window.BibleyHistoric.visible() ? '<button type="button" class="lai-theo-in" onclick="BibleyHistoric.open(\'' + escH(h.hw_key) + '\',' + (h.hw_sec | 0) + ')">Read in Bibley</button> ' : "") +
+        (h.source_url ? '<a class="lai-theo-src" href="' + escH(h.source_url) + '" target="_blank" rel="noopener">Read this in the full public-domain source text</a>' : "");
       return '<details class="lai-theo-card"><summary>' + head + '<em>' + snippet + '</em><u class="lai-theo-more">tap to read the full passage</u></summary><div class="lai-theo-full">' + escH(h.text || "") + "</div>" + link + "</details>";
     }).join("") + "</div>";
   }
@@ -347,10 +350,11 @@
      cut around the sentences that match the question. Only for teaching / doctrine questions or a passage that covers
      most of the question. The corpus loads lazily; if it is not ready in time (first use, offline) the answer goes
      ahead with verses only, and the cards still appear under it when retrieval finishes. */
-  var TEACH_RE = /\b(teach|teaches|teaching|teachings|taught|doctrines?|doctrinal|theolog\w*|church fathers?|fathers of the church|augustine|calvin|calvinis\w*|reformed|reformers?|reformation|predestin\w*|elect|election|trinity|triune|original sin|free will|freedom of (the )?will|providence|sovereignty|sacraments?|baptism|justification|justified|sanctification|atonement|incarnation|creeds?|catechism|confessions|institutes|heresy|heretics?|what do christians believe|christians? believe|church teach\w*|historic(al)? christian)\b/i;
+  var TEACH_RE = /\b(teach|teaches|teaching|teachings|taught|doctrines?|doctrinal|theolog\w*|church fathers?|fathers of the church|early church|patristic|augustine|calvin|aquinas|thomas aquinas|summa|athanasius|irenaeus|justin martyr|tertullian|chrysostom|ambrose|basil|gregory of nazianzus|clement of alexandria|enchiridion|virtues?|natural law|eternal law|beatitude|calvinis\w*|reformed|reformers?|reformation|predestin\w*|elect|election|trinity|triune|original sin|free will|freedom of (the )?will|providence|sovereignty|sacraments?|baptism|justification|justified|sanctification|atonement|incarnation|creeds?|catechism|confessions|institutes|heresy|heretics?|what do christians believe|christians? believe|church teach\w*|historic(al)? christian)\b/i;
   function wantsTeaching(q) { return TEACH_RE.test(String(q || "")); }
   function shortLabel(h) {
     var a = String(h.author || "").replace(/ of hippo$/i, "").split(" ").pop() || "Unknown author";
+    if (h.group === "summa") return "Aquinas, Summa Theologiae (" + String(h.section || "").split(":")[0] + ")";
     var w = /confessions/i.test(h.work || "") ? "Confessions" : (/institutes/i.test(h.work || "") ? "Institutes" : String(h.work || "").split(",")[0]);
     var sec = String(h.section || "").split(".")[0].replace(/\s+/g, " ").trim().toLowerCase().replace(/^(book|chapter)\b/, function (x) { return x[0].toUpperCase() + x.slice(1); });
     return a + ", " + w + (sec && sec.length < 24 ? " (" + sec.replace(/\b([ivxlc]+)\b/g, function (x) { return x.toUpperCase(); }) + ")" : "");

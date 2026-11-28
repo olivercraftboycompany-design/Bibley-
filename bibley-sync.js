@@ -3,7 +3,8 @@
    SQLite database at bibley.sites.tab.bot/api), so a new phone, tablet or computer gets it all back.
    What syncs: every Bibley setting and study item kept in localStorage (keys starting "bible_" or
    "bibley_": highlights, notes, bookmarks, Study Notebook, reading plans, streak, chapters read,
-   memory verses, liked verses, Wisdom, settings, AI depth / engine, what Bibley remembers ...),
+   memory verses, liked verses, Wisdom, settings, AI depth / engine, what Bibley remembers, Historic Writings switches
+   "bibley_historic_prefs_v1" (7.9) ...),
    except caches, device-only state and secrets (see SKIP). Chats stay in this browser's IndexedDB.
    Stored: "bibley_account_v1" {token, user, auto} (never synced) and "bibley_sync_meta_v1"
    (sync bookkeeping: a hash + cloud time per key, and when each key last changed on this device).
@@ -186,6 +187,8 @@
     try { window.BibleyFX && window.BibleyFX.prefs && window.BibleyFX.prefs.apply(); } catch {}
     try { window.BibleySettings && window.BibleySettings.apply && window.BibleySettings.apply(); } catch {}
     try { window.dispatchEvent(new CustomEvent("bibley-sync-pulled", { detail: { keys } })); } catch {}
+    // 7.9: Historic Writings switches ("bibley_historic_prefs_v1") update the library entry and AI lookup right away
+    if (keys.indexOf("bibley_historic_prefs_v1") >= 0) try { window.dispatchEvent(new CustomEvent("bibley:historic-prefs")); } catch {}
     const needReload = keys.some(k => RELOAD_KEYS.test(k));
     if (opts && opts.reload && needReload) { try { sessionStorage.setItem("bibley_sync_reloaded", "1"); } catch {} setTimeout(() => location.reload(), 900); }
   }
