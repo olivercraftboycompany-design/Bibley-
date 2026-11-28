@@ -1,17 +1,5 @@
 # Bibley theology retrieval bridge
 
-## Bibley 7.9: three collections, each switchable
-
-`bibley-theology.js` now searches up to three collections, only the ones switched on in Settings > Historic Writings (`bibley_historic_prefs_v1`: `ai`, `classic`, `fathers`, `summa`; with `ai` off, search returns `[]` and nothing is fetched):
-
-- `classic` - Augustine's Confessions (Pusey) and Calvin's Institutes (Allen, vol. 1): `corpus-000..007.json` below, unchanged.
-- `fathers` - 11 works of the Church Fathers (Ante-Nicene / Nicene & Post-Nicene Fathers translations, 1885-1900): `../hw-fathers-1..3.json`.
-- `summa` - 116 complete Questions of Thomas Aquinas's Summa Theologiae (1920 English Dominican translation): `../hw-summa-1..4.json`.
-
-The Church Fathers and Summa bundles are shared with the Historic Writings reading library (`bibley-historic.js`); `../hw-index.json` is their catalog (works, credits, source URLs, section titles). In the browser each paragraph becomes one `bibley.source.v1` record (kind `historical_theology`, author, work, edition, section, source URL), with `hw_key`/`hw_sec` so an AI card can open the passage in the library. `corpus.index.json` keeps `shards` = classic only, for older app versions, and lists every collection under `groups`. `sources.json` lists every work with translator, edition and source.
-
-All text is verbatim public-domain translation fetched from New Advent (newadvent.org/fathers, newadvent.org/summa) on 2026-11-27; nothing is summarized. New Advent omits the Summa's short question prologues, so those are not included.
-
 Local implementation packet. Not deployed and not a tested answer-generating feature.
 
 ## What is included

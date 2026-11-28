@@ -398,15 +398,9 @@
      Shows once per version: closes with the X or a tap outside, then stays hidden
      until APP_VERSION changes. Stored: localStorage "bibley_seen_version".
      =================================================================== */
-  const APP_VERSION = "7.9";
+  const APP_VERSION = "7.8";
   const K_SEEN_VER = "bibley_seen_version";
   const CHANGELOG = [
-    { v: "7.9", date: "November 2026", items: [
-      ["Historic Writings: Church Fathers + Summa", "A new reading library (More > Historic Writings, or the Books menu): 11 works of the Church Fathers - Justin Martyr's First Apology, Irenaeus's Against Heresies Book III, Clement of Alexandria, Tertullian's Apology, Athanasius's On the Incarnation, Basil's On the Holy Spirit, Gregory of Nazianzus's Theological Orations, Ambrose, Chrysostom's On the Priesthood and Augustine's Enchiridion - and 116 Questions of Thomas Aquinas's Summa Theologiae, every article in full. Search by title, author, topic or Question."],
-      ["The real text, credited", "Every work is a public-domain translation (Ante-Nicene and Nicene & Post-Nicene Fathers, 1885-1900; the Summa's 1920 English Dominican translation) with the translator and source on its page."],
-      ["In AI answers too", "On-device answers can now draw short teaching excerpts from the Church Fathers and the Summa as well as Augustine and Calvin, always labelled as that writer's words. Tap Read in Bibley on a card to open the passage."],
-      ["Switch them off any time", "Settings > Historic Writings: turn off the library, AI use, or any collection (Church Fathers, Summa Theologiae, Augustine & Calvin). It applies right away and syncs to your other devices."]
-    ] },
     { v: "7.8", date: "November 2026", items: [
       ["AI that understands context", "Ask what a word means (\u201cwhat does virtue mean?\u201d), ask a follow-up like \u201cexplain that simpler\u201d, or ask a general question: Cloud AI and every on-device model now answer it, using the verse or chapter you're reading and your conversation so far. No more \u201cdid not find a passage\u201d replies."],
       ["Smarter verse lookup", "Question words like \u201cwhat does ... mean\u201d are skipped when Bibley searches the King James text, so it finds the verses about the word you asked about (virtue: 2 Peter 1:5, Philippians 4:8). Verses are quoted only when they really help."],

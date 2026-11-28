@@ -11,7 +11,7 @@
   const FX = window.BibleyFX, C = window.BibleyCore;
   if (!FX || !C) return;
   const K_SET = "bibley_settings_v2", K_FLAGS = "bibley_flags_v1";
-  const APP_VER = "1.9", WEB_VER = "7.9";
+  const APP_VER = "1.9", WEB_VER = "7.8";
   const ui = FX.ui, esc = ui.esc, toast = ui.toast;
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { toast("Couldn't save: storage is full"); return false; } };
@@ -391,12 +391,9 @@
     ["Chat history", "chat history calls conversations past delete", "history", ""], ["What Bibley remembers", "memory remember forget facts ai", "memory", ""],
     ["Compare differences", "compare diff differences parallel translations highlight words percent", "reading", "cmpdiff"],
     ["Recap", "recap daily weekly monthly summary stats statistics history progress time streak week month review", "study", "recap"], ["Recap week starts on", "week start sunday monday recap calendar", "study", "recapweek"],
-    ["Historic Writings", "historic writings library church fathers summa theologiae thomas aquinas augustine calvin teachings patristic", "historic", ""], ["Show Historic Writings library", "show hide historic writings library church fathers summa menu", "historic", "hwlib"],
-    ["Use Historic Writings in AI", "ai teachings quotes historic writings church fathers summa augustine calvin off", "historic", "hwai"], ["Church Fathers", "church fathers patristic athanasius irenaeus justin tertullian chrysostom basil gregory ambrose clement", "historic", "hwfathers"],
-    ["Summa Theologiae (Thomas Aquinas)", "summa theologiae theologica thomas aquinas questions articles", "historic", "hwsumma"], ["Augustine & Calvin", "augustine confessions calvin institutes teachings ai", "historic", "hwclassic"],
     ["Privacy", "privacy data ai", "privacy", ""], ["What's new", "whats new changelog updates", "about", "wn"], ["Version", "version about build", "about", "ver"]
   ];
-  const PG_NAMES = { tips: "Tips", historic: "Historic Writings", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
+  const PG_NAMES = { tips: "Tips", account: "Account & Cloud Sync", aiengine: "Bibley AI \u00b7 AI Engine", appearance: "Appearance", reading: "Reading", modes: "Modes", home: "Home & navigation", widgets: "Widgets", device: "Notifications & device", study: "Study & notes", audio: "Audio", data: "Data & backup", privacy: "Privacy", about: "About", tester: "Tester" };
 
   /* ---------- pages ---------- */
   const modeName = () => { const s = S(); const m = MODES.find(x => x.id === s.mode); return m ? m.name + " mode is on" : "Focus, Night, Simple, Study and more"; };
@@ -415,7 +412,6 @@
       group("Device", (window.BibleyFocusUI ? (() => { const f = window.BibleyFocusUI.get(); return swRow("focus", "Focus mode", "", f.on, "focus", window.BibleyFocusUI.icon) + (f.needsAccess ? '<div class="bs-bf-ask"><span>' + esc(window.BibleyFocusUI.ask) + '</span><button type="button" class="fx-btn small primary" data-act="focusallow">Allow</button></div>' : ""); })() : "") + (NAT ? row({ ic: IC.grid, t: "Widgets", s: "Add widgets to your home screen", go: "widgets" }) : "") +
         row({ ic: IC.phone, t: "Notifications & device", s: "Quiet hours, pause, Time with God", go: "device" })) +
       group("Study", row({ ic: IC.notes, t: "Study & notes", s: "Notebook, AI depth, plans, memory verses", go: "study" }) +
-        row({ ic: window.BibleyHistoric ? window.BibleyHistoric.icon : IC.book, t: "Historic Writings", s: hwSub(), go: "historic" }) +
         row({ ic: IC.audio, t: "Audio", s: "Read aloud speed", go: "audio" })) +
       group("Bibley AI", row({ ic: IC.chip, t: "AI Engine", s: (window.BibleyLocalAI && window.BibleyLocalAI.isLocal()) ? "On-Device AI \u00b7 " + (window.BibleyLocalAI.label ? window.BibleyLocalAI.label() : "Bibley 2.1") : "Cloud AI (Fast)", go: "aiengine" }) + row({ ic: IC.chat, t: "Chat history", s: "Open or delete past chats and calls", go: "history" }) +
         row({ ic: IC.mem, t: "What Bibley remembers", s: memSub(), go: "memory" })) +
@@ -751,17 +747,14 @@
   } };
 
   /* ---------- v7.1: Tips (searchable guide; replaces the long help text that sat at the bottom of pages) ---------- */
-  const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["hw", "Historic Writings"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
+  const TIP_CATS = [["all", "All"], ["nb", "Notebook"], ["ai", "AI & Models"], ["read", "Reading & Study"], ["lb", "Lost Books"], ["acct", "Accounts & Sync"], ["look", "Appearance & Offline"]];
   // [category, title, text, extra search words, settings page to open]
   const TIPS = [
-    ["hw", "Historic Writings library", "Open More > Historic Writings (or the Books menu) to read 11 works of the Church Fathers and 116 Questions of Aquinas's Summa Theologiae, every article in full. Search by title, author, topic or Question number.", "church fathers summa theologiae aquinas library read athanasius irenaeus justin augustine enchiridion chrysostom basil gregory", "historic"],
-    ["hw", "The real text, credited", "Every work is a public-domain translation: the Ante-Nicene and Nicene & Post-Nicene Fathers (1885-1900) and the Summa's 1920 English Dominican translation. The translator and a link to the source are on each page. Nothing is summarized or rewritten.", "public domain translation credit source translator new advent dominican", "historic"],
-    ["hw", "Turn collections on or off", "Settings > Historic Writings has switches for the library, for AI answers, and for each collection (Church Fathers, Summa Theologiae, Augustine & Calvin). A switched-off collection leaves the library and AI answers on every device you sync.", "turn off hide toggle switch bible only historic writings ai", "historic"],
     ["ai", "Twelve on-device AI models", "Bibley 2.1 (Qwen3 0.6B) is fast and light; Bibley 2.2 (Google Gemma 3 1B) gives fuller answers on newer devices. Bibley 2.3 to 2.12 are ten more models under 1B parameters: Qwen3.5 0.8B (the smartest small one), LFM2 700M, Qwen2.5 0.5B, LFM2.5 350M, LFM2 350M, IBM Granite 4.0 350M, Baidu ERNIE 4.5 0.3B, SmolLM2 360M, Gemma 3 270M and SmolLM2 135M (the smallest, about 185-270 MB). Each card shows its download size.", "qwen gemma qwen3.5 lfm2 lfm2.5 liquid granite ibm ernie baidu smollm model 1 model 2 more models local offline download size under 1b small", "aiengine"],
     ["ai", "Ask anything, in context", "Ask what a word means (\u201cwhat does virtue mean?\u201d), follow up with \u201cexplain that simpler\u201d, or ask a general question. Every AI uses the verse or chapter you're reading and your chat so far, and quotes real verses when they help.", "context follow up definition meaning word general question virtue explain simpler", ""],
     ["ai", "Switch AI in one tap", "Tap the engine pill at the top of the AI panel to pick Cloud AI or any on-device model (Bibley 2.1 to 2.12) without opening Settings.", "switcher pill cloud local engine", ""],
     ["ai", "WebGPU or CPU", "Auto uses WebGPU (fastest) when your device has it and falls back to CPU. Some models have only one build: Qwen3.5 0.8B and LFM2.5 350M need WebGPU, while LFM2, Granite, ERNIE and Gemma 3 270M run on CPU. A model without a build for your chosen backend uses the one it has, and its card says if it can't run on this device. Gemma 3 1B needs WebGPU with shader-f16, so other GPUs run it on CPU. CPU mode on phones is slower.", "webgpu cpu wasm backend f16 speed only unavailable", "aiengine"],
-    ["ai", "Teachings in answers", "For questions about teaching and doctrine (or when a passage closely matches), on-device answers also get a short excerpt from the Church Fathers, Aquinas's Summa Theologiae, Augustine's Confessions or Calvin's Institutes, clearly labelled as that writer's words, never Scripture. The full passages appear as cards under the answer; tap Read in Bibley to open one. If the writings aren't downloaded yet or you're offline, the answer uses the Bible verses alone.", "teachings theology doctrine augustine calvin confessions institutes church fathers summa aquinas sources commentary offline", "historic"],
+    ["ai", "Teachings in answers", "For questions about teaching and doctrine (or when a passage closely matches), on-device answers also get a short excerpt from Augustine's Confessions or Calvin's Institutes, clearly labelled as that writer's words, never Scripture. The full passages appear as cards under the answer with a link to the public-domain source. If the writings aren't downloaded yet or you're offline, the answer uses the Bible verses alone.", "teachings theology doctrine augustine calvin confessions institutes sources commentary offline", "aiengine"],
     ["ai", "One model in memory", "Only one on-device model is loaded at a time: switching unloads the other first. Each model downloads once and stays saved for offline use. Older iPhones can hit browser memory limits with Model 2 and the larger CPU builds (around 800 MB and up). Clear removes a model from the device.", "memory ram unload cache offline clear iphone", "aiengine"],
     ["ai", "Real KJV verse lookup", "Every on-device model looks up real King James verses for your question (references like John 3:16, keywords and 30 study topics across all 31,102 verses) and quote them word for word.", "kjv bible verse lookup quotes topics search grounding", ""],
     ["ai", "Referenced Verses chips", "Under an AI answer, tap a Referenced Verses chip to jump straight to that verse in the reader.", "chips references tap jump", ""],
@@ -818,22 +811,6 @@
     el.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { tipCat = b.dataset.cat; el.querySelectorAll("[data-cat]").forEach(x => x.classList.toggle("on", x === b)); draw(); });
     draw();
   } };
-  /* ---------- v7.9: Historic Writings (Church Fathers + Summa Theologiae library, and which writings AI answers may use) ---------- */
-  const HW = () => window.BibleyHistoric ? window.BibleyHistoric.prefs() : { lib: true, ai: true, fathers: true, summa: true, classic: true };
-  const hwSub = () => { const p = HW(), on = [p.fathers && "Church Fathers", p.summa && "Summa", p.classic && "Augustine & Calvin"].filter(Boolean); return (!p.lib && !p.ai) || !on.length ? "Off" : (p.lib ? "Library" : "") + (p.lib && p.ai ? " + " : "") + (p.ai ? "AI" : "") + " \u00b7 " + on.join(", "); };
-  PAGES.historic = { title: "Historic Writings", render(el) {
-    const p = HW(), H = window.BibleyHistoric, hic = H ? H.icon : IC.book;
-    el.innerHTML = group("Library", swRow("hwLib", "Show Historic Writings library", "Church Fathers and Summa in More and Books", p.lib, "hwlib", hic) +
-        (H && H.visible() ? row({ ic: IC.book, t: "Open Historic Writings", s: "11 Fathers works \u00b7 116 Summa Questions", act: "hwopen" }) : "")) +
-      group("Bibley AI", swRow("hwAi", "Use Historic Writings in AI", "Teaching excerpts in on-device answers", p.ai, "hwai", IC.chip)) +
-      group("Collections", swRow("hwFathers", "Church Fathers", "Library shelf and AI", p.fathers, "hwfathers") +
-        swRow("hwSumma", "Summa Theologiae (Thomas Aquinas)", "Library shelf and AI", p.summa, "hwsumma") +
-        swRow("hwClassic", "Augustine & Calvin", "Confessions and Institutes, in AI", p.classic, "hwclassic"));
-    const KEYS = { hwLib: "lib", hwAi: "ai", hwFathers: "fathers", hwSumma: "summa", hwClassic: "classic" };
-    wire(el, { sw: (k, on) => { if (!KEYS[k]) return; if (H) H.setPrefs({ [KEYS[k]]: on }); else { try { localStorage.setItem("bibley_historic_prefs_v1", JSON.stringify(Object.assign(HW(), { [KEYS[k]]: on }))); } catch {} } rerender(); },
-      act: a => { if (a === "hwopen" && H) close(() => H.open(), 120); } });
-  } };
-
   PAGES.data = { title: "Data & backup", render(el) {
     const total = storageRows().reduce((a, r) => a + r[1], 0);
     el.innerHTML = ''+

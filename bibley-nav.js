@@ -47,7 +47,7 @@
     const bm = $("bookmarkBtn"), cmp = $("compareBtn"), fs = $("fullscreenBtn");
     const marked = bm && bm.classList.contains("active"), comparing = cmp && cmp.classList.contains("active"), full = fs && fs.classList.contains("active");
     return [["scroll", IC.scroll, "Scroll verses"], ["liked", IC.heart, "Liked verses"], ["bm", IC.bookmark, marked ? "Remove chapter bookmark" : "Bookmark this chapter", marked], ["tts", IC.audio, "Read this chapter aloud"], ["cmp", IC.compare, comparing ? "Stop comparing" : "Compare translations", comparing]].concat(window.BibleyReading ? [["print", IC.print, comparing ? "Print both translations" : "Print chapter"]] : []).concat([
-      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]]).concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"]]).concat(window.BibleyRecap ? [["recap", window.BibleyRecap.icon, "Recap"]] : []).concat(window.BibleyHistoric && window.BibleyHistoric.visible() ? [["hw", window.BibleyHistoric.icon, "Historic Writings"]] : []).concat([["set", IC.gear, "Settings"]]);
+      ["fs", IC.full, full ? "Exit fullscreen" : "Fullscreen", full]]).concat(window.BibleyFocusUI ? [["focus", window.BibleyFocusUI.icon, "Focus mode", window.BibleyFocusUI.get().on]] : []).concat([["today", IC.sun, "Today"]]).concat(window.BibleyRecap ? [["recap", window.BibleyRecap.icon, "Recap"]] : []).concat([["set", IC.gear, "Settings"]]);
   }
   function closeMenu() { if (menu) { menu.remove(); menu = null; document.removeEventListener("pointerdown", outside, true); } }
   function outside(e) { if (menu && !menu.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) closeMenu(); }
@@ -66,7 +66,6 @@
       if (k === "tts") { const x = document.querySelector('.tts-btn[data-pane="a"]'); if (x) x.click(); }
       if (k === "today") FX.open.today();
       if (k === "recap" && window.BibleyRecap) window.BibleyRecap.open();
-      if (k === "hw" && window.BibleyHistoric) window.BibleyHistoric.open();
       if (k === "set") FX.open.settings();
       if (k === "scroll" && window.BibleyScroll) window.BibleyScroll.open();
       if (k === "liked" && window.BibleyScroll) window.BibleyScroll.likedSheet();
